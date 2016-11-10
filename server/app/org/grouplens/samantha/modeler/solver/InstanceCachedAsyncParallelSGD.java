@@ -1,0 +1,170 @@
+package org.grouplens.samantha.modeler.solver;
+
+import org.grouplens.samantha.modeler.common.LearningData;
+import org.grouplens.samantha.modeler.common.LearningInstance;
+import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+public class InstanceCachedAsyncParallelSGD extends AbstractOptimizationMethod implements OnlineOptimizationMethod {
+    final private static Logger logger = LoggerFactory.getLogger(InstanceCachedAsyncParallelSGD.class);
+    final private String cachePath;
+    final private String tstampStr = Long.valueOf(System.currentTimeMillis()).toString();
+    final private int numThreads;
+    final private double l2coef;
+    final private double lr;
+
+    public InstanceCachedAsyncParallelSGD(String cachePath) {
+        super();
+        this.cachePath = cachePath;
+        this.numThreads = Runtime.getRuntime().availableProcessors();
+        this.lr = 0.001;
+        this.l2coef = 0.0;
+        this.tol = 5.0;
+        this.maxIter = 50;
+    }
+
+    public InstanceCachedAsyncParallelSGD(int maxIter, double l2coef, double learningRate, double tol,
+                                          int numThreads, String cachePath) {
+        super();
+        this.cachePath = cachePath;
+        this.numThreads = numThreads;
+        this.l2coef = l2coef;
+        this.lr = learningRate;
+        this.tol = tol;
+        this.maxIter = maxIter;
+    }
+
+    /*
+    private void cacheLearningData(LearningData data, String prefix) {
+        List<ObjectOutputStream> outputStreams = new ArrayList<>(numThreads);
+        try {
+            for (int i = 0; i < numThreads; i++) {
+                String oneCachePath = getCachePath(prefix, i);
+                outputStreams.add(new ObjectOutputStream(new FileOutputStream(oneCachePath)));
+            }
+            LearningInstance ins;
+            Random rand = new Random();
+            int cnt = 0;
+            while ((ins = data.getLearningInstance()) != null) {
+                cnt++;
+                int idx = rand.nextInt(numThreads);
+                outputStreams.get(idx).writeUnshared(ins);
+                outputStreams.get(idx).reset();
+                if (cnt % 10000 == 0) {
+                    logger.info("Cached {} instances.", cnt);
+                }
+            }
+            for (int i = 0; i < numThreads; i++) {
+                outputStreams.get(i).flush();
+                outputStreams.get(i).close();
+            }
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+            throw new InvalidRequestException(e);
+        }
+    }
+    */
+
+    private void cacheLearningData(LearningData data, String prefix) {
+        List<Thread> threads = new ArrayList<>(numThreads);
+        List<ObjectiveRunnable> runnables = new ArrayList<>(numThreads);
+        for (int i=0; i<numThreads; i++) {
+            String oneCachePath = getCachePath(prefix, i);
+            ObjectiveRunnable runnable = new CacheInstanceRunnable(oneCachePath, data);
+            runnables.add(runnable);
+            Thread thread = new Thread(runnable);
+            threads.add(thread);
+            thread.start();
+        }
+        double cnt = SolverUtilities.joinObjectiveRunnableThreads(numThreads, runnables, threads);
+        logger.info("Done Caching. Cached {} instances totally.", cnt);
+    }
+
+    private void clearCache(String prefix) {
+        for (int i = 0; i < numThreads; i++) {
+            String oneCachePath = getCachePath(prefix, i);
+            new File(oneCachePath).delete();
+        }
+    }
+
+    private String getCachePath(String prefix, Integer thrIdx) {
+        return cachePath + "/" + prefix + "-" + thrIdx.toString() + "-" +
+                tstampStr + ".tmp";
+    }
+
+    public double minimize(LearningModel model, LearningData learningData, LearningData validData) {
+        cacheLearningData(learningData, "learn");
+        if (validData != null) {
+            cacheLearningData(validData, "valid");
+        }
+        TerminationCriterion learnCrit = new TerminationCriterion(tol, maxIter);
+        TerminationCriterion validCrit = null;
+        if (validData != null) {
+            validCrit = new TerminationCriterion(tol, maxIter);
+        }
+        logger.info("Using numThreads={}", numThreads);
+        List<Thread> threads = new ArrayList<>(numThreads);
+        List<ObjectiveRunnable> runnables = new ArrayList<>(numThreads);
+        double learnObjVal = 0.0;
+        while (learnCrit.keepIterate()) {
+            if (validCrit != null && !(validCrit.keepIterate())) {
+                break;
+            }
+            threads.clear();
+            runnables.clear();
+            for (int i=0; i<numThreads; i++) {
+                String oneCachePath = getCachePath("learn", i);
+                SolverUtilities.startObjectiveRunnableThreads(oneCachePath, model, l2coef, lr,
+                        runnables, threads);
+            }
+            learnObjVal = SolverUtilities.joinObjectiveRunnableThreads(numThreads, runnables, threads);
+            learnCrit.addIteration(AbstractOnlineOptimizationMethod.class.toString()
+                    + " -- Learning", learnObjVal);
+            if (validData != null) {
+                threads.clear();
+                runnables.clear();
+                for (int i=0; i<numThreads; i++) {
+                    String oneCachePath = getCachePath("valid", i);
+                    LearningData learnData = new ObjectStreamLearningData(oneCachePath);
+                    EvaluateRunnable runnable = new EvaluateRunnable(model, learnData);
+                    runnables.add(runnable);
+                    Thread thread = new Thread(runnable);
+                    threads.add(thread);
+                    thread.start();
+                }
+                double validObjVal = SolverUtilities.joinObjectiveRunnableThreads(numThreads, runnables, threads);
+                validCrit.addIteration(AbstractOnlineOptimizationMethod.class.toString()
+                        + " -- Validating", validObjVal);
+            }
+        }
+        clearCache("learn");
+        if (validData != null) {
+            clearCache("valid");
+        }
+        return learnObjVal;
+    }
+
+    public double update(LearningModel learningModel, LearningData learningData) {
+        cacheLearningData(learningData, "update");
+        List<Thread> threads = new ArrayList<>(numThreads);
+        List<ObjectiveRunnable> runnables = new ArrayList<>(numThreads);
+        logger.info("Using numThreads={}", numThreads);
+        for (int i=0; i<numThreads; i++) {
+            String oneCachePath = getCachePath("update", i);
+            SolverUtilities.startObjectiveRunnableThreads(oneCachePath, learningModel, l2coef,
+                    lr, runnables, threads);
+        }
+        double objVal = SolverUtilities.joinObjectiveRunnableThreads(numThreads, runnables, threads);
+        clearCache("update");
+        return objVal;
+    }
+}

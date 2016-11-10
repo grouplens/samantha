@@ -1,0 +1,18 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# global
+POST   /config/reload                    controllers.AdminHandlers.reloadConfig()
+
+# engine
+POST   /:engine/recommendation             controllers.EngineHandlers.getRecommendation(engine: String)
+POST   /:engine/prediction                 controllers.EngineHandlers.getPrediction(engine: String)
+POST   /:engine/evaluate                   controllers.EngineHandlers.evaluate(engine: String)
+POST   /:engine/index/data                 controllers.EngineHandlers.indexData(engine: String)
+POST   /:engine/predictor/model            controllers.EngineHandlers.predictorModel(engine: String)
+POST   /:engine/retriever/model            controllers.EngineHandlers.retrieverModel(engine: String)
+POST   /:engine/ranker/model               controllers.EngineHandlers.rankerModel(engine: String)
+
+
+# Add your own urls and handlers here

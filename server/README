@@ -1,0 +1,27 @@
+
+Data Processing Perspectives
+===============
+
+1. offline
+
+a) multiple w/ rec/pred: key-value data source --> elasticsearch type (elastic configs)
+b) single w/ rec/pred: key-value data sources --> rec/pred model file (lenskit config)
+
+3. admin request online
+
+a) call 1.a
+b) call 1.b
+c) single w/ rec/pred: rec/pred model file --> in-memory model
+d) single w/ rec/pred: in-memory model --> rec/pred model file
+e) multipe w/ rec/pred: evaluation request --> html formatted model evaluator metrics
+f) multiple w/ rec/pred: config files --> in-memory config objects
+
+2. user request online
+
+a) single w/ rec/pred: rec/pred request --> item recommendations/predictions
+
+     i) elasticsearch type --> retrieved in-memory items
+    ii) user history + item-item similarity --> retrieved in-memory items
+
+b) multiple w/ rec/pred: online data sources --> rec/pred model update
+c) multiple w/ rec/pred: online data sources --> elastic evaluator type
