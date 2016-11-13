@@ -1,24 +1,24 @@
 package org.grouplens.samantha.server.retriever;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.svdfeature.KnnModelFeatureTrigger;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
+import play.Configuration;
 import play.Logger;
-import play.libs.Json;
 
 import java.util.List;
 
-public class RedisInteractionRetriever implements Retriever {
+public class RedisInteractionRetriever extends AbstractRetriever {
     private final RedisKeyBasedRetriever retriever;
     private final KnnModelFeatureTrigger trigger;
     private final List<EntityExpander> expanders;
 
     public RedisInteractionRetriever(RedisKeyBasedRetriever retriever,
                                      KnnModelFeatureTrigger trigger,
-                                     List<EntityExpander> expanders) {
+                                     List<EntityExpander> expanders, Configuration config) {
+        super(config);
         this.retriever = retriever;
         this.trigger = trigger;
         this.expanders = expanders;
@@ -36,9 +36,5 @@ public class RedisInteractionRetriever implements Retriever {
         Logger.debug("Expanding time: {}", System.currentTimeMillis() - start);
         interactions.setEntityList(results);
         return interactions;
-    }
-
-    public JsonNode getFootprint() {
-        return Json.newObject();
     }
 }

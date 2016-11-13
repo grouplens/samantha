@@ -13,20 +13,22 @@ public class MultipleBlendingRetrieverConfig implements RetrieverConfig {
     private final List<String> itemAttrs;
     private final Integer maxHits;
     private final Injector injector;
+    private final Configuration config;
 
     private MultipleBlendingRetrieverConfig(List<String> retrieverNames, List<String> itemAttrs, Integer maxHits,
-                                            Injector injector) {
+                                            Injector injector, Configuration config) {
         this.injector = injector;
         this.retrieverNames = retrieverNames;
         this.itemAttrs = itemAttrs;
         this.maxHits = maxHits;
+        this.config = config;
     }
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
                                                      Injector injector) {
         return new MultipleBlendingRetrieverConfig(retrieverConfig.getStringList("retrieverNames"),
                 retrieverConfig.getStringList("itemAttrs"),
-                retrieverConfig.getInt("maxHits"), injector);
+                retrieverConfig.getInt("maxHits"), injector, retrieverConfig);
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
@@ -35,6 +37,6 @@ public class MultipleBlendingRetrieverConfig implements RetrieverConfig {
         for (String name : retrieverNames) {
             retrievers.add(configService.getRetriever(name, requestContext));
         }
-        return new MultipleBlendingRetriever(retrievers, itemAttrs, maxHits);
+        return new MultipleBlendingRetriever(retrievers, itemAttrs, maxHits, config);
     }
 }

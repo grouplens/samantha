@@ -41,13 +41,14 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
     private final int numMainFeatures;
     private final String serializedKey;
     private final String insName;
+    private final Configuration config;
 
     private LinearUCBPredictorConfig(String modelName, List<FeatureExtractorConfig> feaExtConfigs,
                                      List<String> features, int numMainFeatures, String labelName, String weightName,
                                      Configuration daoConfigs, List<Configuration> expandersConfig,
                                      Injector injector, Configuration methodConfig, String modelFile,
                                      String daoConfigKey, double lambda, double alpha,
-                                     String insName, String serializedKey) {
+                                     String insName, String serializedKey, Configuration config) {
         this.modelName = modelName;
         this.feaExtConfigs = feaExtConfigs;
         this.features = features;
@@ -64,6 +65,7 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
         this.numMainFeatures = numMainFeatures;
         this.serializedKey = serializedKey;
         this.insName = insName;
+        this.config = config;
     }
 
     public static PredictorConfig getPredictorConfig(Configuration predictorConfig,
@@ -91,7 +93,7 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
                 predictorConfig.getString("modelFile"),
                 predictorConfig.getString("daoConfigKey"), lambda, alpha,
                 predictorConfig.getString("instanceName"),
-                predictorConfig.getString("serializedKey"));
+                predictorConfig.getString("serializedKey"), predictorConfig);
     }
 
     private LinearUCBModel createNewModel(RequestContext requestContext) {
@@ -175,9 +177,7 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
         }
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        //TODO: add model parameters into footprint
-        JsonNode footprint = Json.newObject();
-        return new PredictiveModelBasedPredictor(footprint, model, model,
+        return new PredictiveModelBasedPredictor(config, model, model,
                 daoConfigs, injector, entityExpanders, daoConfigKey);
     }
 }

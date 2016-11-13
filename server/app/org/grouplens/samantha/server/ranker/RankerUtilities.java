@@ -13,6 +13,8 @@ import static org.grouplens.samantha.modeler.tree.SortingUtilities.compareValues
 public class RankerUtilities {
     private RankerUtilities() {}
 
+    static public int defaultPageSize = 24;
+
     static public Ordering<Prediction> scoredResultScoreOrdering() {
         return new Ordering<Prediction>() {
             @Override

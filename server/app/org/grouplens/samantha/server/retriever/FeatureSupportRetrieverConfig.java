@@ -19,10 +19,11 @@ public class FeatureSupportRetrieverConfig implements RetrieverConfig {
     final private Integer maxHits;
     final private List<Configuration> expandersConfig;
     final private Injector injector;
+    final private Configuration config;
 
     private FeatureSupportRetrieverConfig(String modelName, String predictorName, List<String> itemAttrs,
                                           String supportAttr, Integer maxHits, List<Configuration> expandersConfig,
-                                          Injector injector) {
+                                          Injector injector, Configuration config) {
         this.modelName = modelName;
         this.predictorName = predictorName;
         this.itemAttrs = itemAttrs;
@@ -30,6 +31,7 @@ public class FeatureSupportRetrieverConfig implements RetrieverConfig {
         this.maxHits = maxHits;
         this.expandersConfig = expandersConfig;
         this.injector = injector;
+        this.config = config;
     }
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
@@ -40,7 +42,7 @@ public class FeatureSupportRetrieverConfig implements RetrieverConfig {
                 retrieverConfig.getStringList("itemAttrs"),
                 retrieverConfig.getString("supportAttr"),
                 retrieverConfig.getInt("maxHits"),
-                expanders, injector);
+                expanders, injector, retrieverConfig);
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
@@ -50,6 +52,6 @@ public class FeatureSupportRetrieverConfig implements RetrieverConfig {
         SVDFeatureModel model = (SVDFeatureModel) modelService.getModel(requestContext.getEngineName(), modelName);
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        return new FeatureSupportRetriever(model, itemAttrs, supportAttr, maxHits, entityExpanders);
+        return new FeatureSupportRetriever(model, itemAttrs, supportAttr, maxHits, entityExpanders, config);
     }
 }

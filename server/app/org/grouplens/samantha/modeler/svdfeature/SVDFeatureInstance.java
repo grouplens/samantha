@@ -56,7 +56,6 @@ public class SVDFeatureInstance implements LearningInstance {
     }
 
     public List<Feature> getBiasFeatures() {
-        //TODO: bette doing defensive copying
         return this.gfeas;
     }
 

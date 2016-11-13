@@ -1,7 +1,8 @@
 package org.grouplens.samantha.server.exception;
 
 public class InvalidRequestException extends RuntimeException {
-    //TODO: adding serialVersionUID
+    private static final long serialVersionUID = 1L;
+
     public InvalidRequestException() {
         super();
     }

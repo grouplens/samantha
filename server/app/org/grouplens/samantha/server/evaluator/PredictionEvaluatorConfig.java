@@ -13,6 +13,7 @@ import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.predictor.Predictor;
 import play.Configuration;
 import play.inject.Injector;
+import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -82,7 +83,7 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
         }
         EntityDAO entityDao = EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 reqBody.get(daoConfigKey), injector);
-        return new PredictionEvaluator(predictorName, predictor.getFootprint().toString(),
+        return new PredictionEvaluator(predictorName, Json.toJson(predictor.getConfig().asMap()).toString(),
                 predictor, entityDao, type, groupKey, metrics, indexers, predIndexers);
     }
 }

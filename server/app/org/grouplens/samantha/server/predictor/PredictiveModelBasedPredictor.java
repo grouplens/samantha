@@ -2,6 +2,7 @@ package org.grouplens.samantha.server.predictor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.typesafe.config.ConfigRenderOptions;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.modeler.featurizer.Featurizer;
@@ -9,38 +10,31 @@ import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.common.PredictiveModel;
 import play.Configuration;
 import play.inject.Injector;
+import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class PredictiveModelBasedPredictor implements Predictor {
+public class PredictiveModelBasedPredictor extends AbstractPredictor {
     private final PredictiveModel predictiveModel;
     private final Featurizer featurizer;
-    private final JsonNode footprint;
-    private final Configuration daoConfigs;
-    private final Injector injector;
+    private final Configuration config;
     private final List<EntityExpander> entityExpanders;
-    private final String daoConfigKey;
 
-    public PredictiveModelBasedPredictor(JsonNode footprint,
+    public PredictiveModelBasedPredictor(Configuration config,
                                          PredictiveModel predictiveModel,
                                          Featurizer featurizer,
                                          Configuration daoConfigs,
                                          Injector injector,
                                          List<EntityExpander> entityExpanders,
                                          String daoConfigKey) {
+        super(config, daoConfigs, daoConfigKey, injector);
         this.predictiveModel = predictiveModel;
         this.featurizer = featurizer;
-        this.footprint = footprint;
-        this.daoConfigs = daoConfigs;
-        this.injector = injector;
+        this.config = config;
         this.entityExpanders = entityExpanders;
-        this.daoConfigKey = daoConfigKey;
     }
 
-    public List<Prediction> predict(RequestContext requestContext) {
-        return PredictorUtilities.predictFromRequest(this, requestContext, injector, daoConfigs, daoConfigKey);
-    }
 
     public List<Prediction> predict(List<ObjectNode> entityList,
                                     RequestContext requestContext) {
@@ -61,7 +55,7 @@ public class PredictiveModelBasedPredictor implements Predictor {
         return results;
     }
 
-    public JsonNode getFootprint() {
-        return footprint;
+    public Configuration getConfig() {
+        return config;
     }
 }

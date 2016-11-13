@@ -38,12 +38,14 @@ public class RegressionTreePredictorConfig implements PredictorConfig {
     private final String daoConfigKey;
     private final String serializedKey;
     private final String insName;
+    private final Configuration config;
 
     private RegressionTreePredictorConfig(String modelName, List<FeatureExtractorConfig> feaExtConfigs,
                                           List<String> features, String labelName, String weightName,
                                           Configuration daoConfigs, List<Configuration> expandersConfig,
                                           Injector injector, TreeLearningMethod method, String modelFile,
-                                          String daoConfigKey, String insName, String serializedKey) {
+                                          String daoConfigKey, String insName, String serializedKey,
+                                          Configuration config) {
         this.modelName = modelName;
         this.feaExtConfigs = feaExtConfigs;
         this.features = features;
@@ -57,6 +59,7 @@ public class RegressionTreePredictorConfig implements PredictorConfig {
         this.daoConfigKey = daoConfigKey;
         this.serializedKey = serializedKey;
         this.insName = insName;
+        this.config = config;
     }
 
     public static PredictorConfig getPredictorConfig(Configuration predictorConfig,
@@ -75,7 +78,7 @@ public class RegressionTreePredictorConfig implements PredictorConfig {
                 predictorConfig.getString("modelFile"),
                 predictorConfig.getString("daoConfigKey"),
                 predictorConfig.getString("instanceName"),
-                predictorConfig.getString("serializedKey"));
+                predictorConfig.getString("serializedKey"), predictorConfig);
     }
 
     private RegressionTree createNewModel(RequestContext requestContext) {
@@ -133,9 +136,7 @@ public class RegressionTreePredictorConfig implements PredictorConfig {
         }
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        //TODO: add model parameters into footprint
-        JsonNode footprint = Json.newObject();
-        return new PredictiveModelBasedPredictor(footprint, model, model,
+        return new PredictiveModelBasedPredictor(config, model, model,
                 daoConfigs, injector, entityExpanders, daoConfigKey);
     }
 }

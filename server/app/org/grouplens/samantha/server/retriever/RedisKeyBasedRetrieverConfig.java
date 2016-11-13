@@ -12,24 +12,26 @@ public class RedisKeyBasedRetrieverConfig implements RetrieverConfig {
     private final List<String> retrieveFields;
     private final String indexPrefix;
     private final Injector injector;
+    private final Configuration config;
 
     private RedisKeyBasedRetrieverConfig(List<String> keyFields, List<String> retrieveFields,
-                                         String indexPrefix, Injector injector) {
+                                         String indexPrefix, Injector injector, Configuration config) {
         this.keyFields = keyFields;
         this.retrieveFields = retrieveFields;
         this.indexPrefix = indexPrefix;
         this.injector = injector;
+        this.config = config;
     }
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
                                                      Injector injector) {
         return new RedisKeyBasedRetrieverConfig(retrieverConfig.getStringList("keyFields"),
                 retrieverConfig.getStringList("retrieveFields"),
-                retrieverConfig.getString("indexPrefix"), injector);
+                retrieverConfig.getString("indexPrefix"), injector, retrieverConfig);
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
         RedisService redisService = injector.instanceOf(RedisService.class);
-        return new RedisKeyBasedRetriever(redisService, retrieveFields, indexPrefix, keyFields);
+        return new RedisKeyBasedRetriever(redisService, retrieveFields, indexPrefix, keyFields, config);
     }
 }

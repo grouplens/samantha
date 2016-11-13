@@ -46,6 +46,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
     private final String daoConfigKey;
     private final String serializedKey;
     private final String insName;
+    private final Configuration config;
 
     private SVDFeaturePredictorConfig(List<String> biasFeas,
                                       List<String> ufactFeas,
@@ -64,7 +65,8 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
                                       String dependPredictorModelName,
                                       Injector injector,
                                       List<Configuration> expandersConfig,
-                                      String daoConfigKey, String insName, String serializedKey) {
+                                      String daoConfigKey, String insName, String serializedKey,
+                                      Configuration config) {
         this.biasFeas = biasFeas;
         this.ufactFeas = ufactFeas;
         this.ifactFeas = ifactFeas;
@@ -85,6 +87,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
         this.daoConfigKey = daoConfigKey;
         this.serializedKey = serializedKey;
         this.insName = insName;
+        this.config = config;
     }
 
     static public PredictorConfig getPredictorConfig(Configuration predictorConfig,
@@ -120,7 +123,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
                     dependPredictorModelName, injector, expanders,
                     predictorConfig.getString("daoConfigKey"),
                     predictorConfig.getString("instanceName"),
-                    predictorConfig.getString("serializedKey"));
+                    predictorConfig.getString("serializedKey"), predictorConfig);
         } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             throw new ConfigurationException(e);
         }
@@ -221,9 +224,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
         }
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        //TODO: add model parameters into footprint
-        JsonNode footprint = Json.newObject();
-        return new PredictiveModelBasedPredictor(footprint, model, model,
+        return new PredictiveModelBasedPredictor(config, model, model,
                 entityDaoConfigs, injector, entityExpanders, daoConfigKey);
     }
 }

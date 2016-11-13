@@ -14,7 +14,7 @@ import org.grouplens.samantha.modeler.tree.*;
 
 import java.util.List;
 
-//TODO: change this to be an interface so that GB-CENT can depend on other implementations, such as xgboost
+//TODO: change this to be an interface so that GB-CENT can depend on other implementations, such as org.grouplens.samantha.xgboost
 public class RegressionTreeGBCent extends AbstractGBCent implements PredictiveModel, GBCent {
     private static final long serialVersionUID = 1L;
     private final String modelName;

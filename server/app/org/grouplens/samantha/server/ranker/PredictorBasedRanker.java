@@ -1,7 +1,5 @@
 package org.grouplens.samantha.server.ranker;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
 import org.grouplens.samantha.server.expander.EntityExpander;
@@ -9,12 +7,13 @@ import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.predictor.Predictor;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
-import play.libs.Json;
+import play.Configuration;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-public class PredictorBasedRanker implements Ranker {
+public class PredictorBasedRanker extends AbstractRanker {
     private final List<EntityExpander> entityExpanders;
     private final Predictor predictor;
     private final int pageSize;
@@ -22,7 +21,8 @@ public class PredictorBasedRanker implements Ranker {
     private int limit;
 
     public PredictorBasedRanker(Predictor predictor, int pageSize, int offset, int limit,
-                                List<EntityExpander> entityExpanders) {
+                                List<EntityExpander> entityExpanders, Configuration config) {
+        super(config);
         this.predictor = predictor;
         this.pageSize = pageSize;
         this.offset = offset;
@@ -56,7 +56,9 @@ public class PredictorBasedRanker implements Ranker {
         return new RankedResult(recs, offset, limit, predictions.size());
     }
 
-    public JsonNode getFootprint() {
-        return Json.newObject();
+    public Configuration getConfig() {
+        Map<String, Object> configMap = config.asMap();
+        configMap.put("predictorConfig", predictor.getConfig().asMap());
+        return new Configuration(configMap);
     }
 }

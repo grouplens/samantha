@@ -43,13 +43,14 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
     private final String insName;
     private final String labelName;
     private final String weightName;
+    private final Configuration config;
 
     private RegressionTreeGBCentPredictorConfig(String modelName, String svdfeaModelName, String svdfeaPredictorName,
                                                 List<String> treeFeatures, List<FeatureExtractorConfig> treeExtractorsConfig,
                                                 Configuration daosConfig, List<Configuration> expandersConfig,
                                                 Configuration methodConfig, Injector injector, String modelFile,
                                                 String daoConfigKey, String serializedKey, String insName,
-                                                String labelName, String weightName) {
+                                                String labelName, String weightName, Configuration config) {
         this.daosConfig = daosConfig;
         this.expandersConfig = expandersConfig;
         this.modelName = modelName;
@@ -65,6 +66,7 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
         this.insName = insName;
         this.labelName = labelName;
         this.weightName = weightName;
+        this.config = config;
     }
 
     public static PredictorConfig getPredictorConfig(Configuration predictorConfig,
@@ -83,7 +85,7 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
                 predictorConfig.getString("instanceName"),
                 predictorConfig.getString("serializedKey"),
                 predictorConfig.getString("labelName"),
-                predictorConfig.getString("weightName"));
+                predictorConfig.getString("weightName"), predictorConfig);
     }
 
     private RegressionTreeGBCent createNewModel(SamanthaConfigService configService,
@@ -157,9 +159,7 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
         }
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        //TODO: add model parameters into footprint
-        JsonNode footprint = Json.newObject();
-        return new PredictiveModelBasedPredictor(footprint, model, model,
+        return new PredictiveModelBasedPredictor(config, model, model,
                 daosConfig, injector, entityExpanders, daoConfigKey);
     }
 }

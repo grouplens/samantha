@@ -1,6 +1,5 @@
 package org.grouplens.samantha.server.ranker;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
@@ -8,12 +7,12 @@ import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
-import play.libs.Json;
+import play.Configuration;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class PercentileBlendingRanker implements Ranker {
+public class PercentileBlendingRanker extends AbstractRanker {
     private final List<EntityExpander> entityExpanders;
     private final Object2DoubleMap<String> defaults;
     private final int offset;
@@ -21,7 +20,8 @@ public class PercentileBlendingRanker implements Ranker {
     private int limit;
 
     public PercentileBlendingRanker(Object2DoubleMap<String> defaults, int offset, int limit, int pageSize,
-                               List<EntityExpander> entityExpanders) {
+                                    List<EntityExpander> entityExpanders, Configuration config) {
+        super(config);
         this.defaults = defaults;
         this.offset = offset;
         this.limit = limit;
@@ -66,9 +66,5 @@ public class PercentileBlendingRanker implements Ranker {
             recs = candidates.subList(offset, candidates.size());
         }
         return new RankedResult(recs, offset, limit, scoredList.size());
-    }
-
-    public JsonNode getFootprint() {
-        return Json.newObject();
     }
 }

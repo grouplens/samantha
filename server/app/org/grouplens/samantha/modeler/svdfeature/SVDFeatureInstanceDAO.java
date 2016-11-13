@@ -2,15 +2,16 @@ package org.grouplens.samantha.modeler.svdfeature;
 
 import org.grouplens.samantha.modeler.featurizer.Feature;
 import org.grouplens.samantha.modeler.common.LearningData;
+import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * @author <a href="http://www.grouplens.org">GroupLens Research</a>
- */
 public class SVDFeatureInstanceDAO implements LearningData {
+    private static Logger logger = LoggerFactory.getLogger(SVDFeatureInstanceDAO.class);
     private final File sourceFile;
     private BufferedReader reader;
 
@@ -34,8 +35,8 @@ public class SVDFeatureInstanceDAO implements LearningData {
                 return ins;
             }
         } catch (IOException e) {
-            //TODO: add logging
-            return null;
+            logger.error("{}", e.getMessage());
+            throw new InvalidRequestException(e);
         }
     }
 
@@ -44,7 +45,8 @@ public class SVDFeatureInstanceDAO implements LearningData {
             reader.close();
             reader = new BufferedReader(new FileReader(sourceFile));
         } catch (IOException e) {
-            //TODO: add logging
+            logger.error("{}", e.getMessage());
+            throw new InvalidRequestException(e);
         }
     }
 }

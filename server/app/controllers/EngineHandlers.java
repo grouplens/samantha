@@ -43,7 +43,7 @@ public class EngineHandlers extends Controller {
         RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
         Recommender recommender = samanthaConfigService.routeRecommender(requestContext);
         RankedResult rankedResult = recommender.recommend(requestContext);
-        JsonNode data = responsePacker.packRecommendation(recommender, rankedResult);
+        JsonNode data = responsePacker.packRecommendation(recommender, rankedResult, requestContext);
         ObjectNode resp = JsonHelpers.successJson();
         resp.set("data", data);
         return ok(resp);
@@ -54,7 +54,7 @@ public class EngineHandlers extends Controller {
         RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
         Predictor predictor = samanthaConfigService.routePredictor(requestContext);
         List<Prediction> predictedResult = predictor.predict(requestContext);
-        JsonNode data = responsePacker.packPrediction(predictor, predictedResult);
+        JsonNode data = responsePacker.packPrediction(predictor, predictedResult, requestContext);
         ObjectNode resp = JsonHelpers.successJson();
         resp.set("data", data);
         return ok(resp);

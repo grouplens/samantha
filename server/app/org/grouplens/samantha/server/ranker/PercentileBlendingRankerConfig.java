@@ -18,13 +18,16 @@ public class PercentileBlendingRankerConfig implements RankerConfig {
     private final Injector injector;
     private final Object2DoubleMap<String> defaults;
     private final List<Configuration> expandersConfig;
+    private final Configuration config;
 
     private PercentileBlendingRankerConfig(int pageSize, Object2DoubleMap<String> defaults,
-                                           List<Configuration> expandersConfig, Injector injector) {
+                                           List<Configuration> expandersConfig, Injector injector,
+                                           Configuration config) {
         this.pageSize = pageSize;
         this.defaults = defaults;
         this.expandersConfig = expandersConfig;
         this.injector = injector;
+        this.config = config;
     }
 
     public static RankerConfig getRankerConfig(Configuration rankerConfig,
@@ -39,7 +42,7 @@ public class PercentileBlendingRankerConfig implements RankerConfig {
             defaults.put(key, defaultConfig.getDouble(key));
         }
         List<Configuration> expanders = ExpanderUtilities.getEntityExpandersConfig(rankerConfig);
-        return new PercentileBlendingRankerConfig(pageSize, defaults, expanders, injector);
+        return new PercentileBlendingRankerConfig(pageSize, defaults, expanders, injector, rankerConfig);
     }
 
     public Ranker getRanker(RequestContext requestContext) {
@@ -50,6 +53,6 @@ public class PercentileBlendingRankerConfig implements RankerConfig {
         int limit = JsonHelpers.getOptionalInt(requestBody, ConfigKey.RANKER_LIMIT.get(), pageSize);
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        return new PercentileBlendingRanker(defaults, offset, limit, pageSize, entityExpanders);
+        return new PercentileBlendingRanker(defaults, offset, limit, pageSize, entityExpanders, config);
     }
 }

@@ -6,34 +6,32 @@ import play.Configuration;
 import play.inject.Injector;
 
 public class StandardRecommenderConfig implements RecommenderConfig {
-    final Injector injector;
+    final private Injector injector;
     final private String retrieverName;
     final private String rankerName;
-    final private String evaluatorName;
+    final private Configuration config;
 
-    private StandardRecommenderConfig(Injector injector,
+    private StandardRecommenderConfig(Configuration config,
+                                      Injector injector,
                                       String retrieverName,
-                                      String rankerName,
-                                      String evaluatorName) {
+                                      String rankerName) {
         this.injector = injector;
         this.retrieverName = retrieverName;
         this.rankerName = rankerName;
-        this.evaluatorName = evaluatorName;
+        this.config = config;
     }
 
     public static RecommenderConfig getRecommenderConfig(Configuration recommenderConfig,
-                                                  Injector injector) {
+                                                         Injector injector) {
         String retrieverName = recommenderConfig.getString("retriever");
         String rankerName = recommenderConfig.getString("ranker");
-        String evaluatorName = recommenderConfig.getString("evaluator");
-        return new StandardRecommenderConfig(injector, retrieverName,
-                rankerName, evaluatorName);
+        return new StandardRecommenderConfig(recommenderConfig, injector, retrieverName, rankerName);
     }
 
     public Recommender getRecommender(RequestContext requestContext) {
         SamanthaConfigService configService = injector
                 .instanceOf(SamanthaConfigService.class);
-        return new StandardRecommender(configService.getRetriever(retrieverName,
+        return new StandardRecommender(config, configService.getRetriever(retrieverName,
                 requestContext), configService.getRanker(rankerName, requestContext));
     }
 }

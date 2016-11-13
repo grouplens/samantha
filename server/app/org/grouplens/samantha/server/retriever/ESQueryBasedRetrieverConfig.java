@@ -14,17 +14,18 @@ import play.inject.Injector;
 import java.util.List;
 
 public class ESQueryBasedRetrieverConfig implements RetrieverConfig {
-    final Injector injector;
-    final Configuration elasticSearchSetting;
-    final Configuration elasticSearchMapping;
-    final String defaultElasticSearchReq;
-    final String elasticSearchIndex;
-    final String elasticSearchScoreName;
-    final String elasticSearchReqKey;
-    final String retrieveType;
-    final String setScrollKey;
-    final List<String> retrieveFields;
-    final List<Configuration> expandersConfig;
+    final private Injector injector;
+    final private Configuration elasticSearchSetting;
+    final private Configuration elasticSearchMapping;
+    final private String defaultElasticSearchReq;
+    final private String elasticSearchIndex;
+    final private String elasticSearchScoreName;
+    final private String elasticSearchReqKey;
+    final private String retrieveType;
+    final private String setScrollKey;
+    final private List<String> retrieveFields;
+    final private List<Configuration> expandersConfig;
+    final private Configuration config;
 
     private ESQueryBasedRetrieverConfig(Configuration elasticSearchMapping,
                                         String elasticSearchIndex,
@@ -36,7 +37,7 @@ public class ESQueryBasedRetrieverConfig implements RetrieverConfig {
                                         List<Configuration> expandersConfig,
                                         Configuration elasticSearchSetting,
                                         String defaultElasticSearchReq,
-                                        Injector injector) {
+                                        Injector injector, Configuration config) {
         this.injector = injector;
         this.retrieveFields = retrieveFields;
         this.retrieveType = retrieveType;
@@ -48,6 +49,7 @@ public class ESQueryBasedRetrieverConfig implements RetrieverConfig {
         this.setScrollKey = setScrollKey;
         this.expandersConfig = expandersConfig;
         this.defaultElasticSearchReq = defaultElasticSearchReq;
+        this.config = config;
     }
 
     static public RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
@@ -81,13 +83,15 @@ public class ESQueryBasedRetrieverConfig implements RetrieverConfig {
                 retrieverConfig.getString("retrieveType"),
                 retrieveFields, retrieverConfig.getString("elasticSearchReqKey"),
                 retrieverConfig.getString("setScrollKey"), expandersConfig,
-                settingConfig, defaultReq, injector);
+                settingConfig, defaultReq, injector, retrieverConfig);
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
         ElasticSearchService elasticSearchService = injector
                 .instanceOf(ElasticSearchService.class);
         List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
-        return new ESQueryBasedRetriever(elasticSearchService, expanders, this);
+        return new ESQueryBasedRetriever(elasticSearchService, expanders, elasticSearchScoreName,
+                elasticSearchReqKey, defaultElasticSearchReq, setScrollKey, elasticSearchIndex, retrieveType,
+                retrieveFields, config);
     }
 }

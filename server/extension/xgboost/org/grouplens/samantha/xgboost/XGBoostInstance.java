@@ -1,4 +1,4 @@
-package org.grouplens.samantha.modeler.xgboost;
+package org.grouplens.samantha.xgboost;
 
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import ml.dmlc.xgboost4j.LabeledPoint;

@@ -14,14 +14,16 @@ public class RequestBasedRetrieverConfig implements RetrieverConfig {
     private final Injector injector;
     private final List<Configuration> expandersConfig;
     private final String daoConfigKey;
+    private final Configuration config;
 
     private RequestBasedRetrieverConfig(Configuration entityDaoConfigs,
                                         List<Configuration> expandersConfig,
-                                        Injector injector, String daoConfigKey) {
+                                        Injector injector, String daoConfigKey, Configuration config) {
         this.entityDaoConfigs = entityDaoConfigs;
         this.expandersConfig = expandersConfig;
         this.injector = injector;
         this.daoConfigKey = daoConfigKey;
+        this.config = config;
     }
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
@@ -30,12 +32,12 @@ public class RequestBasedRetrieverConfig implements RetrieverConfig {
         return new RequestBasedRetrieverConfig(retrieverConfig
                 .getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
                 expanders,
-                injector, retrieverConfig.getString("daoConfigKey"));
+                injector, retrieverConfig.getString("daoConfigKey"), retrieverConfig);
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        return new RequestBasedRetriever(entityDaoConfigs, entityExpanders, injector, daoConfigKey);
+        return new RequestBasedRetriever(entityDaoConfigs, entityExpanders, injector, daoConfigKey, config);
     }
 }

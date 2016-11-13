@@ -34,7 +34,7 @@ public class Prediction {
     }
 
     public ObjectNode getEntity() {
-        return entity; //TODO: defensive copy maybe
+        return entity;
     }
 
     public double getScore() {

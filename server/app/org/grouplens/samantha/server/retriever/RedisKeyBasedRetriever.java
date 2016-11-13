@@ -5,20 +5,21 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.common.RedisService;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
+import play.Configuration;
 import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
 
-//TODO: support retrieve all from the indexPrefix without giving keys as the parameters
-public class RedisKeyBasedRetriever implements Retriever {
+public class RedisKeyBasedRetriever extends AbstractRetriever {
     private final RedisService redisService;
     private final List<String> retrieveFields;
     private final String indexPrefix;
     private final List<String> keyFields;
 
     public RedisKeyBasedRetriever(RedisService redisService, List<String> retrieveFields,
-                                  String indexPrefix, List<String> keyFields) {
+                                  String indexPrefix, List<String> keyFields, Configuration config) {
+        super(config);
         this.keyFields = keyFields;
         this.redisService = redisService;
         this.retrieveFields = retrieveFields;
@@ -40,9 +41,5 @@ public class RedisKeyBasedRetriever implements Retriever {
         JsonNode reqBody = requestContext.getRequestBody();
         List<ObjectNode> hits = retrieve(reqBody);
         return new RetrievedResult(hits, hits.size());
-    }
-
-    public JsonNode getFootprint() {
-        return Json.newObject();
     }
 }

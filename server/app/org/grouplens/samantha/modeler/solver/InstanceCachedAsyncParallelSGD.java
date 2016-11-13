@@ -1,18 +1,12 @@
 package org.grouplens.samantha.modeler.solver;
 
 import org.grouplens.samantha.modeler.common.LearningData;
-import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 public class InstanceCachedAsyncParallelSGD extends AbstractOptimizationMethod implements OnlineOptimizationMethod {
     final private static Logger logger = LoggerFactory.getLogger(InstanceCachedAsyncParallelSGD.class);

@@ -1,4 +1,4 @@
-package org.grouplens.samantha.modeler.xgboost;
+package org.grouplens.samantha.xgboost;
 
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;

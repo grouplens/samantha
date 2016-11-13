@@ -12,16 +12,18 @@ import play.inject.Injector;
 import java.util.List;
 
 public class FieldBlendingPredictorConfig implements PredictorConfig {
-    final private Object2DoubleMap<String> defaults;
-    final private Injector injector;
+    private final Object2DoubleMap<String> defaults;
+    private final Injector injector;
     private final Configuration daoConfigs;
+    private final Configuration config;
     private final List<Configuration> expandersConfig;
     private final String daoConfigKey;
 
-    private FieldBlendingPredictorConfig(Configuration daoConfigs, Injector injector,
+    private FieldBlendingPredictorConfig(Configuration config, Configuration daoConfigs, Injector injector,
                                          List<Configuration> expandersConfig,
                                          Object2DoubleMap<String> defaults,
                                          String daoConfigKey) {
+        this.config = config;
         this.daoConfigs = daoConfigs;
         this.defaults = defaults;
         this.expandersConfig = expandersConfig;
@@ -37,13 +39,14 @@ public class FieldBlendingPredictorConfig implements PredictorConfig {
             defaults.put(key, defaultConfig.getDouble(key));
         }
         List<Configuration> expanders = ExpanderUtilities.getEntityExpandersConfig(predictorConfig);
-        return new FieldBlendingPredictorConfig(predictorConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
+        return new FieldBlendingPredictorConfig(predictorConfig,
+                predictorConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
                 injector, expanders, defaults, predictorConfig.getString("daoConfigKey"));
     }
 
     public Predictor getPredictor(RequestContext requestContext) {
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        return new FieldBlendingPredictor(daoConfigs, injector, entityExpanders, defaults, daoConfigKey);
+        return new FieldBlendingPredictor(config, daoConfigs, injector, entityExpanders, defaults, daoConfigKey);
     }
 }

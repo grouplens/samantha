@@ -10,19 +10,19 @@ import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
-import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class RequestBasedRetriever implements Retriever {
+public class RequestBasedRetriever extends AbstractRetriever {
     private final List<EntityExpander> expanders;
     private final Configuration entityDaoConfigs;
     private final Injector injector;
     private final String daoConfigKey;
 
     public RequestBasedRetriever(Configuration entityDaoConfigs, List<EntityExpander> expanders,
-                                 Injector injector, String daoConfigKey) {
+                                 Injector injector, String daoConfigKey, Configuration config) {
+        super(config);
         this.expanders = expanders;
         this.entityDaoConfigs = entityDaoConfigs;
         this.injector = injector;
@@ -42,9 +42,5 @@ public class RequestBasedRetriever implements Retriever {
             hits = ExpanderUtilities.expand(hits, expanders, requestContext);
         }
         return new RetrievedResult(hits, hits.size());
-    }
-
-    public JsonNode getFootprint() {
-        return Json.newObject();
     }
 }

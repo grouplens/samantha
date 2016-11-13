@@ -1,4 +1,4 @@
-package org.grouplens.samantha.modeler.xgboost;
+package org.grouplens.samantha.xgboost;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import ml.dmlc.xgboost4j.LabeledPoint;

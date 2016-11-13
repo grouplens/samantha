@@ -1,6 +1,7 @@
 package org.grouplens.samantha.server.config;
 
 import org.grouplens.samantha.server.evaluator.EvaluatorConfig;
+import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.grouplens.samantha.server.indexer.IndexerConfig;
 import org.grouplens.samantha.server.predictor.PredictorConfig;
 import org.grouplens.samantha.server.ranker.RankerConfig;
@@ -36,12 +37,10 @@ class PredictorEngineConfig implements EngineConfig {
         return predictorConfigs;
     }
     public Map<String, RankerConfig> getRankerConfigs() {
-        //TODO: throw not support operation
-        return null;
+        throw new ConfigurationException("Ranker is not supported in a PredictorEngine");
     }
     public Map<String, RecommenderConfig> getRecommenderConfigs() {
-        //TODO: throw not support operation
-        return null;
+        throw new ConfigurationException("Recommender is not supported in a PredictorEngine");
     }
     public Map<String, IndexerConfig> getIndexerConfigs() {
         return indexerConfigs;

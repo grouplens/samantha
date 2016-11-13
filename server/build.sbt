@@ -12,7 +12,6 @@ libraryDependencies ++= Seq(
   javaJdbc,
   cache,
   javaWs,
-  "org.scala-lang" % "scala-compiler" % scalaVersion.value,
   "junit" % "junit" % "4.11",
   "org.elasticsearch" % "elasticsearch" % "2.2.0",
   "it.unimi.dsi" % "fastutil" % "7.0.11",
@@ -21,7 +20,13 @@ libraryDependencies ++= Seq(
   "org.apache.pdfbox" % "pdfbox-examples" % "2.0.2",
   "org.apache.commons" % "commons-math3" % "3.6.1",
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-csv" % "2.7.0",
-  "biz.paluch.redis" % "lettuce" % "4.2.2.Final",
+  "biz.paluch.redis" % "lettuce" % "4.2.2.Final"
+)
+
+// For xgboost extension; Optional; uncomment if cloned submodule
+unmanagedSourceDirectories in Compile += baseDirectory.value / "extension/xgboost"
+libraryDependencies ++= Seq(
+  "org.scala-lang" % "scala-compiler" % scalaVersion.value,
   "ml.dmlc" % "xgboost4j" % "0.7"
 )
 

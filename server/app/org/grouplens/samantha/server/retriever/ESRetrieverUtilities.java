@@ -19,12 +19,13 @@ public class ESRetrieverUtilities {
 
     private ESRetrieverUtilities() {}
 
-    static public RetrievedResult parse(ESQueryBasedRetrieverConfig config, RequestContext requestContext,
-                                        SearchResponse searchResponse, List<EntityExpander> expanders) {
+    static public RetrievedResult parse(String elasticSearchScoreName, RequestContext requestContext,
+                                        SearchResponse searchResponse, List<EntityExpander> expanders,
+                                        List<String> retrieveFields) {
         List<ObjectNode> entityList = new ArrayList<>(searchResponse.getHits().getHits().length);
         for (SearchHit hit : searchResponse.getHits().getHits()) {
             ObjectNode entity = Json.newObject();
-            ExpanderUtilities.parseEntityFromSearchHit(config.retrieveFields, config.elasticSearchScoreName,
+            ExpanderUtilities.parseEntityFromSearchHit(retrieveFields, elasticSearchScoreName,
                     hit, entity);
             entityList.add(entity);
         }

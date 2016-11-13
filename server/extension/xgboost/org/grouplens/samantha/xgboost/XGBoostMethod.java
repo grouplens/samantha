@@ -1,4 +1,4 @@
-package org.grouplens.samantha.modeler.xgboost;
+package org.grouplens.samantha.xgboost;
 
 import ml.dmlc.xgboost4j.java.Booster;
 import ml.dmlc.xgboost4j.java.DMatrix;

@@ -18,25 +18,26 @@ public class PredictorBasedRankerConfig implements RankerConfig {
     private final int pageSize;
     private final String predictorName;
     private final List<Configuration> expandersConfig;
+    private final Configuration config;
 
-    private PredictorBasedRankerConfig(int pageSize, String predictorName,
+    private PredictorBasedRankerConfig(Configuration config, int pageSize, String predictorName,
                                        List<Configuration> expandersConfig, Injector injector) {
         this.pageSize = pageSize;
         this.predictorName = predictorName;
         this.injector = injector;
         this.expandersConfig = expandersConfig;
+        this.config = config;
     }
 
     public static RankerConfig getRankerConfig(Configuration rankerConfig,
-                                        Injector injector) {
-        //TODO: move this magic number to be a RankerUtilities scope variable
-        int pageSize = 24;
+                                               Injector injector) {
+        int pageSize = RankerUtilities.defaultPageSize;
         if (rankerConfig.asMap().containsKey(ConfigKey.RANKER_PAGE_SIZE.get())) {
             pageSize = rankerConfig.getInt(ConfigKey.RANKER_PAGE_SIZE.get());
         }
         String predictorName = rankerConfig.getString("predictor");
         List<Configuration> expanders = ExpanderUtilities.getEntityExpandersConfig(rankerConfig);
-        return new PredictorBasedRankerConfig(pageSize, predictorName, expanders, injector);
+        return new PredictorBasedRankerConfig(rankerConfig, pageSize, predictorName, expanders, injector);
     }
 
     public Ranker getRanker(RequestContext requestContext) {
@@ -51,6 +52,6 @@ public class PredictorBasedRankerConfig implements RankerConfig {
         int limit = JsonHelpers.getOptionalInt(reqBody, ConfigKey.RANKER_LIMIT.get(), pageSize);
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        return new PredictorBasedRanker(predictor, pageSize, offset, limit, entityExpanders);
+        return new PredictorBasedRanker(predictor, pageSize, offset, limit, entityExpanders, config);
     }
 }

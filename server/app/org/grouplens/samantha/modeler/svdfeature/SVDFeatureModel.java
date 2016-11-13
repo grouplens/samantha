@@ -22,7 +22,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
-//TODO: support feature model support/confidence
 public class SVDFeatureModel extends AbstractLearningModel implements Featurizer {
     private static final long serialVersionUID = 1L;
 

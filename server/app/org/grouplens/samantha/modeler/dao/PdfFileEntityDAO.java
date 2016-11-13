@@ -4,12 +4,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.libs.Json;
 
 import java.io.File;
 import java.io.IOException;
 
 public class PdfFileEntityDAO implements EntityDAO {
+    private static Logger logger = LoggerFactory.getLogger(PdfFileEntityDAO.class);
     private final PDDocument pdfDoc;
     private final PDFTextStripper stripper;
     private final int paraLength = 250;
@@ -68,7 +71,8 @@ public class PdfFileEntityDAO implements EntityDAO {
                 idx = 0;
                 paragraph += getParagraph();
             } catch (IOException e) {
-                //TODO: logging error info
+                logger.error("{}", e.getMessage());
+                throw new InvalidRequestException(e);
             }
         }
         ObjectNode entity = Json.newObject();
@@ -89,7 +93,8 @@ public class PdfFileEntityDAO implements EntityDAO {
         try {
             pdfDoc.close();
         } catch (IOException e) {
-            //TODO: logging error info
+            logger.error("{}", e.getMessage());
+            throw new InvalidRequestException(e);
         }
     }
 }

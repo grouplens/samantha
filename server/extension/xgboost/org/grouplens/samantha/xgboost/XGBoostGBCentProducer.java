@@ -1,4 +1,4 @@
-package org.grouplens.samantha.modeler.xgboost;
+package org.grouplens.samantha.xgboost;
 
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;

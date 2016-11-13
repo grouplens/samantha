@@ -1,7 +1,8 @@
 package org.grouplens.samantha.server.exception;
 
 public class ConfigurationException extends RuntimeException {
-    //TODO: adding serialVersionUID, not sure why
+    private static final long serialVersionUID = 1L;
+
     public ConfigurationException() {
         super();
     }

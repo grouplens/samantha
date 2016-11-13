@@ -7,26 +7,34 @@ import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
-import play.libs.Json;
+import play.Configuration;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class EntityFieldBasedRanker implements Ranker {
-    private final EntityFieldBasedRankerConfig config;
+public class EntityFieldBasedRanker extends AbstractRanker {
     private final int offset;
     private int limit;
+    private final int pageSize;
+    private final String whetherOrderKey;
+    private final String orderFieldKey;
+    private final String ascendingKey;
 
-    public EntityFieldBasedRanker(EntityFieldBasedRankerConfig config, int offset, int limit) {
-        this.config = config;
+    public EntityFieldBasedRanker(Configuration config, int offset, int limit, int pageSize,
+                                  String whetherOrderKey, String orderFieldKey, String ascendingKey) {
+        super(config);
         this.offset = offset;
         this.limit = limit;
+        this.pageSize = pageSize;
+        this.whetherOrderKey = whetherOrderKey;
+        this.orderFieldKey = orderFieldKey;
+        this.ascendingKey = ascendingKey;
     }
 
     public RankedResult rank(RetrievedResult retrievedResult,
                              RequestContext requestContext) {
         List<ObjectNode> entityList = retrievedResult.getEntityList();
-        if (config.pageSize == 0 || limit > entityList.size()) {
+        if (pageSize == 0 || limit > entityList.size()) {
             limit = entityList.size();
         }
         List<Prediction> scoredList = new ArrayList<>(entityList.size());
@@ -35,13 +43,11 @@ public class EntityFieldBasedRanker implements Ranker {
         }
         List<Prediction> candidates;
         JsonNode requestBody = requestContext.getRequestBody();
-        boolean whetherOrder = JsonHelpers.getOptionalBoolean(requestBody,
-                config.whetherOrderKey, true);
+        boolean whetherOrder = JsonHelpers.getOptionalBoolean(requestBody, whetherOrderKey, true);
         if (whetherOrder) {
-            String orderField = JsonHelpers.getRequiredString(requestBody,
-                    config.orderFieldKey);
+            String orderField = JsonHelpers.getRequiredString(requestBody, orderFieldKey);
             Ordering<Prediction> ordering = RankerUtilities.scoredResultFieldOrdering(orderField);
-            boolean ascending = JsonHelpers.getOptionalBoolean(requestBody, config.ascendingKey, false);
+            boolean ascending = JsonHelpers.getOptionalBoolean(requestBody, ascendingKey, false);
             if (ascending) {
                 candidates = ordering.leastOf(scoredList, offset + limit);
             } else {
@@ -57,9 +63,5 @@ public class EntityFieldBasedRanker implements Ranker {
             recs = candidates.subList(offset, limit);
         }
         return new RankedResult(recs, offset, limit, retrievedResult.getMaxHits());
-    }
-
-    public JsonNode getFootprint() {
-        return Json.newObject();
     }
 }

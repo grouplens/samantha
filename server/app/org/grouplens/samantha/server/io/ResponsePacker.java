@@ -19,20 +19,24 @@ public class ResponsePacker {
     @Inject
     private ResponsePacker() {}
 
-    public JsonNode packRecommendation(Recommender recommender, RankedResult rankedResult) {
+    public JsonNode packRecommendation(Recommender recommender, RankedResult rankedResult,
+                                       RequestContext requestContext) {
         ObjectNode result = Json.newObject();
         result.set("recommendations", rankedResult.toJson());
-        result.set("footprint", recommender.getFootprint());
+        result.set("configuration", Json.toJson(recommender.getConfig().asMap()));
+        result.put("engine", requestContext.getEngineName());
         return result;
     }
-    public JsonNode packPrediction(Predictor predictor, List<Prediction> predictedResult) {
+    public JsonNode packPrediction(Predictor predictor, List<Prediction> predictedResult,
+                                   RequestContext requestContext) {
         ObjectNode result = Json.newObject();
         ArrayNode predictions = Json.newArray();
         for (Prediction pred : predictedResult) {
             predictions.add(pred.toJson());
         }
         result.set("predictions", predictions);
-        result.set("footprint", predictor.getFootprint());
+        result.set("configuration", Json.toJson(predictor.getConfig().asMap()));
+        result.put("engine", requestContext.getEngineName());
         return result;
     }
 }

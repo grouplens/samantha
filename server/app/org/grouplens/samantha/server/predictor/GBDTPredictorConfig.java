@@ -22,7 +22,6 @@ import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.retriever.RetrieverUtilities;
 import play.Configuration;
 import play.inject.Injector;
-import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +42,7 @@ public class GBDTPredictorConfig implements PredictorConfig {
     private final String daoConfigKey;
     private final String serializedKey;
     private final String insName;
+    private final Configuration config;
 
     private GBDTPredictorConfig(String modelName, List<FeatureExtractorConfig> feaExtConfigs,
                                 List<String> features, String labelName, String weightName,
@@ -50,7 +50,7 @@ public class GBDTPredictorConfig implements PredictorConfig {
                                 Injector injector, TreeLearningMethod method,
                                 ObjectiveFunction objectiveFunction, String modelFile,
                                 StandardBoostingMethod boostingMethod, String daoConfigKey,
-                                String insName, String serializedKey) {
+                                String insName, String serializedKey, Configuration config) {
         this.modelName = modelName;
         this.feaExtConfigs = feaExtConfigs;
         this.features = features;
@@ -66,6 +66,7 @@ public class GBDTPredictorConfig implements PredictorConfig {
         this.daoConfigKey = daoConfigKey;
         this.serializedKey = serializedKey;
         this.insName = insName;
+        this.config = config;
     }
 
     public static PredictorConfig getPredictorConfig(Configuration predictorConfig,
@@ -86,7 +87,7 @@ public class GBDTPredictorConfig implements PredictorConfig {
                 predictorConfig.getString("modelFile"), boostingMethod,
                 predictorConfig.getString("daoConfigKey"),
                 predictorConfig.getString("instanceName"),
-                predictorConfig.getString("serializedKey"));
+                predictorConfig.getString("serializedKey"), predictorConfig);
     }
 
     private GBDT createNewModel(RequestContext requestContext) {
@@ -151,9 +152,7 @@ public class GBDTPredictorConfig implements PredictorConfig {
         }
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        //TODO: add model parameters into footprint
-        JsonNode footprint = Json.newObject();
-        return new PredictiveModelBasedPredictor(footprint, model, model,
+        return new PredictiveModelBasedPredictor(config, model, model,
                 daoConfigs, injector, entityExpanders, daoConfigKey);
     }
 }

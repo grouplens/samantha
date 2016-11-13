@@ -8,17 +8,19 @@ import play.Configuration;
 import play.inject.Injector;
 
 public class EntityFieldBasedRankerConfig implements RankerConfig {
-    final int pageSize;
-    final String orderFieldKey;
-    final String whetherOrderKey;
-    final String ascendingKey;
+    private final int pageSize;
+    private final String orderFieldKey;
+    private final String whetherOrderKey;
+    private final String ascendingKey;
+    private final Configuration config;
 
-    private EntityFieldBasedRankerConfig(int pageSize,
+    private EntityFieldBasedRankerConfig(Configuration config, int pageSize,
                                          String orderFieldKey, String whetherOrderKey, String ascendingKey) {
         this.pageSize = pageSize;
         this.orderFieldKey = orderFieldKey;
         this.whetherOrderKey = whetherOrderKey;
         this.ascendingKey = ascendingKey;
+        this.config = config;
     }
 
     public static RankerConfig getRankerConfig(Configuration rankerConfig,
@@ -27,7 +29,7 @@ public class EntityFieldBasedRankerConfig implements RankerConfig {
         if (rankerConfig.asMap().containsKey(ConfigKey.RANKER_PAGE_SIZE.get())) {
             rankerConfig.getInt(ConfigKey.RANKER_PAGE_SIZE.get());
         }
-        return new EntityFieldBasedRankerConfig(pageSize, rankerConfig.getString("orderFieldKey"),
+        return new EntityFieldBasedRankerConfig(rankerConfig, pageSize, rankerConfig.getString("orderFieldKey"),
                 rankerConfig.getString("whetherOrderKey"), rankerConfig.getString("ascendingKey"));
     }
 
@@ -37,6 +39,7 @@ public class EntityFieldBasedRankerConfig implements RankerConfig {
         int offset = JsonHelpers.getOptionalInt(requestBody,
                 ConfigKey.RANKER_OFFSET.get(), (page - 1) * pageSize);
         int limit = JsonHelpers.getOptionalInt(requestBody, ConfigKey.RANKER_LIMIT.get(), pageSize);
-        return new EntityFieldBasedRanker(this, offset, limit);
+        return new EntityFieldBasedRanker(config, offset, limit, pageSize,
+                whetherOrderKey, orderFieldKey, ascendingKey);
     }
 }

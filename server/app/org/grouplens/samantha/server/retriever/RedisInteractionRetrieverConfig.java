@@ -29,12 +29,13 @@ public class RedisInteractionRetrieverConfig implements RetrieverConfig {
     final private String predictorModelName;
     final private Injector injector;
     final private List<Configuration> expandersConfig;
+    final private Configuration config;
 
     private RedisInteractionRetrieverConfig(String retrieverName, String knnModelName, String kdnModelName,
                                             String knnModelFile, String kdnModelFile, int minSupport,
                                             String weightAttr, String scoreAttr, List<String> itemAttrs, int numNeighbors,
                                             String predictorName, String predictorModelName, Injector injector,
-                                            List<Configuration> expandersConfig) {
+                                            List<Configuration> expandersConfig, Configuration config) {
         this.retrieverName = retrieverName;
         this.knnModelName = knnModelName;
         this.kdnModelName = kdnModelName;
@@ -49,6 +50,7 @@ public class RedisInteractionRetrieverConfig implements RetrieverConfig {
         this.predictorName = predictorName;
         this.numNeighbors = numNeighbors;
         this.expandersConfig = expandersConfig;
+        this.config = config;
     }
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
@@ -66,7 +68,7 @@ public class RedisInteractionRetrieverConfig implements RetrieverConfig {
                 retrieverConfig.getInt("numNeighbors"),
                 retrieverConfig.getString("predictorName"),
                 retrieverConfig.getString("predictorModelName"),
-                injector, expandersConfig);
+                injector, expandersConfig, retrieverConfig);
     }
 
 
@@ -109,6 +111,6 @@ public class RedisInteractionRetrieverConfig implements RetrieverConfig {
         List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
         KnnModelFeatureTrigger trigger = new KnnModelFeatureTrigger(knnModel, kdnModel,
                 itemAttrs, weightAttr, scoreAttr);
-        return new RedisInteractionRetriever(retriever, trigger, expanders);
+        return new RedisInteractionRetriever(retriever, trigger, expanders, config);
     }
 }

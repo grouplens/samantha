@@ -1,4 +1,4 @@
-package org.grouplens.samantha.modeler.xgboost;
+package org.grouplens.samantha.xgboost;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class XGBoostGBCentPredictorConfig implements PredictorConfig {
+    private final Configuration config;
     private final String svdfeaPredictorName;
     private final String svdfeaModelName;
     private final Injector injector;
@@ -48,7 +49,7 @@ public class XGBoostGBCentPredictorConfig implements PredictorConfig {
                                          Configuration daosConfig, List<Configuration> expandersConfig,
                                          Configuration methodConfig, Injector injector, String modelFile,
                                          String daoConfigKey, String insName, String labelName,
-                                         String weightName, String serializedKey) {
+                                         String weightName, String serializedKey, Configuration config) {
         this.daosConfig = daosConfig;
         this.expandersConfig = expandersConfig;
         this.modelName = modelName;
@@ -64,6 +65,7 @@ public class XGBoostGBCentPredictorConfig implements PredictorConfig {
         this.weightName = weightName;
         this.serializedKey = serializedKey;
         this.insName = insName;
+        this.config = config;
     }
 
     public static PredictorConfig getPredictorConfig(Configuration predictorConfig,
@@ -80,7 +82,7 @@ public class XGBoostGBCentPredictorConfig implements PredictorConfig {
                 predictorConfig.getConfig("methodConfig"), injector, predictorConfig.getString("modelFile"),
                 predictorConfig.getString("daoConfigKey"), predictorConfig.getString("instanceName"),
                 predictorConfig.getString("labelName"), predictorConfig.getString("weightName"),
-                predictorConfig.getString("serializedKey"));
+                predictorConfig.getString("serializedKey"), predictorConfig);
     }
 
     private XGBoostGBCent createNewModel(SamanthaConfigService configService,
@@ -154,9 +156,7 @@ public class XGBoostGBCentPredictorConfig implements PredictorConfig {
         }
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        //TODO: add model parameters into footprint
-        JsonNode footprint = Json.newObject();
-        return new PredictiveModelBasedPredictor(footprint, model, model,
+        return new PredictiveModelBasedPredictor(config, model, model,
                 daosConfig, injector, entityExpanders, daoConfigKey);
     }
 }
