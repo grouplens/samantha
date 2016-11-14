@@ -1,12 +1,8 @@
 package org.grouplens.samantha.modeler.boosting;
 
-import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.common.PredictiveModel;
-import org.grouplens.samantha.modeler.featurizer.Feature;
-import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
-import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.modeler.featurizer.StandardLearningInstance;
+import org.grouplens.samantha.modeler.featurizer.*;
 import org.grouplens.samantha.modeler.space.IndexSpace;
 import org.grouplens.samantha.modeler.space.VariableSpace;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureModel;
@@ -44,10 +40,6 @@ public class RegressionTreeGBCent extends AbstractGBCent implements PredictiveMo
             }
         }
         return pred;
-    }
-
-    public LearningData getLearningData(List<StandardLearningInstance> treeInstances) {
-        return new TreeLearningData(treeInstances);
     }
 
     //TODO: for updating trees, this needs to create a temporary tree instead of setting the variableSpace directly

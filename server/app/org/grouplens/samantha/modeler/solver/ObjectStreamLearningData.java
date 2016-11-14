@@ -29,10 +29,14 @@ public class ObjectStreamLearningData implements LearningData {
     }
 
     public LearningInstance getLearningInstance() {
+        if (inputStream == null) {
+            return null;
+        }
         LearningInstance ins;
         try {
             ins = (LearningInstance) inputStream.readUnshared();
         } catch (IOException e) {
+            inputStream = null;
             ins = null;
         } catch (ClassNotFoundException e) {
             throw new InvalidRequestException(e);

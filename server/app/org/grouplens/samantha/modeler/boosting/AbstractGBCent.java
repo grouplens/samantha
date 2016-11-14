@@ -1,9 +1,11 @@
 package org.grouplens.samantha.modeler.boosting;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.common.PredictiveModel;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
+import org.grouplens.samantha.modeler.featurizer.StandardListLearningData;
 import org.grouplens.samantha.modeler.space.IndexSpace;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureInstance;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureModel;
@@ -28,6 +30,10 @@ abstract public class AbstractGBCent extends StandardFeaturizer implements GBCen
         SVDFeatureInstance svdIns = (SVDFeatureInstance) svdfeaModel.featurize(entity, update);
         StandardLearningInstance treeIns = (StandardLearningInstance) super.featurize(entity, update);
         return new GBCentLearningInstance(svdIns, treeIns);
+    }
+
+    public LearningData getLearningData(List<StandardLearningInstance> treeInstances) {
+        return new StandardListLearningData(treeInstances);
     }
 
     public SVDFeatureModel getSVDFeatureModel() {

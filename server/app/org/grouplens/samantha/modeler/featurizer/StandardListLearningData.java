@@ -1,16 +1,15 @@
-package org.grouplens.samantha.modeler.tree;
+package org.grouplens.samantha.modeler.featurizer;
 
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.modeler.featurizer.StandardLearningInstance;
 
 import java.util.List;
 
-public class TreeLearningData implements LearningData {
+public class StandardListLearningData implements LearningData {
     private final List<StandardLearningInstance> instances;
     private int idx = 0;
 
-    public TreeLearningData(List<StandardLearningInstance> instances) {
+    public StandardListLearningData(List<StandardLearningInstance> instances) {
         this.instances = instances;
     }
 

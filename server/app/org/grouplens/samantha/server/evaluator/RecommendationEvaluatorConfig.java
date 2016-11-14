@@ -13,7 +13,6 @@ import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.recommender.Recommender;
 import play.Configuration;
 import play.inject.Injector;
-import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -85,7 +84,6 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
         }
         EntityDAO entityDao = EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 reqBody.get(daoConfigKey), injector);
-        return new RecommendationEvaluator(recommenderNameKey, Json.toJson(recommender.getConfig().asMap()).toString(),
-                recommender, entityDao, type, groupKey, metrics, indexers, recIndexers);
+        return new RecommendationEvaluator(recommender, entityDao, type, groupKey, metrics, indexers, recIndexers);
     }
 }

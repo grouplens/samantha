@@ -16,16 +16,12 @@ public class PredictionEvaluator implements Evaluator {
     final private Predictor predictor;
     final private EntityDAO entityDAO;
     final private String type;
-    final private String predictorName;
-    final private String predictorPara;
     final private String groupKey;
     final private List<Metric> metrics;
     final private List<Indexer> indexers;
     final private List<Indexer> predIndexers;
 
-    public PredictionEvaluator(String predictorName,
-                               String predictorPara,
-                               Predictor predictor,
+    public PredictionEvaluator(Predictor predictor,
                                EntityDAO entityDAO,
                                String type,
                                String groupKey,
@@ -38,8 +34,6 @@ public class PredictionEvaluator implements Evaluator {
         this.indexers = indexers;
         this.type = type;
         this.groupKey = groupKey;
-        this.predictorName = predictorName;
-        this.predictorPara = predictorPara;
         this.predIndexers = predIndexers;
     }
 
@@ -86,7 +80,6 @@ public class PredictionEvaluator implements Evaluator {
         if (entityList.size() > 0) {
             getPredictionMetrics(requestContext, entityList);
         }
-        return EvaluatorUtilities.indexMetrics(type, predictorName, predictorPara,
-                requestContext, metrics, indexers);
+        return EvaluatorUtilities.indexMetrics(type, predictor.getConfig(), requestContext, metrics, indexers);
     }
 }

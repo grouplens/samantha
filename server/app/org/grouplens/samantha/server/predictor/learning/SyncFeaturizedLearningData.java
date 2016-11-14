@@ -21,6 +21,9 @@ public class SyncFeaturizedLearningData implements LearningData {
     private List<ObjectNode> entityList = new ArrayList<>();
     private final boolean update;
 
+    /**
+     * @param entityDAO if this is used by multiple SyncFeaturizedLearningData, it needs to be thread-safe by itself.
+     */
     public SyncFeaturizedLearningData(EntityDAO entityDAO,
                                       List<EntityExpander> entityExpanders,
                                       Featurizer featurizer,
@@ -47,6 +50,7 @@ public class SyncFeaturizedLearningData implements LearningData {
                     }
                     cur = entityDAO.getNextEntity();
                 } else {
+                    entityDAO.close();
                     return null;
                 }
             }

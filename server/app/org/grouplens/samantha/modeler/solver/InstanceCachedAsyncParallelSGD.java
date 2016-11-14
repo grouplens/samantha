@@ -37,37 +37,6 @@ public class InstanceCachedAsyncParallelSGD extends AbstractOptimizationMethod i
         this.maxIter = maxIter;
     }
 
-    /*
-    private void cacheLearningData(LearningData data, String prefix) {
-        List<ObjectOutputStream> outputStreams = new ArrayList<>(numThreads);
-        try {
-            for (int i = 0; i < numThreads; i++) {
-                String oneCachePath = getCachePath(prefix, i);
-                outputStreams.add(new ObjectOutputStream(new FileOutputStream(oneCachePath)));
-            }
-            LearningInstance ins;
-            Random rand = new Random();
-            int cnt = 0;
-            while ((ins = data.getLearningInstance()) != null) {
-                cnt++;
-                int idx = rand.nextInt(numThreads);
-                outputStreams.get(idx).writeUnshared(ins);
-                outputStreams.get(idx).reset();
-                if (cnt % 10000 == 0) {
-                    logger.info("Cached {} instances.", cnt);
-                }
-            }
-            for (int i = 0; i < numThreads; i++) {
-                outputStreams.get(i).flush();
-                outputStreams.get(i).close();
-            }
-        } catch (IOException e) {
-            logger.error(e.getMessage());
-            throw new InvalidRequestException(e);
-        }
-    }
-    */
-
     private void cacheLearningData(LearningData data, String prefix) {
         List<Thread> threads = new ArrayList<>(numThreads);
         List<ObjectiveRunnable> runnables = new ArrayList<>(numThreads);

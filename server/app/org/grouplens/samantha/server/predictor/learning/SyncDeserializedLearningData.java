@@ -46,6 +46,7 @@ public class SyncDeserializedLearningData implements LearningData {
             if (entityDAO.hasNextEntity()) {
                 entity = entityDAO.getNextEntity();
             } else {
+                entityDAO.close();
                 return null;
             }
         }

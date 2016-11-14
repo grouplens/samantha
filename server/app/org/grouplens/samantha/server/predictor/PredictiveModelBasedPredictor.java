@@ -54,8 +54,4 @@ public class PredictiveModelBasedPredictor extends AbstractPredictor {
         }
         return results;
     }
-
-    public Configuration getConfig() {
-        return config;
-    }
 }

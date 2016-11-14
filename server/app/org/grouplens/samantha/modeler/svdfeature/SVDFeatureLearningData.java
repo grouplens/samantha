@@ -21,6 +21,7 @@ public class SVDFeatureLearningData implements LearningData {
             JsonNode entity = entityDao.getNextEntity();
             return model.featurize(entity, true);
         } else {
+            entityDao.close();
             return null;
         }
     }

@@ -9,7 +9,6 @@ import org.grouplens.samantha.server.ranker.RankedResult;
 import org.grouplens.samantha.server.recommender.Recommender;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import play.Logger;
-import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,15 +19,11 @@ public class RecommendationEvaluator implements Evaluator {
     final private String type;
     //TODO: extend groupKey to a list of keys
     final private String groupKey;
-    final private String recommenderName;
-    final private String recommenderPara;
     final private List<Metric> metrics;
     final private List<Indexer> indexers;
     final private List<Indexer> recIndexers;
 
-    public RecommendationEvaluator(String recommenderName,
-                                   String recommenderPara,
-                                   Recommender recommender,
+    public RecommendationEvaluator(Recommender recommender,
                                    EntityDAO entityDAO,
                                    String type,
                                    String groupKey,
@@ -42,8 +37,6 @@ public class RecommendationEvaluator implements Evaluator {
         this.recIndexers = recIndexers;
         this.type = type;
         this.groupKey = groupKey;
-        this.recommenderName = recommenderName;
-        this.recommenderPara = recommenderPara;
     }
 
     private void getRecommendationMetrics(String user, RequestContext requestContext,
@@ -88,7 +81,6 @@ public class RecommendationEvaluator implements Evaluator {
         if (entityList.size() > 0) {
             getRecommendationMetrics(oldUser, requestContext, entityList);
         }
-        return EvaluatorUtilities.indexMetrics(type, recommenderName, recommenderPara,
-                requestContext, metrics, indexers);
+        return EvaluatorUtilities.indexMetrics(type, recommender.getConfig(), requestContext, metrics, indexers);
     }
 }

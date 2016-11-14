@@ -43,15 +43,10 @@ public class CSVFileEntityDAO implements EntityDAO {
     }
 
     public boolean hasNextEntity() {
-        boolean hasNext = it.hasNext();
-        if (hasNext == false) {
-            try {
-                reader.close();
-            } catch (IOException e) {
-                throw new InvalidRequestException(e);
-            }
+        if (it == null) {
+            return false;
         }
-        return hasNext;
+        return it.hasNext();
     }
 
     public ObjectNode getNextEntity() {
@@ -70,8 +65,14 @@ public class CSVFileEntityDAO implements EntityDAO {
     }
 
     public void close() {
+        if (reader == null) {
+            return;
+        }
         try {
             reader.close();
+            it.close();
+            reader = null;
+            it = null;
         } catch (IOException e) {
             throw new InvalidRequestException(e);
         }

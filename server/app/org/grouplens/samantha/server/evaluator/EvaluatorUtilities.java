@@ -19,18 +19,17 @@ import java.util.List;
 public class EvaluatorUtilities {
     private EvaluatorUtilities() {}
 
-    static public List<ObjectNode> indexMetrics(String type, String name,
-                                    String para, RequestContext requestContext,
-                                    List<Metric> metrics,
-                                    List<Indexer> indexers) {
+    static public List<ObjectNode> indexMetrics(String type, Configuration config,
+                                                RequestContext requestContext,
+                                                List<Metric> metrics,
+                                                List<Indexer> indexers) {
         List<ObjectNode> all = new ArrayList<>();
         for (Metric metric : metrics) {
             List<ObjectNode> results = metric.getValues();
             for (ObjectNode result : results) {
                 result.put(ConfigKey.EVALUATOR_ENGINE_NAME.get(),
                         requestContext.getEngineName());
-                result.put(ConfigKey.ENGINE_COMPONENT_NAME.get(), name);
-                result.put(ConfigKey.EVALUATOR_COMPONENT_PARA.get(), para);
+                result.set(ConfigKey.ENGINE_COMPONENT_CONFIG.get(), Json.toJson(config.asMap()));
                 result.put(ConfigKey.REQUEST_CONTEXT.get(), requestContext.getRequestBody().toString());
             }
             all.addAll(results);

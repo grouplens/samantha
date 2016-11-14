@@ -43,9 +43,11 @@ public class FeaturizedLearningData implements LearningData {
                 idx = 0;
                 return featurizer.featurize(entityList.get(idx++), update);
             } else {
+                entityDAO.close();
                 return null;
             }
         } else {
+            entityDAO.close();
             return null;
         }
     }
