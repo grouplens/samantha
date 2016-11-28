@@ -1,7 +1,7 @@
 package org.grouplens.samantha.server.retriever;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.grouplens.samantha.modeler.svdfeature.KnnModelFeatureTrigger;
+import org.grouplens.samantha.modeler.knn.KnnModelFeatureTrigger;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
@@ -10,14 +10,14 @@ import play.Logger;
 
 import java.util.List;
 
-public class RedisInteractionRetriever extends AbstractRetriever {
-    private final RedisKeyBasedRetriever retriever;
+public class ItemKnnRetriever extends AbstractRetriever {
+    private final Retriever retriever;
     private final KnnModelFeatureTrigger trigger;
     private final List<EntityExpander> expanders;
 
-    public RedisInteractionRetriever(RedisKeyBasedRetriever retriever,
-                                     KnnModelFeatureTrigger trigger,
-                                     List<EntityExpander> expanders, Configuration config) {
+    public ItemKnnRetriever(Retriever retriever,
+                            KnnModelFeatureTrigger trigger,
+                            List<EntityExpander> expanders, Configuration config) {
         super(config);
         this.retriever = retriever;
         this.trigger = trigger;
@@ -26,7 +26,7 @@ public class RedisInteractionRetriever extends AbstractRetriever {
 
     public RetrievedResult retrieve(RequestContext requestContext) {
         long start = System.currentTimeMillis();
-        RetrievedResult interactions =retriever.retrieve(requestContext);
+        RetrievedResult interactions = retriever.retrieve(requestContext);
         Logger.debug("Redis retrieving time: {}", System.currentTimeMillis() - start);
         start = System.currentTimeMillis();
         List<ObjectNode> results = trigger.getTriggeredFeatures(interactions.getEntityList());

@@ -5,7 +5,7 @@ import org.grouplens.samantha.modeler.common.PredictiveModel;
 import org.grouplens.samantha.modeler.featurizer.*;
 import org.grouplens.samantha.modeler.space.IndexSpace;
 import org.grouplens.samantha.modeler.space.VariableSpace;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeatureModel;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.tree.*;
 
 import java.util.List;
@@ -20,8 +20,8 @@ public class RegressionTreeGBCent extends AbstractGBCent implements PredictiveMo
     public RegressionTreeGBCent(String modelName, List<FeatureExtractor> treeExtractors,
                                 List<String> treeFeatures, String labelName, String weightName,
                                 IndexSpace indexSpace, VariableSpace variableSpace,
-                                SVDFeatureModel svdFeatureModel, RegressionCriterion criterion) {
-        super(indexSpace, treeExtractors, treeFeatures, labelName, weightName, svdFeatureModel);
+                                SVDFeature svdFeature, RegressionCriterion criterion) {
+        super(indexSpace, treeExtractors, treeFeatures, labelName, weightName, svdFeature);
         this.modelName = modelName;
         this.variableSpace = variableSpace;
         this.criterion = criterion;

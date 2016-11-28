@@ -7,8 +7,8 @@ import org.grouplens.samantha.modeler.common.PredictiveModel;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.featurizer.StandardListLearningData;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureInstance;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeatureModel;
 import org.grouplens.samantha.modeler.featurizer.StandardFeaturizer;
 import org.grouplens.samantha.modeler.featurizer.StandardLearningInstance;
 
@@ -16,12 +16,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 abstract public class AbstractGBCent extends StandardFeaturizer implements GBCent {
-    protected final SVDFeatureModel svdfeaModel;
+    protected final SVDFeature svdfeaModel;
     protected final List<PredictiveModel> trees = new ArrayList<>();
 
     public AbstractGBCent(IndexSpace indexSpace, List<FeatureExtractor> featureExtractors,
                           List<String> features, String labelName, String weightName,
-                          SVDFeatureModel svdfeaModel) {
+                          SVDFeature svdfeaModel) {
         super(indexSpace, featureExtractors, features, labelName, weightName);
         this.svdfeaModel = svdfeaModel;
     }
@@ -36,7 +36,7 @@ abstract public class AbstractGBCent extends StandardFeaturizer implements GBCen
         return new StandardListLearningData(treeInstances);
     }
 
-    public SVDFeatureModel getSVDFeatureModel() {
+    public SVDFeature getSVDFeatureModel() {
         return this.svdfeaModel;
     }
 

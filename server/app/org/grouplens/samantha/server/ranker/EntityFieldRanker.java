@@ -12,46 +12,44 @@ import play.Configuration;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EntityFieldBasedRanker extends AbstractRanker {
+//TODO: support multiple fields, partial sorting with multiple fields
+public class EntityFieldRanker extends AbstractRanker {
     private final int offset;
-    private int limit;
+    private final int limit;
     private final int pageSize;
-    private final String whetherOrderKey;
-    private final String orderFieldKey;
-    private final String ascendingKey;
+    private final boolean whetherOrder;
+    private final String orderField;
+    private final boolean ascending;
 
-    public EntityFieldBasedRanker(Configuration config, int offset, int limit, int pageSize,
-                                  String whetherOrderKey, String orderFieldKey, String ascendingKey) {
+    public EntityFieldRanker(Configuration config, int offset, int limit, int pageSize,
+                             boolean whetherOrder, String orderField, boolean ascending) {
         super(config);
         this.offset = offset;
         this.limit = limit;
         this.pageSize = pageSize;
-        this.whetherOrderKey = whetherOrderKey;
-        this.orderFieldKey = orderFieldKey;
-        this.ascendingKey = ascendingKey;
+        this.whetherOrder = whetherOrder;
+        this.orderField = orderField;
+        this.ascending = ascending;
     }
 
     public RankedResult rank(RetrievedResult retrievedResult,
                              RequestContext requestContext) {
         List<ObjectNode> entityList = retrievedResult.getEntityList();
+        int curLimit = limit;
         if (pageSize == 0 || limit > entityList.size()) {
-            limit = entityList.size();
+            curLimit = entityList.size();
         }
         List<Prediction> scoredList = new ArrayList<>(entityList.size());
         for (ObjectNode entity : entityList) {
             scoredList.add(new Prediction(entity, null, 0.0));
         }
         List<Prediction> candidates;
-        JsonNode requestBody = requestContext.getRequestBody();
-        boolean whetherOrder = JsonHelpers.getOptionalBoolean(requestBody, whetherOrderKey, true);
         if (whetherOrder) {
-            String orderField = JsonHelpers.getRequiredString(requestBody, orderFieldKey);
             Ordering<Prediction> ordering = RankerUtilities.scoredResultFieldOrdering(orderField);
-            boolean ascending = JsonHelpers.getOptionalBoolean(requestBody, ascendingKey, false);
             if (ascending) {
-                candidates = ordering.leastOf(scoredList, offset + limit);
+                candidates = ordering.leastOf(scoredList, offset + curLimit);
             } else {
-                candidates = ordering.greatestOf(scoredList, offset + limit);
+                candidates = ordering.greatestOf(scoredList, offset + curLimit);
             }
         } else {
             candidates = scoredList;
@@ -60,8 +58,8 @@ public class EntityFieldBasedRanker extends AbstractRanker {
         if (offset >= candidates.size()) {
             recs = new ArrayList<>();
         } else {
-            recs = candidates.subList(offset, limit);
+            recs = candidates.subList(offset, curLimit);
         }
-        return new RankedResult(recs, offset, limit, retrievedResult.getMaxHits());
+        return new RankedResult(recs, offset, curLimit, retrievedResult.getMaxHits());
     }
 }

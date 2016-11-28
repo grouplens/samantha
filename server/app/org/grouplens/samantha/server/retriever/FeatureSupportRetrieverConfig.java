@@ -1,6 +1,6 @@
 package org.grouplens.samantha.server.retriever;
 
-import org.grouplens.samantha.modeler.svdfeature.SVDFeatureModel;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.expander.EntityExpander;
@@ -49,7 +49,7 @@ public class FeatureSupportRetrieverConfig implements RetrieverConfig {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         configService.getPredictor(predictorName, requestContext);
         ModelService modelService = injector.instanceOf(ModelService.class);
-        SVDFeatureModel model = (SVDFeatureModel) modelService.getModel(requestContext.getEngineName(), modelName);
+        SVDFeature model = (SVDFeature) modelService.getModel(requestContext.getEngineName(), modelName);
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
         return new FeatureSupportRetriever(model, itemAttrs, supportAttr, maxHits, entityExpanders, config);

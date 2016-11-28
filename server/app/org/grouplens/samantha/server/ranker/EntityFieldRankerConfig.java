@@ -7,19 +7,19 @@ import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
 
-public class EntityFieldBasedRankerConfig implements RankerConfig {
+public class EntityFieldRankerConfig implements RankerConfig {
     private final int pageSize;
-    private final String orderFieldKey;
-    private final String whetherOrderKey;
-    private final String ascendingKey;
+    private final String orderField;
+    private final boolean whetherOrder;
+    private final boolean ascending;
     private final Configuration config;
 
-    private EntityFieldBasedRankerConfig(Configuration config, int pageSize,
-                                         String orderFieldKey, String whetherOrderKey, String ascendingKey) {
+    private EntityFieldRankerConfig(Configuration config, int pageSize,
+                                    String orderField, boolean whetherOrder, boolean ascending) {
         this.pageSize = pageSize;
-        this.orderFieldKey = orderFieldKey;
-        this.whetherOrderKey = whetherOrderKey;
-        this.ascendingKey = ascendingKey;
+        this.orderField = orderField;
+        this.whetherOrder = whetherOrder;
+        this.ascending = ascending;
         this.config = config;
     }
 
@@ -27,10 +27,14 @@ public class EntityFieldBasedRankerConfig implements RankerConfig {
                                                Injector injector) {
         int pageSize = 24;
         if (rankerConfig.asMap().containsKey(ConfigKey.RANKER_PAGE_SIZE.get())) {
-            rankerConfig.getInt(ConfigKey.RANKER_PAGE_SIZE.get());
+            pageSize = rankerConfig.getInt(ConfigKey.RANKER_PAGE_SIZE.get());
         }
-        return new EntityFieldBasedRankerConfig(rankerConfig, pageSize, rankerConfig.getString("orderFieldKey"),
-                rankerConfig.getString("whetherOrderKey"), rankerConfig.getString("ascendingKey"));
+        boolean whetherOrder = true;
+        if (rankerConfig.asMap().containsKey("whetherOrder")) {
+            whetherOrder = rankerConfig.getBoolean("whetherOrder"); 
+        }
+        return new EntityFieldRankerConfig(rankerConfig, pageSize, rankerConfig.getString("orderField"),
+                whetherOrder, rankerConfig.getBoolean("ascending"));
     }
 
     public Ranker getRanker(RequestContext requestContext) {
@@ -39,7 +43,7 @@ public class EntityFieldBasedRankerConfig implements RankerConfig {
         int offset = JsonHelpers.getOptionalInt(requestBody,
                 ConfigKey.RANKER_OFFSET.get(), (page - 1) * pageSize);
         int limit = JsonHelpers.getOptionalInt(requestBody, ConfigKey.RANKER_LIMIT.get(), pageSize);
-        return new EntityFieldBasedRanker(config, offset, limit, pageSize,
-                whetherOrderKey, orderFieldKey, ascendingKey);
+        return new EntityFieldRanker(config, offset, limit, pageSize,
+                whetherOrder, orderField, ascending);
     }
 }

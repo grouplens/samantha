@@ -3,8 +3,10 @@ package org.grouplens.samantha.server.predictor;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.grouplens.samantha.modeler.solver.*;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeatureModelProducer;
-import org.grouplens.samantha.server.common.ModelOperation;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeatureProducer;
+import org.grouplens.samantha.server.common.AbstractModelManager;
+import org.grouplens.samantha.server.common.ModelManager;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.*;
 import org.grouplens.samantha.server.exception.ConfigurationException;
@@ -13,15 +15,11 @@ import org.grouplens.samantha.server.featurizer.FeatureExtractorConfig;
 import org.grouplens.samantha.server.featurizer.FeatureExtractorListConfigParser;
 import org.grouplens.samantha.server.featurizer.FeaturizerConfigParser;
 import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeatureModel;
 import org.grouplens.samantha.modeler.common.LearningData;
-import org.grouplens.samantha.server.retriever.RetrieverUtilities;
 import play.Configuration;
 import play.inject.Injector;
-import play.libs.Json;
 
 import java.util.*;
 
@@ -129,101 +127,71 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
         }
     }
 
-    private void updateModel(SVDFeatureModel model, RequestContext requestContext) {
-        LearningData data = PredictorUtilities.getLearningData(model, requestContext,
-                requestContext.getRequestBody().get(daoConfigKey), entityDaoConfigs,
-                expandersConfig, injector, true, serializedKey, insName, labelName, weightName);
-        OnlineOptimizationMethod onlineMethod = (OnlineOptimizationMethod) PredictorUtilities
-                .getLearningMethod(onlineMethodConfig, injector, requestContext);
-        onlineMethod.update(model, data);
-    }
+    private class SVDFeatureModelManager extends AbstractModelManager {
 
-    private SVDFeatureModel createNewModel(ModelService modelService, String engineName,
-                                           RequestContext requestContext) {
-        List<FeatureExtractor> featureExtractors = new ArrayList<>();
-        for (FeatureExtractorConfig feaExtConfig : feaExtConfigs) {
-            featureExtractors.add(feaExtConfig.getFeatureExtractor(requestContext));
+        public SVDFeatureModelManager(String modelName, String modelFile, Injector injector) {
+            super(injector, modelName, modelFile);
         }
-        SVDFeatureModel ownModel;
-        if (dependPredictorName != null) {
-            SVDFeatureModel dependModel = (SVDFeatureModel) modelService
-                    .getModel(engineName, dependPredictorModelName);
-            ownModel = SVDFeatureModel.createSVDFeatureModelFromOtherModel(dependModel, biasFeas, ufactFeas,
-                    ifactFeas, labelName, weightName, featureExtractors, loss);
-        } else {
-            SVDFeatureModelProducer producer = injector.instanceOf(SVDFeatureModelProducer.class);
-            ownModel = producer.createSVDFeatureModel(modelName,
-                    biasFeas, ufactFeas, ifactFeas, labelName, weightName,
-                    featureExtractors, factDim, loss);
-        }
-        return ownModel;
-    }
 
-    private SVDFeatureModel buildModel(RequestContext requestContext, ModelService modelService,
-                                       String engineName) {
-        SVDFeatureModel model = createNewModel(modelService, engineName, requestContext);
-        JsonNode reqBody = requestContext.getRequestBody();
-        LearningData data = PredictorUtilities.getLearningData(model, requestContext,
-                reqBody.get("learningDaoConfig"), entityDaoConfigs, expandersConfig, injector, true,
-                serializedKey, insName, labelName, weightName);
-        LearningData valid = null;
-        if (reqBody.has("validationDaoConfig"))  {
-            valid = PredictorUtilities.getLearningData(model, requestContext,
-                    reqBody.get("validationDaoConfig"), entityDaoConfigs, expandersConfig,
-                    injector, false, serializedKey, insName, labelName, weightName);
-        }
-        OptimizationMethod method = (OptimizationMethod) PredictorUtilities
-                .getLearningMethod(methodConfig, injector, requestContext);
-        method.minimize(model, data, valid);
-        modelService.setModel(engineName, modelName, model);
-        return model;
-    }
-
-    private SVDFeatureModel getModel(ModelService modelService, String engineName,
-                                     RequestContext requestContext) {
-        if (modelService.hasModel(engineName, modelName)) {
-            return (SVDFeatureModel) modelService.getModel(engineName, modelName);
-        } else {
-            SVDFeatureModel ownModel = createNewModel(modelService, engineName, requestContext);
-            modelService.setModel(engineName, modelName, ownModel);
+        public Object createModel(RequestContext requestContext) {
+            List<FeatureExtractor> featureExtractors = new ArrayList<>();
+            for (FeatureExtractorConfig feaExtConfig : feaExtConfigs) {
+                featureExtractors.add(feaExtConfig.getFeatureExtractor(requestContext));
+            }
+            SVDFeature ownModel;
+            if (dependPredictorName != null) {
+                SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
+                configService.getPredictor(dependPredictorName, requestContext);
+                String engineName = requestContext.getEngineName();
+                ModelService modelService = injector.instanceOf(ModelService.class);
+                SVDFeature dependModel = (SVDFeature) modelService
+                        .getModel(engineName, dependPredictorModelName);
+                ownModel = SVDFeature.createSVDFeatureModelFromOtherModel(dependModel, biasFeas, ufactFeas,
+                        ifactFeas, labelName, weightName, featureExtractors, loss);
+            } else {
+                SVDFeatureProducer producer = injector.instanceOf(SVDFeatureProducer.class);
+                ownModel = producer.createSVDFeatureModel(modelName,
+                        biasFeas, ufactFeas, ifactFeas, labelName, weightName,
+                        featureExtractors, factDim, loss);
+            }
             return ownModel;
+        }
+
+        public Object buildModel(Object model, RequestContext requestContext) {
+            JsonNode reqBody = requestContext.getRequestBody();
+            SVDFeature svdFeature = (SVDFeature) model;
+            LearningData data = PredictorUtilities.getLearningData(svdFeature, requestContext,
+                    reqBody.get("learningDaoConfig"), entityDaoConfigs, expandersConfig, injector, true,
+                    serializedKey, insName, labelName, weightName);
+            LearningData valid = null;
+            if (reqBody.has("validationDaoConfig"))  {
+                valid = PredictorUtilities.getLearningData(svdFeature, requestContext,
+                        reqBody.get("validationDaoConfig"), entityDaoConfigs, expandersConfig,
+                        injector, false, serializedKey, insName, labelName, weightName);
+            }
+            OptimizationMethod method = (OptimizationMethod) PredictorUtilities
+                    .getLearningMethod(methodConfig, injector, requestContext);
+            method.minimize(svdFeature, data, valid);
+            return model;
+        }
+
+        public Object updateModel(Object model, RequestContext requestContext) {
+            SVDFeature svdFeature = (SVDFeature) model;
+            LearningData data = PredictorUtilities.getLearningData(svdFeature, requestContext,
+                    requestContext.getRequestBody().get(daoConfigKey), entityDaoConfigs,
+                    expandersConfig, injector, true, serializedKey, insName, labelName, weightName);
+            OnlineOptimizationMethod onlineMethod = (OnlineOptimizationMethod) PredictorUtilities
+                    .getLearningMethod(onlineMethodConfig, injector, requestContext);
+            onlineMethod.update(svdFeature, data);
+            return model;
         }
     }
 
     public Predictor getPredictor(RequestContext requestContext) {
-        String engineName = requestContext.getEngineName();
-        if (dependPredictorName != null) {
-            SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
-            configService.getPredictor(dependPredictorName, requestContext);
-        }
-        ModelService modelService = injector.instanceOf(ModelService.class);
-        JsonNode reqBody = requestContext.getRequestBody();
-        boolean toReset = IOUtilities.whetherModelOperation(modelName, ModelOperation.RESET, reqBody);
-        if (toReset) {
-            modelService.removeModel(engineName, modelName);
-        }
-        boolean toBuild = IOUtilities.whetherModelOperation(modelName, ModelOperation.BUILD, reqBody);
-        SVDFeatureModel model;
-        if (toBuild) {
-            model = buildModel(requestContext, modelService, engineName);
-        } else {
-            model = getModel(modelService, engineName, requestContext);
-        }
-        boolean toLoad = IOUtilities.whetherModelOperation(modelName, ModelOperation.LOAD, reqBody);
-        if (toLoad && dependPredictorName == null) {
-            model = (SVDFeatureModel) RetrieverUtilities.loadModel(modelService, engineName,
-                    modelName, modelFile);
-        }
-        boolean toUpdate = IOUtilities.whetherModelOperation(modelName, ModelOperation.UPDATE, reqBody);
-        if (toUpdate) {
-            updateModel(model, requestContext);
-        }
-        boolean toDump = IOUtilities.whetherModelOperation(modelName, ModelOperation.DUMP, reqBody);
-        if (toDump && dependPredictorName == null) {
-            RetrieverUtilities.dumpModel(model, modelFile);
-        }
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
+        ModelManager modelManager = new SVDFeatureModelManager(modelName, modelFile, injector);
+        SVDFeature model = (SVDFeature) modelManager.manage(requestContext);
         return new PredictiveModelBasedPredictor(config, model, model,
                 entityDaoConfigs, injector, entityExpanders, daoConfigKey);
     }

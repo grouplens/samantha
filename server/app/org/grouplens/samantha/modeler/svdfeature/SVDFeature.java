@@ -22,7 +22,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
-public class SVDFeatureModel extends AbstractLearningModel implements Featurizer {
+public class SVDFeature extends AbstractLearningModel implements Featurizer {
     private static final long serialVersionUID = 1L;
 
     private final ObjectiveFunction objectiveFunction;
@@ -34,32 +34,32 @@ public class SVDFeatureModel extends AbstractLearningModel implements Featurizer
     private final List<FeatureExtractor> featureExtractors = new ArrayList<>();
     private final int factDim;
 
-    static public SVDFeatureModel createSVDFeatureModelFromOtherModel(SVDFeatureModel otherModel,
-                                                                      List<String> biasFeas,
-                                                                      List<String> ufactFeas,
-                                                                      List<String> ifactFeas,
-                                                                      String labelName,
-                                                                      String weightName,
-                                                                      List<FeatureExtractor> featureExtractors,
-                                                                      ObjectiveFunction objectiveFunction) {
-        return new SVDFeatureModel(biasFeas, ufactFeas, ifactFeas, labelName, weightName,
+    static public SVDFeature createSVDFeatureModelFromOtherModel(SVDFeature otherModel,
+                                                                 List<String> biasFeas,
+                                                                 List<String> ufactFeas,
+                                                                 List<String> ifactFeas,
+                                                                 String labelName,
+                                                                 String weightName,
+                                                                 List<FeatureExtractor> featureExtractors,
+                                                                 ObjectiveFunction objectiveFunction) {
+        return new SVDFeature(biasFeas, ufactFeas, ifactFeas, labelName, weightName,
                 featureExtractors, otherModel.factDim, objectiveFunction, otherModel.indexSpace,
                 otherModel.variableSpace);
     }
 
     /**
-     * Directly calling this is discouraged. Use {@link SVDFeatureModelProducer} instead.
+     * Directly calling this is discouraged. Use {@link SVDFeatureProducer} instead.
      */
-    public SVDFeatureModel(List<String> biasFeas,
-                           List<String> ufactFeas,
-                           List<String> ifactFeas,
-                           String labelName,
-                           String weightName,
-                           List<FeatureExtractor> featureExtractors,
-                           int factDim,
-                           ObjectiveFunction objectiveFunction,
-                           IndexSpace indexSpace,
-                           VariableSpace variableSpace) {
+    public SVDFeature(List<String> biasFeas,
+                      List<String> ufactFeas,
+                      List<String> ifactFeas,
+                      String labelName,
+                      String weightName,
+                      List<FeatureExtractor> featureExtractors,
+                      int factDim,
+                      ObjectiveFunction objectiveFunction,
+                      IndexSpace indexSpace,
+                      VariableSpace variableSpace) {
         super(indexSpace, variableSpace);
         this.factDim = factDim;
         this.biasFeas.addAll(biasFeas);

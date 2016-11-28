@@ -8,13 +8,13 @@ import org.grouplens.samantha.modeler.space.VariableSpace;
 import javax.inject.Inject;
 import java.util.List;
 
-public class LinearUCBModelProducer {
+public class LinearUCBProducer {
     @Inject private SpaceProducer spaceProducer;
 
     @Inject
-    private LinearUCBModelProducer() {}
+    private LinearUCBProducer() {}
 
-    public LinearUCBModelProducer(SpaceProducer spaceProducer) {
+    public LinearUCBProducer(SpaceProducer spaceProducer) {
         this.spaceProducer = spaceProducer;
     }
 
@@ -31,16 +31,16 @@ public class LinearUCBModelProducer {
         return variableSpace;
     }
 
-    public LinearUCBModel createLinearUCBModel(String modelName,
-                                               List<String> features,
-                                               int numMainFeatures,
-                                               String labelName,
-                                               String weightName,
-                                               double alpha, double lambda,
-                                               List<FeatureExtractor> featureExtractors) {
+    public LinearUCB createLinearUCBModel(String modelName,
+                                          List<String> features,
+                                          int numMainFeatures,
+                                          String labelName,
+                                          String weightName,
+                                          double alpha, double lambda,
+                                          List<FeatureExtractor> featureExtractors) {
         IndexSpace indexSpace = getIndexSpace(modelName);
         VariableSpace variableSpace = getVariableSpace(modelName);
-        return new LinearUCBModel(lambda, alpha, features, numMainFeatures, labelName, weightName, featureExtractors,
+        return new LinearUCB(lambda, alpha, features, numMainFeatures, labelName, weightName, featureExtractors,
                 indexSpace, variableSpace);
     }
 }

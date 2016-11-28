@@ -9,7 +9,8 @@ import java.util.List;
 
 public interface Transitioner {
     static Transitioner getTransitioner(Configuration config,
-                                        Injector injector, RequestContext requestContext) {return null;}
+                                        Injector injector,
+                                        RequestContext requestContext) {return null;}
     /**
      * Set the current state and set the probability of each new state in the attribute of the
      * returned ObjectNode with given key in ConfigKey

@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
+//TODO: warn if attr is not present
 public interface FeatureExtractor extends Serializable {
     Map<String, List<Feature>> extract(JsonNode entity, boolean update,
                                        IndexSpace indexSpace);

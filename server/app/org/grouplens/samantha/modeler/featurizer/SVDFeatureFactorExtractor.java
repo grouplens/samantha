@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureKey;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeatureModel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,12 +13,12 @@ import java.util.List;
 import java.util.Map;
 
 public class SVDFeatureFactorExtractor implements FeatureExtractor {
-    final private SVDFeatureModel model;
+    final private SVDFeature model;
     final private Map<String, List<String>> fea2svdfeas;
     final private Boolean sparse;
     final private String indexName;
 
-    public SVDFeatureFactorExtractor(SVDFeatureModel model, Map<String, List<String>> fea2svdfeas,
+    public SVDFeatureFactorExtractor(SVDFeature model, Map<String, List<String>> fea2svdfeas,
                                      Boolean sparse, String indexName) {
         this.fea2svdfeas = fea2svdfeas;
         this.model = model;

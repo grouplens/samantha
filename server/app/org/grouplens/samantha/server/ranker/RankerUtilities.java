@@ -43,21 +43,4 @@ public class RankerUtilities {
         };
     }
 
-    static public Ordering<double[]> pairDoubleSecondOrdering() {
-        return new Ordering<double[]>() {
-            @Override
-            public int compare(double[] left, double[] right) {
-                return compareValues(left[1], right[1]);
-            }
-        };
-    }
-
-    static public Comparator<JsonNode> jsonFieldComparator(String field) {
-        return new Comparator<JsonNode>() {
-            @Override
-            public int compare(JsonNode o1, JsonNode o2) {
-                return compareValues(o1.get(field).asDouble(), o2.get(field).asDouble());
-            }
-        };
-    }
 }

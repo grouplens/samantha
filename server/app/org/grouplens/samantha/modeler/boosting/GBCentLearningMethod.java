@@ -14,7 +14,7 @@ import org.grouplens.samantha.modeler.featurizer.StandardLearningInstance;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
 import org.grouplens.samantha.modeler.solver.OnlineOptimizationMethod;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureKey;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeatureModel;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.tree.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +87,7 @@ public class GBCentLearningMethod implements LearningMethod {
 
     public void learn(PredictiveModel model, LearningData learnData, LearningData validData) {
         GBCent cent = (GBCent) model;
-        SVDFeatureModel svdfeaModel = cent.getSVDFeatureModel();
+        SVDFeature svdfeaModel = cent.getSVDFeatureModel();
         LearningInstance ins;
         if (learnSvdfea) {
             GBCentSVDFeatureData gblearnData = new GBCentSVDFeatureData(learnData);
@@ -206,8 +206,8 @@ public class GBCentLearningMethod implements LearningMethod {
     }
 
     public double updateSVDFeatureModel(GBCent cent, LearningData learnData) {
-        SVDFeatureModel svdFeatureModel = cent.getSVDFeatureModel();
-        return optimizationMethod.update(svdFeatureModel, learnData);
+        SVDFeature svdFeature = cent.getSVDFeatureModel();
+        return optimizationMethod.update(svdFeature, learnData);
     }
 
     public void updateDecisionTree(GBCent cent, LearningData learnData, LearningData validData) {

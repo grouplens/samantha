@@ -14,6 +14,7 @@ public abstract class AbstractPredictor implements Predictor {
     protected final Configuration daoConfigs;
     protected final Injector injector;
     private final String daoConfigKey;
+    private final boolean verbose;
 
     public AbstractPredictor(Configuration config, Configuration daoConfigs,
                              String daoConfigKey, Injector injector) {
@@ -21,6 +22,12 @@ public abstract class AbstractPredictor implements Predictor {
         this.daoConfigKey = daoConfigKey;
         this.daoConfigs = daoConfigs;
         this.injector = injector;
+        Boolean verboseConfig = config.getBoolean(ConfigKey.ENGINE_COMPONENT_VERBOSE.get());
+        if (verboseConfig != null) {
+            this.verbose = verboseConfig;
+        } else {
+            this.verbose = false;
+        }
     }
 
     public List<Prediction> predict(RequestContext requestContext) {
@@ -28,9 +35,13 @@ public abstract class AbstractPredictor implements Predictor {
     }
 
     public Configuration getConfig() {
-        Map<String, Object> configMap = new HashMap<>();
-        configMap.put(ConfigKey.ENGINE_COMPONENT_NAME.get(),
-                config.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()));
-        return new Configuration(configMap);
+        if (verbose) {
+            return config;
+        } else {
+            Map<String, Object> configMap = new HashMap<>();
+            configMap.put(ConfigKey.ENGINE_COMPONENT_NAME.get(),
+                    config.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()));
+            return new Configuration(configMap);
+        }
     }
 }

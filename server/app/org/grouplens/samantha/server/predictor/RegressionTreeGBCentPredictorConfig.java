@@ -7,8 +7,9 @@ import org.grouplens.samantha.modeler.boosting.RegressionTreeGBCent;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningMethod;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeatureModel;
-import org.grouplens.samantha.server.common.ModelOperation;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
+import org.grouplens.samantha.server.common.AbstractModelManager;
+import org.grouplens.samantha.server.common.ModelManager;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
@@ -17,12 +18,9 @@ import org.grouplens.samantha.server.featurizer.FeatureExtractorConfig;
 import org.grouplens.samantha.server.featurizer.FeatureExtractorListConfigParser;
 import org.grouplens.samantha.server.featurizer.FeaturizerConfigParser;
 import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
-import org.grouplens.samantha.server.retriever.RetrieverUtilities;
 import play.Configuration;
 import play.inject.Injector;
-import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,75 +86,49 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
                 predictorConfig.getString("weightName"), predictorConfig);
     }
 
-    private RegressionTreeGBCent createNewModel(SamanthaConfigService configService,
-                                                ModelService modelService,
-                                                RequestContext requestContext) {
-        List<FeatureExtractor> featureExtractors = new ArrayList<>();
-        for (FeatureExtractorConfig feaExtConfig : treeExtractorsConfig) {
-            featureExtractors.add(feaExtConfig.getFeatureExtractor(requestContext));
-        }
-        configService.getPredictor(svdfeaPredictorName, requestContext);
-        SVDFeatureModel svdfeaModel = (SVDFeatureModel) modelService.getModel(requestContext.getEngineName(),
-                svdfeaModelName);
-        RegressionTreeGBCentProducer producer = injector.instanceOf(RegressionTreeGBCentProducer.class);
-        RegressionTreeGBCent model = producer.createGBCentWithSVDFeatureModel(modelName, treeFeatures,
-                featureExtractors, svdfeaModel);
-        return model;
-    }
+    private class RegressionTreeGBCentModelManager extends AbstractModelManager {
 
-    private RegressionTreeGBCent getModel(SamanthaConfigService configService,
-                                          ModelService modelService, RequestContext requestContext) {
-        String engineName = requestContext.getEngineName();
-        if (modelService.hasModel(engineName, modelName)) {
-            return (RegressionTreeGBCent) modelService.getModel(engineName, modelName);
-        } else {
-            RegressionTreeGBCent model = createNewModel(configService, modelService, requestContext);
-            modelService.setModel(engineName, modelName, model);
+        public RegressionTreeGBCentModelManager(String modelName, String modelFile, Injector injector) {
+            super(injector, modelName, modelFile);
+        }
+
+        public Object createModel(RequestContext requestContext) {
+            List<FeatureExtractor> featureExtractors = new ArrayList<>();
+            for (FeatureExtractorConfig feaExtConfig : treeExtractorsConfig) {
+                featureExtractors.add(feaExtConfig.getFeatureExtractor(requestContext));
+            }
+            SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
+            configService.getPredictor(svdfeaPredictorName, requestContext);
+            ModelService modelService = injector.instanceOf(ModelService.class);
+            SVDFeature svdfeaModel = (SVDFeature) modelService.getModel(requestContext.getEngineName(),
+                    svdfeaModelName);
+            RegressionTreeGBCentProducer producer = injector.instanceOf(RegressionTreeGBCentProducer.class);
+            RegressionTreeGBCent model = producer.createGBCentWithSVDFeatureModel(modelName, treeFeatures,
+                    featureExtractors, svdfeaModel);
+            return model;
+        }
+
+        public Object buildModel(Object model, RequestContext requestContext) {
+            JsonNode reqBody = requestContext.getRequestBody();
+            RegressionTreeGBCent gbcent = (RegressionTreeGBCent) model;
+            LearningData data = PredictorUtilities.getLearningData(gbcent, requestContext,
+                    reqBody.get("learningDaoConfig"), daosConfig, expandersConfig, injector, true,
+                    serializedKey, insName, labelName, weightName);
+            LearningData valid = null;
+            if (reqBody.has("validationDaoConfig"))  {
+                valid = PredictorUtilities.getLearningData(gbcent, requestContext,
+                        reqBody.get("validationDaoConfig"), daosConfig, expandersConfig, injector, false,
+                        serializedKey, insName, labelName, weightName);
+            }
+            LearningMethod method = PredictorUtilities.getLearningMethod(methodConfig, injector, requestContext);
+            method.learn(gbcent, data, valid);
             return model;
         }
     }
 
-    private RegressionTreeGBCent buildModel(SamanthaConfigService configService,
-                                            RequestContext requestContext,
-                                            ModelService modelService) {
-        JsonNode reqBody = requestContext.getRequestBody();
-        RegressionTreeGBCent model = createNewModel(configService, modelService, requestContext);
-        LearningData data = PredictorUtilities.getLearningData(model, requestContext,
-                reqBody.get("learningDaoConfig"), daosConfig, expandersConfig, injector, true,
-                serializedKey, insName, labelName, weightName);
-        LearningData valid = null;
-        if (reqBody.has("validationDaoConfig"))  {
-            valid = PredictorUtilities.getLearningData(model, requestContext,
-                    reqBody.get("validationDaoConfig"), daosConfig, expandersConfig, injector, false,
-                    serializedKey, insName, labelName, weightName);
-        }
-        LearningMethod method = PredictorUtilities.getLearningMethod(methodConfig, injector, requestContext);
-        method.learn(model, data, valid);
-        modelService.setModel(requestContext.getEngineName(), modelName, model);
-        return model;
-    }
-
     public Predictor getPredictor(RequestContext requestContext) {
-        ModelService modelService = injector.instanceOf(ModelService.class);
-        SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
-        JsonNode reqBody = requestContext.getRequestBody();
-        String engineName = requestContext.getEngineName();
-        boolean toBuild = IOUtilities.whetherModelOperation(modelName, ModelOperation.BUILD, reqBody);
-        RegressionTreeGBCent model;
-        if (toBuild) {
-            model = buildModel(configService, requestContext, modelService);
-        } else {
-            model = getModel(configService, modelService, requestContext);
-        }
-        boolean toLoad = IOUtilities.whetherModelOperation(modelName, ModelOperation.LOAD, reqBody);
-        if (toLoad) {
-            model = (RegressionTreeGBCent) RetrieverUtilities.loadModel(modelService, engineName, modelName,
-                    modelFile);
-        }
-        boolean toDump = IOUtilities.whetherModelOperation(modelName, ModelOperation.DUMP, reqBody);
-        if (toDump) {
-            RetrieverUtilities.dumpModel(model, modelFile);
-        }
+        ModelManager modelManager = new RegressionTreeGBCentModelManager(modelName, modelFile, injector);
+        RegressionTreeGBCent model = (RegressionTreeGBCent) modelManager.manage(requestContext);
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
         return new PredictiveModelBasedPredictor(config, model, model,

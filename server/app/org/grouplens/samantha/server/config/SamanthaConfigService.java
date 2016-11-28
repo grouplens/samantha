@@ -1,5 +1,7 @@
 package org.grouplens.samantha.server.config;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.grouplens.samantha.server.evaluator.Evaluator;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 
@@ -24,29 +26,33 @@ import java.util.Map;
 @Singleton
 public class SamanthaConfigService {
     final private Injector injector;
-    final private Configuration configuration;
     final private Map<String, EngineConfig> namedEngineConfig = new HashMap<>();
 
     @Inject
     private SamanthaConfigService(Configuration configuration,
                                   Injector injector)
             throws ConfigurationException {
-        this.configuration = configuration;
         this.injector = injector;
-        loadConfig();
+        loadConfig(configuration);
     }
 
-    private void loadConfig() throws ConfigurationException {
+    private void loadConfig(Configuration config) {
         namedEngineConfig.clear();
-        List<String> enabledEngines = configuration.
+        List<String> enabledEngines = config.
                 getStringList(ConfigKey.ENGINES_ENABLED.get());
         for (String engine : enabledEngines) {
-            Configuration engineConfig = configuration.
+            Configuration engineConfig = config.
                     getConfig(ConfigKey.SAMANTHA_BASE.get() + "." + engine);
             String engineType = engineConfig.getString(ConfigKey.ENGINE_TYPE.get());
             namedEngineConfig.put(engine,
                     EngineType.valueOf(engineType).loadConfig(engineConfig, injector));
         }
+    }
+
+    public void reloadConfig() {
+        ConfigFactory.invalidateCaches();
+        Config config = ConfigFactory.load();
+        loadConfig(new Configuration(config));
     }
 
     public Indexer getIndexer(String indexerName, RequestContext requestContext) {

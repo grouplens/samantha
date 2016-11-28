@@ -44,20 +44,4 @@ public class IOUtilities {
         }
         return keyVal;
     }
-
-    static public boolean whetherModelOperation(String modelName, ModelOperation operation, JsonNode reqBody) {
-        boolean oper = false;
-        if (reqBody.has(ConfigKey.MODEL_NAME_KEY.get())) {
-            String indModel = JsonHelpers.getRequiredString(reqBody, ConfigKey.MODEL_NAME_KEY.get());
-            if (modelName.equals(indModel)) {
-                ModelOperation indicated = ModelOperation.valueOf(JsonHelpers.getRequiredString(reqBody,
-                        ConfigKey.MODEL_OPERATION_KEY.get()));
-                if (operation.equals(indicated)) {
-                    return true;
-                }
-            }
-        }
-        return oper;
-    }
-
 }

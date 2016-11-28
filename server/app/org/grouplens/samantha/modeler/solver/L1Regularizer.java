@@ -1,8 +1,5 @@
 package org.grouplens.samantha.modeler.solver;
 
-/**
- * @author <a href="http://www.grouplens.org">GroupLens Research</a>
- */
 public class L1Regularizer {
     public L1Regularizer() {}
 

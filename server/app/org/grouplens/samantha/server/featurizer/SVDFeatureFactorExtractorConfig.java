@@ -2,7 +2,7 @@ package org.grouplens.samantha.server.featurizer;
 
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.featurizer.SVDFeatureFactorExtractor;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeatureModel;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.io.RequestContext;
@@ -56,7 +56,7 @@ public class SVDFeatureFactorExtractorConfig implements FeatureExtractorConfig {
                 .instanceOf(SamanthaConfigService.class);
         ModelService modelService = injector.instanceOf(ModelService.class);
         configService.getPredictor(predictorName, requestContext);
-        SVDFeatureModel model = (SVDFeatureModel) modelService.getModel(requestContext.getEngineName(),
+        SVDFeature model = (SVDFeature) modelService.getModel(requestContext.getEngineName(),
                 modelName);
         return new SVDFeatureFactorExtractor(model, fea2svdfeas, sparse, indexName);
     }

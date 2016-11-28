@@ -11,13 +11,13 @@ import javax.inject.Inject;
 import java.util.Collections;
 import java.util.List;
 
-public class SVDFeatureModelProducer {
+public class SVDFeatureProducer {
     @Inject private SpaceProducer spaceProducer;
 
     @Inject
-    private SVDFeatureModelProducer() {}
+    private SVDFeatureProducer() {}
 
-    public SVDFeatureModelProducer(SpaceProducer spaceProducer) {
+    public SVDFeatureProducer(SpaceProducer spaceProducer) {
         this.spaceProducer = spaceProducer;
     }
 
@@ -37,27 +37,27 @@ public class SVDFeatureModelProducer {
         return variableSpace;
     }
 
-    public SVDFeatureModel createSVDFeatureModel(String modelName,
-                                                 List<String> biasFeas,
-                                                 List<String> ufactFeas,
-                                                 List<String> ifactFeas,
-                                                 String labelName,
-                                                 String weightName,
-                                                 List<FeatureExtractor> featureExtractors,
-                                                 int factDim,
-                                                 ObjectiveFunction objectiveFunction) {
+    public SVDFeature createSVDFeatureModel(String modelName,
+                                            List<String> biasFeas,
+                                            List<String> ufactFeas,
+                                            List<String> ifactFeas,
+                                            String labelName,
+                                            String weightName,
+                                            List<FeatureExtractor> featureExtractors,
+                                            int factDim,
+                                            ObjectiveFunction objectiveFunction) {
         IndexSpace indexSpace = getIndexSpace(modelName);
         VariableSpace variableSpace = getVariableSpace(modelName, 0, 0, factDim);
-        return new SVDFeatureModel(biasFeas, ufactFeas, ifactFeas, labelName, weightName, featureExtractors,
+        return new SVDFeature(biasFeas, ufactFeas, ifactFeas, labelName, weightName, featureExtractors,
                 factDim, objectiveFunction, indexSpace, variableSpace);
     }
 
-    public SVDFeatureModel createSVDFeatureModelForInstanceDAO(String modelName,
-                                                               int biasSize, int factSize, int factDim,
-                                                               ObjectiveFunction objectiveFunction) {
+    public SVDFeature createSVDFeatureModelForInstanceDAO(String modelName,
+                                                          int biasSize, int factSize, int factDim,
+                                                          ObjectiveFunction objectiveFunction) {
         IndexSpace indexSpace = getIndexSpace(modelName);
         VariableSpace variableSpace = getVariableSpace(modelName, biasSize, factSize, factDim);
-        return new SVDFeatureModel(Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+        return new SVDFeature(Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 "label", "weight", Collections.EMPTY_LIST, factDim, objectiveFunction, indexSpace, variableSpace);
     }
 }

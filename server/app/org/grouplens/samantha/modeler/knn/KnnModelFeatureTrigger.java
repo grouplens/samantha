@@ -1,4 +1,4 @@
-package org.grouplens.samantha.modeler.svdfeature;
+package org.grouplens.samantha.modeler.knn;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
+import org.grouplens.samantha.modeler.tree.SortingUtilities;
 import play.libs.Json;
 
 import java.util.ArrayList;
@@ -93,6 +94,7 @@ public class KnnModelFeatureTrigger {
             entity.put(scoreAttr, entry.getValue());
             results.add(entity);
         }
+        results.sort(SortingUtilities.jsonFieldReverseComparator(scoreAttr));
         return results;
     }
 

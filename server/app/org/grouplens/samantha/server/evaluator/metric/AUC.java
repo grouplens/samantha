@@ -3,9 +3,9 @@ package org.grouplens.samantha.server.evaluator.metric;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+import org.grouplens.samantha.modeler.tree.SortingUtilities;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.predictor.Prediction;
-import org.grouplens.samantha.server.ranker.RankerUtilities;
 import play.libs.Json;
 
 import java.util.ArrayList;
@@ -21,7 +21,7 @@ public class AUC implements Metric {
     private final AUCType aucType;
 
     static public double computeAUC(List<double[]> list, double threshold) {
-        Ordering<double[]> ordering = RankerUtilities.pairDoubleSecondOrdering();
+        Ordering<double[]> ordering = SortingUtilities.pairDoubleSecondOrdering();
         ImmutableList<double[]> sorted = ordering.reverse().immutableSortedCopy(list);
         double numPos = 0;
         double numNeg = 0;

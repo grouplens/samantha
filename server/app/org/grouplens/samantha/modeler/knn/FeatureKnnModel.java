@@ -1,4 +1,4 @@
-package org.grouplens.samantha.modeler.svdfeature;
+package org.grouplens.samantha.modeler.knn;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -10,9 +10,10 @@ import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.modeler.space.IndexSpace;
 import org.grouplens.samantha.modeler.space.IndexedVectorModel;
 import org.grouplens.samantha.modeler.space.VariableSpace;
-import org.grouplens.samantha.server.ranker.RankerUtilities;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeatureKey;
+import org.grouplens.samantha.modeler.tree.SortingUtilities;
 import play.Logger;
-import play.inject.Injector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +22,7 @@ import java.util.Map;
 public class FeatureKnnModel extends IndexedVectorModel {
     private static final long serialVersionUID = 1L;
     final private List<String> feaAttrs;
-    transient final private SVDFeatureModel svdFeatureModel;
+    transient final private SVDFeature svdFeature;
     final private int numNeighbors;
     final private String modelName;
     final private boolean reverse;
@@ -29,29 +30,29 @@ public class FeatureKnnModel extends IndexedVectorModel {
 
     public FeatureKnnModel(String modelName, List<String> feaAttrs,
                            int numNeighbors, boolean reverse,
-                           int minSupport, SVDFeatureModel svdFeatureModel,
+                           int minSupport, SVDFeature svdFeature,
                            IndexSpace indexSpace, VariableSpace variableSpace) {
         super(modelName, 0, 2 * numNeighbors, indexSpace, variableSpace);
         this.feaAttrs = feaAttrs;
-        this.svdFeatureModel = svdFeatureModel;
+        this.svdFeature = svdFeature;
         this.numNeighbors = numNeighbors;
         this.modelName = modelName;
         this.reverse = reverse;
         this.minSupport = minSupport;
     }
 
-    private List<double[]> getNeighbors(int curIndex, IntList svdIndices, SVDFeatureModel svdFeatureModel) {
+    private List<double[]> getNeighbors(int curIndex, IntList svdIndices, SVDFeature svdFeature) {
         List<double[]> raw = new ArrayList<>(svdIndices.size());
         for (int target : svdIndices) {
             if (target != curIndex) {
                 double[] pair = new double[2];
                 pair[0] = target;
-                pair[1] = svdFeatureModel.getVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), target)
-                        .cosine(svdFeatureModel.getVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), curIndex));
+                pair[1] = svdFeature.getVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), target)
+                        .cosine(svdFeature.getVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), curIndex));
                 raw.add(pair);
             }
         }
-        Ordering<double[]> pairDoubleOrdering = RankerUtilities.pairDoubleSecondOrdering();
+        Ordering<double[]> pairDoubleOrdering = SortingUtilities.pairDoubleSecondOrdering();
         List<double[]> neighbors;
         if (reverse) {
             neighbors = pairDoubleOrdering.leastOf(raw, numNeighbors);
@@ -62,7 +63,7 @@ public class FeatureKnnModel extends IndexedVectorModel {
     }
 
     public FeatureKnnModel buildModel() {
-        List<String> features = Lists.newArrayList(svdFeatureModel.getFactorFeatures(minSupport).keySet());
+        List<String> features = Lists.newArrayList(svdFeature.getFactorFeatures(minSupport).keySet());
         IntList svdIndices = new IntArrayList();
         IntList simIndices = new IntArrayList(features.size());
         for (int i=0; i<features.size(); i++) {
@@ -90,7 +91,7 @@ public class FeatureKnnModel extends IndexedVectorModel {
                 modelName, svdIndices.size());
         svdIndices.parallelStream().forEach(curIdx -> {
             int simIdx = simIndices.getInt(curIdx);
-            List<double[]> neighbors = getNeighbors(curIdx, svdIndices, svdFeatureModel);
+            List<double[]> neighbors = getNeighbors(curIdx, svdIndices, svdFeature);
             RealVector sims = getIndexVector(simIdx);
             for (int j=0; j<neighbors.size(); j++) {
                 double[] neighbor = neighbors.get(j);

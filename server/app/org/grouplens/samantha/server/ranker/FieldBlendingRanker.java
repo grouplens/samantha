@@ -19,7 +19,7 @@ public class FieldBlendingRanker extends AbstractRanker {
     private final Object2DoubleMap<String> defaults;
     private final int offset;
     private final int pageSize;
-    private int limit;
+    private final int limit;
 
     public FieldBlendingRanker(Object2DoubleMap<String> defaults, int offset, int limit, int pageSize,
                                List<EntityExpander> entityExpanders, Configuration config) {
@@ -36,8 +36,9 @@ public class FieldBlendingRanker extends AbstractRanker {
         for (EntityExpander expander : entityExpanders) {
             entityList = expander.expand(entityList, requestContext);
         }
+        int curLimit = limit;
         if (pageSize == 0 || limit > entityList.size()) {
-            limit = entityList.size();
+            curLimit = entityList.size();
         }
         Object2DoubleMap<String> field2min = new Object2DoubleOpenHashMap<>(defaults.size());
         Object2DoubleMap<String> field2max = new Object2DoubleOpenHashMap<>(defaults.size());
@@ -73,13 +74,13 @@ public class FieldBlendingRanker extends AbstractRanker {
         }
         Ordering<Prediction> ordering = RankerUtilities.scoredResultScoreOrdering();
         List<Prediction> candidates = ordering
-                .greatestOf(scoredList, offset + limit);
+                .greatestOf(scoredList, offset + curLimit);
         List<Prediction> recs;
         if (candidates.size() < offset) {
             recs = new ArrayList<>();
         } else {
             recs = candidates.subList(offset, candidates.size());
         }
-        return new RankedResult(recs, offset, limit, scoredList.size());
+        return new RankedResult(recs, offset, curLimit, scoredList.size());
     }
 }

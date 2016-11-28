@@ -19,8 +19,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class LinearUCBModel extends AbstractLearningModel implements Featurizer {
-    private static Logger logger = LoggerFactory.getLogger(LinearUCBModel.class);
+public class LinearUCB extends AbstractLearningModel implements Featurizer {
+    private static Logger logger = LoggerFactory.getLogger(LinearUCB.class);
     private final StandardFeaturizer featurizer;
     private final double lambda;
     private final double alpha;
@@ -28,20 +28,20 @@ public class LinearUCBModel extends AbstractLearningModel implements Featurizer 
     private final List<String> features;
 
     /**
-     * Directly calling this is discouraged. Use {@link LinearUCBModelProducer} instead.
+     * Directly calling this is discouraged. Use {@link LinearUCBProducer} instead.
      * Note that the featureExtractors must have main features first and interaction features next, because
      *   by default the weight of interaction features is set to zero using this order and numMainFeatures.
      * This model is dense input only.
      */
-    public LinearUCBModel(double lambda,
-                          double alpha,
-                          List<String> features,
-                          int numMainFeatures,
-                          String labelName,
-                          String weightName,
-                          List<FeatureExtractor> featureExtractors,
-                          IndexSpace indexSpace,
-                          VariableSpace variableSpace) {
+    public LinearUCB(double lambda,
+                     double alpha,
+                     List<String> features,
+                     int numMainFeatures,
+                     String labelName,
+                     String weightName,
+                     List<FeatureExtractor> featureExtractors,
+                     IndexSpace indexSpace,
+                     VariableSpace variableSpace) {
         super(indexSpace, variableSpace);
         this.featurizer = new StandardFeaturizer(indexSpace, featureExtractors, features, labelName, weightName);
         this.lambda = lambda;

@@ -18,7 +18,7 @@ public class PredictorBasedRanker extends AbstractRanker {
     private final Predictor predictor;
     private final int pageSize;
     private final int offset;
-    private int limit;
+    private final int limit;
 
     public PredictorBasedRanker(Predictor predictor, int pageSize, int offset, int limit,
                                 List<EntityExpander> entityExpanders, Configuration config) {
@@ -34,12 +34,13 @@ public class PredictorBasedRanker extends AbstractRanker {
                              RequestContext requestContext) {
         List<ObjectNode> entityList = retrievedResult.getEntityList();
         List<Prediction> predictions = predictor.predict(entityList, requestContext);
+        int curLimit = limit;
         if (pageSize == 0 || limit > predictions.size()) {
-            limit = predictions.size();
+            curLimit = predictions.size();
         }
         Ordering<Prediction> ordering = RankerUtilities.scoredResultScoreOrdering();
         List<Prediction> candidates = ordering
-                .greatestOf(predictions, offset + limit);
+                .greatestOf(predictions, offset + curLimit);
         List<Prediction> recs;
         if (candidates.size() < offset) {
             recs = new ArrayList<>();
@@ -53,7 +54,7 @@ public class PredictorBasedRanker extends AbstractRanker {
         for (EntityExpander expander : entityExpanders) {
             expander.expand(recEntities, requestContext);
         }
-        return new RankedResult(recs, offset, limit, predictions.size());
+        return new RankedResult(recs, offset, curLimit, predictions.size());
     }
 
     public Configuration getConfig() {

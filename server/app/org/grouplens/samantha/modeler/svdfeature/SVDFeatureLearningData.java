@@ -7,11 +7,11 @@ import org.grouplens.samantha.modeler.common.LearningInstance;
 
 public class SVDFeatureLearningData implements LearningData {
 
-    private final SVDFeatureModel model;
+    private final SVDFeature model;
     private final EntityDAO entityDao;
 
     public SVDFeatureLearningData(EntityDAO entityDao,
-                                  SVDFeatureModel model) {
+                                  SVDFeature model) {
         this.model = model;
         this.entityDao = entityDao;
     }
