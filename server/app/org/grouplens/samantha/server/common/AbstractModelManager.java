@@ -27,6 +27,7 @@ abstract public class AbstractModelManager implements ModelManager {
             model = modelService.getModel(engineName, modelName);
         } else {
             model = createModel(requestContext);
+            modelService.setModel(engineName, modelName, model);
         }
         return model;
     }
@@ -61,9 +62,6 @@ abstract public class AbstractModelManager implements ModelManager {
     public Object updateModel(RequestContext requestContext) {
         Object model = getOrDefaultModel(requestContext);
         updateModel(model, requestContext);
-        ModelService modelService = injector.instanceOf(ModelService.class);
-        String engineName = requestContext.getEngineName();
-        modelService.setModel(engineName, modelName, model);
         return model;
     }
 

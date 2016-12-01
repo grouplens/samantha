@@ -91,6 +91,14 @@ public class SimpleAverageTransitioner implements Transitioner {
 
         public List<ObjectNode> getCurrentAndNewStates(ObjectNode state, ObjectNode action,
                                                        boolean update, RequestContext requestContext) {
+            List<ObjectNode> entityList = new ArrayList<>();
+            entityList.add(state);
+            List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext,
+                    expandersConfig, injector);
+            entityList = ExpanderUtilities.expand(entityList, expanders, requestContext);
+            if (entityList.size() > 0) {
+                state = entityList.get(0);
+            }
             IndexedVectorModel stateModel = (IndexedVectorModel) getOrDefaultModel(requestContext);
             RealVector curVal = getState(stateModel, state);
             setState(state, curVal);
