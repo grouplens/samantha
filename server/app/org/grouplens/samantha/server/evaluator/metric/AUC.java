@@ -19,6 +19,7 @@ public class AUC implements Metric {
     private int N = 0;
     private double sumAUC = 0.0;
     private final AUCType aucType;
+    private final double minValue;
 
     static public double computeAUC(List<double[]> list, double threshold) {
         Ordering<double[]> ordering = SortingUtilities.pairDoubleSecondOrdering();
@@ -95,17 +96,18 @@ public class AUC implements Metric {
         }
     }
 
-    public AUC(String labelName, AUCType aucType, double threshold) {
+    public AUC(String labelName, AUCType aucType, double threshold, double minValue) {
         this.labelName = labelName;
         this.aucType = aucType;
         this.threshold = threshold;
+        this.minValue = minValue;
     }
 
     public void add(List<ObjectNode> groundTruth, List<Prediction> predictions) {
         aucType.add(groundTruth, predictions, this);
     }
 
-    public List<ObjectNode> getValues() {
+    public MetricResult getResults() {
         ObjectNode result = Json.newObject();
         result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "AUC");
         ObjectNode para = Json.newObject();
@@ -113,9 +115,14 @@ public class AUC implements Metric {
         para.put("threshold", threshold);
         para.put("N", N);
         result.put(ConfigKey.EVALUATOR_METRIC_PARA.get(), para.toString());
-        result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), aucType.getAUC(this));
+        double value = aucType.getAUC(this);
+        result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
         List<ObjectNode> results = new ArrayList<>(1);
         results.add(result);
-        return results;
+        boolean pass = true;
+        if (value < minValue) {
+            pass = false;
+        }
+        return new MetricResult(results, pass);
     }
 }

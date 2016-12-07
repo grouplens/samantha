@@ -12,9 +12,9 @@ import java.util.List;
  */
 @ImplementedBy(SynchronizedVariableSpace.class)
 public interface VariableSpace extends Serializable {
-    void setSpaceName(String spaceName);
-    void requestScalarVar(String name, int size, double initial,
-                                       boolean randomize, boolean normalize);
+    void setSpaceState(String spaceName, SpaceMode spaceMode);
+    void publishSpaceVersion();
+    void requestScalarVar(String name, int size, double initial, boolean randomize);
     boolean hasScalarVar(String name);
     void ensureScalarVar(String name, int size, double initial, boolean randomize);
     void requestVectorVar(String name, int size, int dim, double initial,

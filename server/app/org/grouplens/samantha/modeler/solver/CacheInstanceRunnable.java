@@ -2,13 +2,14 @@ package org.grouplens.samantha.modeler.solver;
 
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.util.List;
 
 public class CacheInstanceRunnable implements ObjectiveRunnable {
     final private static Logger logger = LoggerFactory.getLogger(CacheInstanceRunnable.class);
@@ -25,20 +26,22 @@ public class CacheInstanceRunnable implements ObjectiveRunnable {
     public void run() {
         try {
             ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream(cachePath));
-            LearningInstance ins;
-            while ((ins = data.getLearningInstance()) != null) {
-                cnt++;
-                outputStream.writeUnshared(ins);
-                outputStream.reset();
-                if (cnt % 1000000 == 0) {
-                    logger.info("Cached {} instances.", cnt);
+            List<LearningInstance> instances;
+            while ((instances = data.getLearningInstance()).size() > 0) {
+                for (LearningInstance ins : instances) {
+                    cnt++;
+                    outputStream.writeUnshared(ins);
+                    outputStream.reset();
+                    if (cnt % 1000000 == 0) {
+                        logger.info("Cached {} instances.", cnt);
+                    }
                 }
             }
             outputStream.flush();
             outputStream.close();
         } catch (IOException e) {
             logger.error(e.getMessage());
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 

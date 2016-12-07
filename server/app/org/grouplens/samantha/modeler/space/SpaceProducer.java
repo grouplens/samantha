@@ -17,13 +17,13 @@ public class SpaceProducer {
         this.variableSpace = variableSpace;
     }
 
-    public IndexSpace getIndexSpace(String spaceName) {
-        indexSpace.setSpaceName(spaceName);
+    public IndexSpace getIndexSpace(String spaceName, SpaceMode spaceMode) {
+        indexSpace.setSpaceState(spaceName, spaceMode);
         return indexSpace;
     }
 
-    public VariableSpace getVariableSpace(String spaceName) {
-        variableSpace.setSpaceName(spaceName);
+    public VariableSpace getVariableSpace(String spaceName, SpaceMode spaceMode) {
+        variableSpace.setSpaceState(spaceName, spaceMode);
         return variableSpace;
     }
 }

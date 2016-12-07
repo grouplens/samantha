@@ -1,14 +1,8 @@
 package org.grouplens.samantha.modeler.space;
 
 import org.apache.commons.math3.linear.RealVector;
-import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.modeler.space.SpaceProducer;
-import org.grouplens.samantha.modeler.space.VariableSpace;
-import play.inject.Injector;
 
-import java.io.Serializable;
-
-public class IndexedVectorModel implements Serializable {
+public class IndexedVectorModel implements SpaceModel {
     private static final long serialVersionUID = 1L;
     final private String modelName;
     final protected int dim;
@@ -61,5 +55,10 @@ public class IndexedVectorModel implements Serializable {
 
     public void setIndexVector(int index, RealVector vector) {
         variableSpace.setVectorVarByNameIndex(modelName, index, vector);
+    }
+
+    public void publishModel() {
+        indexSpace.publishSpaceVersion();
+        variableSpace.publishSpaceVersion();
     }
 }

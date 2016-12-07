@@ -15,6 +15,9 @@ import org.grouplens.samantha.modeler.featurizer.Featurizer;
 import org.grouplens.samantha.modeler.solver.*;
 import org.grouplens.samantha.modeler.space.IndexSpace;
 import org.grouplens.samantha.modeler.space.VariableSpace;
+import org.grouplens.samantha.server.exception.BadRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -24,6 +27,7 @@ import java.util.*;
 
 public class SVDFeature extends AbstractLearningModel implements Featurizer {
     private static final long serialVersionUID = 1L;
+    private static Logger logger = LoggerFactory.getLogger(SVDFeature.class);
 
     private final ObjectiveFunction objectiveFunction;
     private final List<String> biasFeas = new ArrayList<>();
@@ -156,7 +160,8 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
             }
             writer.close();
         } catch (IOException e) {
-
+            logger.error(e.getMessage());
+            throw new BadRequestException(e);
         }
     }
 
@@ -238,30 +243,30 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
         return pred;
     }
 
-    public StochasticOracle getStochasticOracle(LearningInstance inIns) {
-        SVDFeatureInstance ins = (SVDFeatureInstance) inIns;
-        StochasticOracle orc = new StochasticOracle();
-        RealVector ufactSum = MatrixUtils.createRealVector(new double[factDim]);
-        RealVector ifactSum = MatrixUtils.createRealVector(new double[factDim]);
-        double pred = predict(ins, orc, ufactSum, ifactSum);
-   
-        RealVector leftGrad = ifactSum;
-        RealVector rightGrad = ufactSum;
-        for (int i=0; i<ins.ufeas.size(); i++) {
-            orc.addVectorOracle(SVDFeatureKey.FACTORS.get(),
-                                ins.ufeas.get(i).getIndex(),
-                    leftGrad.mapMultiply(ins.ufeas.get(i).getValue()));
+    public List<StochasticOracle> getStochasticOracle(List<LearningInstance> instances) {
+        List<StochasticOracle> oracles = new ArrayList<>(instances.size());
+        for (LearningInstance inIns : instances) {
+            SVDFeatureInstance ins = (SVDFeatureInstance) inIns;
+            StochasticOracle orc = new StochasticOracle();
+            RealVector ufactSum = MatrixUtils.createRealVector(new double[factDim]);
+            RealVector ifactSum = MatrixUtils.createRealVector(new double[factDim]);
+            double pred = predict(ins, orc, ufactSum, ifactSum);
+            RealVector leftGrad = ifactSum;
+            RealVector rightGrad = ufactSum;
+            for (int i = 0; i < ins.ufeas.size(); i++) {
+                orc.addVectorOracle(SVDFeatureKey.FACTORS.get(),
+                        ins.ufeas.get(i).getIndex(),
+                        leftGrad.mapMultiply(ins.ufeas.get(i).getValue()));
+            }
+            for (int i = 0; i < ins.ifeas.size(); i++) {
+                orc.addVectorOracle(SVDFeatureKey.FACTORS.get(),
+                        ins.ifeas.get(i).getIndex(),
+                        rightGrad.mapMultiply(ins.ifeas.get(i).getValue()));
+            }
+            orc.setValues(pred, ins.label, ins.weight);
+            oracles.add(orc);
         }
-        for (int i=0; i<ins.ifeas.size(); i++) {
-            orc.addVectorOracle(SVDFeatureKey.FACTORS.get(),
-                                ins.ifeas.get(i).getIndex(),
-                    rightGrad.mapMultiply(ins.ifeas.get(i).getValue()));
-        }
-
-        orc.setModelOutput(pred);
-        orc.setInsLabel(ins.label);
-        orc.setInsWeight(ins.weight);
-        return orc;
+        return oracles;
     }
 
     private List<Feature> ensureMinSupport(List<Feature> feas, boolean bias) {

@@ -10,11 +10,13 @@ import java.util.List;
 
 public class MAE implements Metric {
     private final String labelName;
+    private final double maxValue;
     private double error = 0;
     private long n = 0;
 
-    public MAE(String labelName) {
+    public MAE(String labelName, double maxValue) {
         this.labelName = labelName;
+        this.maxValue = maxValue;
     }
 
     public void add(List<ObjectNode> groundTruth, List<Prediction> predictions) {
@@ -26,19 +28,23 @@ public class MAE implements Metric {
         }
     }
 
-    public List<ObjectNode> getValues() {
+    public MetricResult getResults() {
         ObjectNode result = Json.newObject();
         result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "MAE");
         ObjectNode para = Json.newObject();
         para.put("N", n);
         result.set(ConfigKey.EVALUATOR_METRIC_PARA.get(), para);
+        double value = 0.0;
         if (n > 0) {
-            result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), error / n);
-        } else {
-            result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), 0.0);
+            value = error / n;
         }
+        result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
         List<ObjectNode> results = new ArrayList<>(1);
         results.add(result);
-        return results;
+        boolean pass = true;
+        if (value > maxValue) {
+            pass = false;
+        }
+        return new MetricResult(results, pass);
     }
 }

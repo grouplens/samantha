@@ -21,7 +21,7 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
     final private Injector injector;
     final private String predictorNameKey;
     final private String type;
-    final private String groupKey;
+    final private List<String> groupKeys;
     final private List<String> indexerNames;
     final private List<String> predIndexerNames;
     final private List<MetricConfig> metricConfigs;
@@ -31,7 +31,7 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
     private PredictionEvaluatorConfig(List<MetricConfig> metricConfigs,
                                       String predictorNameKey,
                                       String type,
-                                      String groupKey,
+                                      List<String> groupKeys,
                                       List<String> indexerNames,
                                       List<String> predIndexerNames,
                                       Configuration daoConfigs,
@@ -39,7 +39,7 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
         this.metricConfigs = metricConfigs;
         this.predictorNameKey = predictorNameKey;
         this.type = type;
-        this.groupKey = groupKey;
+        this.groupKeys = groupKeys;
         this.indexerNames = indexerNames;
         this.predIndexerNames = predIndexerNames;
         this.injector = injector;
@@ -54,7 +54,7 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
         return new PredictionEvaluatorConfig(metricConfigs,
                 evalConfig.getString("predictorKey"),
                 evalConfig.getString("indexerType"),
-                evalConfig.getString("groupKey"),
+                evalConfig.getStringList("groupKeys"),
                 evalConfig.getStringList("indexers"),
                 evalConfig.getStringList("predictionIndexers"),
                 evalConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()), injector,
@@ -82,6 +82,6 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
         }
         EntityDAO entityDao = EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 reqBody.get(daoConfigKey), injector);
-        return new PredictionEvaluator(predictor, entityDao, type, groupKey, metrics, indexers, predIndexers);
+        return new PredictionEvaluator(predictor, entityDao, type, groupKeys, metrics, indexers, predIndexers);
     }
 }

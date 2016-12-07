@@ -3,6 +3,9 @@ package org.grouplens.samantha.modeler.boosting;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class GBCentSVDFeatureData implements LearningData {
 
     private final LearningData learningData;
@@ -15,13 +18,16 @@ public class GBCentSVDFeatureData implements LearningData {
         learningData.startNewIteration();
     }
 
-    public LearningInstance getLearningInstance() {
-        LearningInstance ins = learningData.getLearningInstance();
-        if (ins == null) {
-            return null;
-        } else {
-            GBCentLearningInstance centIns = (GBCentLearningInstance) ins;
-            return centIns.svdfeaIns;
+    public List<LearningInstance> getLearningInstance() {
+        List<LearningInstance> instances = learningData.getLearningInstance();
+        if (instances.size() == 0) {
+            return instances;
         }
+        List<LearningInstance> curList = new ArrayList<>(instances.size());
+        for (LearningInstance ins : instances) {
+            GBCentLearningInstance centIns = (GBCentLearningInstance) ins;
+            curList.add(centIns.getSvdfeaIns());
+        }
+        return curList;
     }
 }

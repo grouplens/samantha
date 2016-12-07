@@ -38,7 +38,7 @@ public class ColumnToRowExpander implements EntityExpander {
                 if (entity.has(colName)) {
                     ObjectNode newEntity = entity.deepCopy();
                     newEntity.put(nameAttr, colName);
-                    newEntity.put(valueAttr, entity.get(colName));
+                    newEntity.set(valueAttr, entity.get(colName));
                     oneExpanded.add(newEntity);
                 }
             }

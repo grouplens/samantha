@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.evaluator.metric.Metric;
 import org.grouplens.samantha.server.evaluator.metric.MetricConfig;
+import org.grouplens.samantha.server.evaluator.metric.MetricResult;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.grouplens.samantha.server.indexer.Indexer;
 import org.grouplens.samantha.server.io.RequestContext;
@@ -19,22 +20,22 @@ import java.util.List;
 public class EvaluatorUtilities {
     private EvaluatorUtilities() {}
 
-    static public List<ObjectNode> indexMetrics(String type, Configuration config,
-                                                RequestContext requestContext,
-                                                List<Metric> metrics,
-                                                List<Indexer> indexers) {
-        List<ObjectNode> all = new ArrayList<>();
+    static public List<MetricResult> indexMetrics(String type, Configuration config,
+                                                  RequestContext requestContext,
+                                                  List<Metric> metrics,
+                                                  List<Indexer> indexers) {
+        List<MetricResult> all = new ArrayList<>();
         for (Metric metric : metrics) {
-            List<ObjectNode> results = metric.getValues();
-            for (ObjectNode result : results) {
-                result.put(ConfigKey.EVALUATOR_ENGINE_NAME.get(),
+            MetricResult result = metric.getResults();
+            for (ObjectNode value : result.getValues()) {
+                value.put(ConfigKey.EVALUATOR_ENGINE_NAME.get(),
                         requestContext.getEngineName());
-                result.set(ConfigKey.ENGINE_COMPONENT_CONFIG.get(), Json.toJson(config.asMap()));
-                result.put(ConfigKey.REQUEST_CONTEXT.get(), requestContext.getRequestBody().toString());
+                value.set(ConfigKey.ENGINE_COMPONENT_CONFIG.get(), Json.toJson(config.asMap()));
+                value.put(ConfigKey.REQUEST_CONTEXT.get(), requestContext.getRequestBody().toString());
             }
-            all.addAll(results);
+            all.add(result);
             for (Indexer indexer : indexers) {
-                indexer.index(type, Json.toJson(results), requestContext);
+                indexer.index(type, Json.toJson(result), requestContext);
             }
         }
         return all;

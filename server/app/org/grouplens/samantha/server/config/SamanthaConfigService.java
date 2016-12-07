@@ -55,6 +55,12 @@ public class SamanthaConfigService {
         loadConfig(new Configuration(config));
     }
 
+    public Configuration getConfig() {
+        Config config = ConfigFactory.load();
+        Configuration configuration = new Configuration(config);
+        return configuration.getConfig(ConfigKey.SAMANTHA_BASE.get());
+    }
+
     public Indexer getIndexer(String indexerName, RequestContext requestContext) {
         String engineName = requestContext.getEngineName();
         return namedEngineConfig.get(engineName)

@@ -3,29 +3,34 @@ package org.grouplens.samantha.server.common;
 import org.grouplens.samantha.server.io.RequestContext;
 
 public enum ModelOperation implements ModelOperator {
-    BUILD("build") {
-        public void operate(ModelManager modelManager, RequestContext requestContext) {
-            modelManager.buildModel(requestContext);
+    BUILD("BUILD") {
+        public Object operate(ModelManager modelManager, RequestContext requestContext) {
+            return modelManager.buildModel(requestContext);
         }
     },
-    UPDATE("update") {
-        public void operate(ModelManager modelManager, RequestContext requestContext) {
-            modelManager.updateModel(requestContext);
+    UPDATE("UPDATE") {
+        public Object operate(ModelManager modelManager, RequestContext requestContext) {
+            return modelManager.updateModel(requestContext);
         }
     },
-    DUMP("dump") {
-        public void operate(ModelManager modelManager, RequestContext requestContext) {
-            modelManager.dumpModel(requestContext);
+    DUMP("DUMP") {
+        public Object operate(ModelManager modelManager, RequestContext requestContext) {
+            return modelManager.dumpModel(requestContext);
         }
     },
-    LOAD("load") {
-        public void operate(ModelManager modelManager, RequestContext requestContext) {
-            modelManager.loadModel(requestContext);
+    LOAD("LOAD") {
+        public Object operate(ModelManager modelManager, RequestContext requestContext) {
+            return modelManager.loadModel(requestContext);
         }
     },
-    RESET("reset") {
-        public void operate(ModelManager modelManager, RequestContext requestContext) {
-            modelManager.resetModel(requestContext);
+    EVALUATE("EVALUATE") {
+        public Object operate(ModelManager modelManager, RequestContext requestContext) {
+            return modelManager.evaluateModel(requestContext);
+        }
+    },
+    RESET("RESET") {
+        public Object operate(ModelManager modelManager, RequestContext requestContext) {
+            return modelManager.resetModel(requestContext);
         }
     };
 

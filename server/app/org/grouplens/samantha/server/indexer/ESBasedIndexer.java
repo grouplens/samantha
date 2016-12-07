@@ -7,7 +7,7 @@ import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.server.common.ElasticSearchService;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.dao.EntityDAOUtilities;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
 
 //TODO: support remove and upsert options according to uniqueKeys
@@ -39,7 +39,7 @@ public class ESBasedIndexer implements Indexer {
             JsonNode documents = entityDAO.getNextEntity();
             BulkResponse resp = bulkIndex(indexType, documents);
             if (resp.hasFailures()) {
-                throw new InvalidRequestException(resp.buildFailureMessage());
+                throw new BadRequestException(resp.buildFailureMessage());
             }
         }
     }

@@ -2,7 +2,7 @@ package org.grouplens.samantha.modeler.dao;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,7 @@ public class JsonFileEntityDAO implements EntityDAO {
             this.line = null;
         } catch (IOException e) {
             logger.error("{}", e.getMessage());
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 
@@ -46,7 +46,7 @@ public class JsonFileEntityDAO implements EntityDAO {
             line = reader.readLine();
         } catch (IOException e) {
             logger.error("{}", e.getMessage());
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
         if (line == null) {
             return false;
@@ -61,7 +61,7 @@ public class JsonFileEntityDAO implements EntityDAO {
                 line = reader.readLine();
             } catch (IOException e) {
                 logger.error("{}", e.getMessage());
-                throw new InvalidRequestException(e);
+                throw new BadRequestException(e);
             }
         }
         ObjectNode entity = Json.newObject();
@@ -90,7 +90,7 @@ public class JsonFileEntityDAO implements EntityDAO {
             cnt = 0;
         } catch (IOException e) {
             logger.error("{}", e.getMessage());
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 }

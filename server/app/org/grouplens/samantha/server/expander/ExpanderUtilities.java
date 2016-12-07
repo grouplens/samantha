@@ -7,7 +7,7 @@ import org.elasticsearch.search.SearchHitField;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.server.config.ConfigKey;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
 import play.Configuration;
@@ -38,7 +38,7 @@ public class ExpanderUtilities {
             return resultExpanders;
         } catch (IllegalAccessException | InvocationTargetException
                 | NoSuchMethodException | ClassNotFoundException e) {
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 

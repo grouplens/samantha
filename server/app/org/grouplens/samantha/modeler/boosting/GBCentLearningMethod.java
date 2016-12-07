@@ -13,6 +13,7 @@ import org.grouplens.samantha.modeler.featurizer.Feature;
 import org.grouplens.samantha.modeler.featurizer.StandardLearningInstance;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
 import org.grouplens.samantha.modeler.solver.OnlineOptimizationMethod;
+import org.grouplens.samantha.modeler.solver.StochasticOracle;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureKey;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.tree.*;
@@ -88,7 +89,6 @@ public class GBCentLearningMethod implements LearningMethod {
     public void learn(PredictiveModel model, LearningData learnData, LearningData validData) {
         GBCent cent = (GBCent) model;
         SVDFeature svdfeaModel = cent.getSVDFeatureModel();
-        LearningInstance ins;
         if (learnSvdfea) {
             GBCentSVDFeatureData gblearnData = new GBCentSVDFeatureData(learnData);
             GBCentSVDFeatureData gbvalidData = null;
@@ -113,22 +113,24 @@ public class GBCentLearningMethod implements LearningMethod {
         ObjectiveFunction objectiveFunction = svdfeaModel.getObjectiveFunction();
         learnData.startNewIteration();
         int cnt = 0;
-        while ((ins = learnData.getLearningInstance()) != null) {
-            GBCentLearningInstance centIns = (GBCentLearningInstance) ins;
-            double pred = svdfeaModel.predict(centIns.svdfeaIns);
-            learnPreds.add(pred);
-            double objVal = objectiveFunction.getObjectiveValue(pred, centIns.svdfeaIns.getLabel(),
-                    centIns.svdfeaIns.getWeight());
-            for (Feature feature : centIns.svdfeaIns.getBiasFeatures()) {
-                int idx = feature.getIndex();
-                double[] one = feaCnt.get(idx);
-                one[0] = idx;
-                one[1] += 1;
-                learnTreeDatas.get(idx).add(centIns.treeIns);
-                learnSubset.get(idx).add(cnt);
-                learnObjs.set(idx, objVal + learnObjs.getDouble(idx));
+        List<LearningInstance> instances;
+        while ((instances = learnData.getLearningInstance()).size() > 0) {
+            List<StochasticOracle> oracles = new ArrayList<>(instances.size());
+            BoostingUtilities.setStochasticOracles(instances, oracles, svdfeaModel, learnPreds);
+            objectiveFunction.wrapOracle(oracles);
+            for (int i=0; i<instances.size(); i++) {
+                GBCentLearningInstance centIns = (GBCentLearningInstance) instances.get(i);
+                for (Feature feature : centIns.getSvdfeaIns().getBiasFeatures()) {
+                    int idx = feature.getIndex();
+                    double[] one = feaCnt.get(idx);
+                    one[0] = idx;
+                    one[1] += 1;
+                    learnTreeDatas.get(idx).add(centIns.getTreeIns());
+                    learnSubset.get(idx).add(cnt);
+                    learnObjs.set(idx, oracles.get(i).getObjectiveValue() + learnObjs.getDouble(idx));
+                }
+                cnt++;
             }
-            cnt++;
         }
         DoubleList validPreds = null;
         List<List<StandardLearningInstance>> validTreeDatas = null;
@@ -144,19 +146,20 @@ public class GBCentLearningMethod implements LearningMethod {
             initializeValidObjs(validObjs, numBiases);
             validData.startNewIteration();
             cnt = 0;
-            while ((ins = validData.getLearningInstance()) != null) {
-                GBCentLearningInstance centIns = (GBCentLearningInstance) ins;
-                double pred = svdfeaModel.predict(centIns.svdfeaIns);
-                validPreds.add(pred);
-                double objVal = objectiveFunction.getObjectiveValue(pred, centIns.svdfeaIns.getLabel(),
-                        centIns.svdfeaIns.getWeight());
-                for (Feature feature : centIns.svdfeaIns.getBiasFeatures()) {
-                    int idx = feature.getIndex();
-                    validTreeDatas.get(idx).add(centIns.treeIns);
-                    validSubset.get(idx).add(cnt);
-                    validObjs.set(idx, objVal + validObjs.getDouble(idx));
+            while ((instances = validData.getLearningInstance()).size() > 0) {
+                List<StochasticOracle> oracles = new ArrayList<>(instances.size());
+                BoostingUtilities.setStochasticOracles(instances, oracles, svdfeaModel, validPreds);
+                objectiveFunction.wrapOracle(oracles);
+                for (int i=0; i<instances.size(); i++) {
+                    GBCentLearningInstance centIns = (GBCentLearningInstance) instances.get(i);
+                    for (Feature feature : centIns.getSvdfeaIns().getBiasFeatures()) {
+                        int idx = feature.getIndex();
+                        validTreeDatas.get(idx).add(centIns.getTreeIns());
+                        validSubset.get(idx).add(cnt);
+                        validObjs.set(idx, oracles.get(i).getObjectiveValue() + validObjs.getDouble(idx));
+                    }
+                    cnt++;
                 }
-                cnt++;
             }
         }
         GradientBoostingMachine gbm = new GradientBoostingMachine(objectiveFunction);

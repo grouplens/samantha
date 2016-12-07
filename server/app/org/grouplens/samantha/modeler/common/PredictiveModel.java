@@ -1,7 +1,7 @@
 package org.grouplens.samantha.modeler.common;
 
-import java.io.Serializable;
+import org.grouplens.samantha.modeler.space.SpaceModel;
 
-public interface PredictiveModel extends Serializable {
+public interface PredictiveModel extends SpaceModel {
     double predict(LearningInstance ins);
 }

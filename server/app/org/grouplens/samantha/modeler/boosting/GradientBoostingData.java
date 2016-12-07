@@ -6,6 +6,11 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
+import org.grouplens.samantha.modeler.solver.StochasticOracle;
+import org.grouplens.samantha.server.exception.BadRequestException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class GradientBoostingData implements LearningData {
     final private LearningData learningData;
@@ -22,22 +27,35 @@ public class GradientBoostingData implements LearningData {
         this.subset = subset;
     }
 
-    public LearningInstance getLearningInstance() {
-        LearningInstance ins = learningData.getLearningInstance();
-        if (ins == null) {
-            return null;
+    public List<LearningInstance> getLearningInstance() {
+        List<LearningInstance> instances = learningData.getLearningInstance();
+        if (instances.size() == 0) {
+            return instances;
         }
-        double modelOutput = 0.0;
-        if (preds != null) {
-            int subidx = idx;
-            if (subset != null) {
-                subidx = subset.getInt(idx);
+        List<StochasticOracle> oracles = new ArrayList<>(instances.size());
+        for (LearningInstance ins : instances) {
+            double modelOutput = 0.0;
+            if (preds != null) {
+                int subidx = idx;
+                if (subset != null) {
+                    subidx = subset.getInt(idx);
+                }
+                modelOutput += preds.getDouble(subidx);
+                idx++;
             }
-            modelOutput += preds.getDouble(subidx);
-            idx++;
+            StochasticOracle oracle = new StochasticOracle(modelOutput, ins.getLabel(), ins.getWeight());
+            oracles.add(oracle);
         }
-        return ins.newInstanceWithLabel(-objectiveFunction.getGradient(modelOutput,
-                ins.getLabel(), ins.getWeight()));
+        oracles = objectiveFunction.wrapOracle(oracles);
+        if (oracles.size() != oracles.size()) {
+            throw new BadRequestException("Objective function should not change the length of the wrapped oracles. " +
+                    "Use a compatible loss for gradient boosting.");
+        }
+        List<LearningInstance> curList = new ArrayList<>(instances.size());
+        for (int i=0; i<instances.size(); i++) {
+            curList.add(instances.get(i).newInstanceWithLabel(-oracles.get(i).getGradient()));
+        }
+        return curList;
     }
 
     public void startNewIteration() {

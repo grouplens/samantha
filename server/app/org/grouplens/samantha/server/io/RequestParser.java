@@ -2,7 +2,7 @@ package org.grouplens.samantha.server.io;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -14,7 +14,7 @@ public class RequestParser {
     private RequestParser() {}
 
     public RequestContext getJsonRequestContext(String engine, JsonNode requestBody)
-            throws InvalidRequestException {
+            throws BadRequestException {
         RequestContext requestContext = new RequestContext(requestBody, engine);
         return requestContext;
     }

@@ -3,6 +3,7 @@ package org.grouplens.samantha.server.predictor;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.grouplens.samantha.modeler.solver.*;
+import org.grouplens.samantha.modeler.space.SpaceMode;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureProducer;
 import org.grouplens.samantha.server.common.AbstractModelManager;
@@ -27,14 +28,16 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
     private final List<String> biasFeas;
     private final List<String> ufactFeas;
     private final List<String> ifactFeas;
+    private final List<String> groupKeys;
+    private final List<String> evaluatorNames;
     private final String modelFile;
     private final String modelName;
     private final String labelName;
     private final String weightName;
     private final int factDim;
-    private final ObjectiveFunction loss;
     private final Configuration onlineMethodConfig;
     private final Configuration methodConfig;
+    private final Configuration objectiveConfig;
     private final List<FeatureExtractorConfig> feaExtConfigs;
     private final Configuration entityDaoConfigs;
     private final String dependPredictorName;
@@ -46,36 +49,29 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
     private final String insName;
     private final Configuration config;
 
-    private SVDFeaturePredictorConfig(List<String> biasFeas,
-                                      List<String> ufactFeas,
-                                      List<String> ifactFeas,
-                                      String modelFile,
-                                      String modelName,
-                                      String labelName,
-                                      String weightName,
-                                      int factDim,
-                                      ObjectiveFunction loss,
-                                      Configuration onlineMethodConfig,
-                                      Configuration methodConfig,
+    private SVDFeaturePredictorConfig(List<String> biasFeas, List<String> ufactFeas, List<String> ifactFeas,
+                                      List<String> groupKeys, List<String> evaluatorNames,
+                                      String modelFile, String modelName, String labelName, String weightName,
+                                      int factDim, Configuration onlineMethodConfig,
+                                      Configuration methodConfig, Configuration objectiveConfig,
                                       List<FeatureExtractorConfig> feaExtConfigs,
-                                      Configuration entityDaoConfigs,
-                                      String dependPredictorName,
-                                      String dependPredictorModelName,
-                                      Injector injector,
-                                      List<Configuration> expandersConfig,
-                                      String daoConfigKey, String insName, String serializedKey,
-                                      Configuration config) {
+                                      Configuration entityDaoConfigs, String dependPredictorName,
+                                      String dependPredictorModelName, Injector injector,
+                                      List<Configuration> expandersConfig, String daoConfigKey, String insName,
+                                      String serializedKey, Configuration config) {
         this.biasFeas = biasFeas;
         this.ufactFeas = ufactFeas;
         this.ifactFeas = ifactFeas;
+        this.groupKeys = groupKeys;
+        this.evaluatorNames = evaluatorNames;
         this.modelFile = modelFile;
         this.modelName = modelName;
         this.labelName = labelName;
         this.weightName = weightName;
         this.factDim = factDim;
-        this.loss = loss;
         this.methodConfig = methodConfig;
         this.onlineMethodConfig = onlineMethodConfig;
+        this.objectiveConfig = objectiveConfig;
         this.feaExtConfigs = feaExtConfigs;
         this.entityDaoConfigs = entityDaoConfigs;
         this.dependPredictorModelName = dependPredictorModelName;
@@ -102,42 +98,47 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
         List<FeatureExtractorConfig> feaExtConfigs = parser.parse(predictorConfig
                 .getConfig(ConfigKey.PREDICTOR_FEATURIZER_CONFIG.get()));
         List<Configuration> expanders = ExpanderUtilities.getEntityExpandersConfig(predictorConfig);
-        try {
-            return new SVDFeaturePredictorConfig(
-                    predictorConfig.getStringList("biasFeas"),
-                    predictorConfig.getStringList("ufactFeas"),
-                    predictorConfig.getStringList("ifactFeas"),
-                    predictorConfig.getString("modelFile"),
-                    predictorConfig.getString("modelName"),
-                    predictorConfig.getString("labelName"),
-                    predictorConfig.getString("weightName"),
-                    predictorConfig.getInt("factDim"),
-                    (ObjectiveFunction)Class.forName(predictorConfig
-                            .getString("lossFunctionClass")).newInstance(),
-                    predictorConfig.getConfig("onlineOptimizationMethod"),
-                    predictorConfig.getConfig("optimizationMethod"),
-                    feaExtConfigs, daoConfigs,
-                    dependPredictorName,
-                    dependPredictorModelName, injector, expanders,
-                    predictorConfig.getString("daoConfigKey"),
-                    predictorConfig.getString("instanceName"),
-                    predictorConfig.getString("serializedKey"), predictorConfig);
-        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
-            throw new ConfigurationException(e);
+        List<String> evaluatorNames = new ArrayList<>();
+        if (predictorConfig.asMap().containsKey("evaluatorNames")) {
+            evaluatorNames = predictorConfig.getStringList("evaluatorNames");
         }
+        return new SVDFeaturePredictorConfig(
+                predictorConfig.getStringList("biasFeas"),
+                predictorConfig.getStringList("ufactFeas"),
+                predictorConfig.getStringList("ifactFeas"),
+                predictorConfig.getStringList("groupKeys"),
+                evaluatorNames,
+                predictorConfig.getString("modelFile"),
+                predictorConfig.getString("modelName"),
+                predictorConfig.getString("labelName"),
+                predictorConfig.getString("weightName"),
+                predictorConfig.getInt("factDim"),
+                predictorConfig.getConfig("onlineOptimizationMethod"),
+                predictorConfig.getConfig("optimizationMethod"),
+                predictorConfig.getConfig("objectiveConfig"),
+                feaExtConfigs, daoConfigs,
+                dependPredictorName,
+                dependPredictorModelName, injector, expanders,
+                predictorConfig.getString("daoConfigKey"),
+                predictorConfig.getString("instanceName"),
+                predictorConfig.getString("serializedKey"),
+                predictorConfig);
     }
 
     private class SVDFeatureModelManager extends AbstractModelManager {
 
-        public SVDFeatureModelManager(String modelName, String modelFile, Injector injector) {
-            super(injector, modelName, modelFile);
+        public SVDFeatureModelManager(String modelName, String modelFile, Injector injector,
+                                      List<String> evaluatorNames) {
+            super(injector, modelName, modelFile, evaluatorNames);
         }
 
-        public Object createModel(RequestContext requestContext) {
+        public Object createModel(RequestContext requestContext, SpaceMode spaceMode) {
             List<FeatureExtractor> featureExtractors = new ArrayList<>();
             for (FeatureExtractorConfig feaExtConfig : feaExtConfigs) {
                 featureExtractors.add(feaExtConfig.getFeatureExtractor(requestContext));
             }
+            ObjectiveFunction loss = PredictorUtilities.getObjectiveFunction(objectiveConfig,
+                    injector, requestContext);
             SVDFeature ownModel;
             if (dependPredictorName != null) {
                 SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
@@ -150,7 +151,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
                         ifactFeas, labelName, weightName, featureExtractors, loss);
             } else {
                 SVDFeatureProducer producer = injector.instanceOf(SVDFeatureProducer.class);
-                ownModel = producer.createSVDFeatureModel(modelName,
+                ownModel = producer.createSVDFeatureModel(modelName, spaceMode,
                         biasFeas, ufactFeas, ifactFeas, labelName, weightName,
                         featureExtractors, factDim, loss);
             }
@@ -162,12 +163,12 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
             SVDFeature svdFeature = (SVDFeature) model;
             LearningData data = PredictorUtilities.getLearningData(svdFeature, requestContext,
                     reqBody.get("learningDaoConfig"), entityDaoConfigs, expandersConfig, injector, true,
-                    serializedKey, insName, labelName, weightName);
+                    serializedKey, insName, labelName, weightName, groupKeys);
             LearningData valid = null;
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(svdFeature, requestContext,
                         reqBody.get("validationDaoConfig"), entityDaoConfigs, expandersConfig,
-                        injector, false, serializedKey, insName, labelName, weightName);
+                        injector, false, serializedKey, insName, labelName, weightName, groupKeys);
             }
             OptimizationMethod method = (OptimizationMethod) PredictorUtilities
                     .getLearningMethod(methodConfig, injector, requestContext);
@@ -179,7 +180,8 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
             SVDFeature svdFeature = (SVDFeature) model;
             LearningData data = PredictorUtilities.getLearningData(svdFeature, requestContext,
                     requestContext.getRequestBody().get(daoConfigKey), entityDaoConfigs,
-                    expandersConfig, injector, true, serializedKey, insName, labelName, weightName);
+                    expandersConfig, injector, true, serializedKey, insName,
+                    labelName, weightName, groupKeys);
             OnlineOptimizationMethod onlineMethod = (OnlineOptimizationMethod) PredictorUtilities
                     .getLearningMethod(onlineMethodConfig, injector, requestContext);
             onlineMethod.update(svdFeature, data);
@@ -190,7 +192,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
     public Predictor getPredictor(RequestContext requestContext) {
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        ModelManager modelManager = new SVDFeatureModelManager(modelName, modelFile, injector);
+        ModelManager modelManager = new SVDFeatureModelManager(modelName, modelFile, injector, evaluatorNames);
         SVDFeature model = (SVDFeature) modelManager.manage(requestContext);
         return new PredictiveModelBasedPredictor(config, model, model,
                 entityDaoConfigs, injector, entityExpanders, daoConfigKey);

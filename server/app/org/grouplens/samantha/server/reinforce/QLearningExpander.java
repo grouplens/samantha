@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.ranker.RankedResult;
@@ -59,7 +59,7 @@ public class QLearningExpander implements EntityExpander {
                     recommend, expanderConfig.getDouble("sampleRate"), injector);
         } catch (IllegalAccessException | InvocationTargetException
                 | NoSuchMethodException | ClassNotFoundException e) {
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 

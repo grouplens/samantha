@@ -5,7 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +48,7 @@ public class FeatureExtractorUtilities {
             ts.close();
         } catch (IOException e) {
             logger.error("{}", e.getMessage());
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
         return termFreq;
     }

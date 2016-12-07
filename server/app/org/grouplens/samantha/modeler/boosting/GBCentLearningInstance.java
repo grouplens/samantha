@@ -6,8 +6,8 @@ import org.grouplens.samantha.modeler.featurizer.StandardLearningInstance;
 
 public class GBCentLearningInstance implements LearningInstance {
     private static final long serialVersionUID = 1L;
-    final SVDFeatureInstance svdfeaIns;
-    final StandardLearningInstance treeIns;
+    private final SVDFeatureInstance svdfeaIns;
+    private final StandardLearningInstance treeIns;
 
     public GBCentLearningInstance(SVDFeatureInstance svdfeaIns, StandardLearningInstance treeIns) {
         this.svdfeaIns = svdfeaIns;
@@ -45,5 +45,14 @@ public class GBCentLearningInstance implements LearningInstance {
 
     public StandardLearningInstance getTreeIns() {
         return treeIns;
+    }
+
+    public String getGroup() {
+        return svdfeaIns.getGroup();
+    }
+
+    public void setGroup(String group) {
+        this.svdfeaIns.setGroup(group);
+        this.treeIns.setGroup(group);
     }
 }

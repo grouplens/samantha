@@ -13,6 +13,7 @@ import java.util.List;
 
 abstract public class AbstractDecisionTree implements DecisionTree, Featurizer {
     private final Featurizer featurizer;
+    protected final IndexSpace indexSpace;
     protected final VariableSpace variableSpace;
     protected final List<FeatureExtractor> featureExtractors;
     protected final String labelName;
@@ -23,6 +24,7 @@ abstract public class AbstractDecisionTree implements DecisionTree, Featurizer {
                                    List<FeatureExtractor> featureExtractors, String labelName,
                                    String weightName) {
         this.featureExtractors = featureExtractors;
+        this.indexSpace = indexSpace;
         this.variableSpace = variableSpace;
         this.labelName = labelName;
         this.weightName = weightName;
@@ -36,5 +38,10 @@ abstract public class AbstractDecisionTree implements DecisionTree, Featurizer {
 
     public LearningInstance featurize(JsonNode entity, boolean update) {
         return featurizer.featurize(entity, update);
+    }
+
+    public void publishModel() {
+        indexSpace.publishSpaceVersion();
+        variableSpace.publishSpaceVersion();
     }
 }

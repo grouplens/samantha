@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 //TODO: warn if attr is not present
+//TODO: currently mostly feature extractors are using attrName in data to be the key internal representation, consider separate them
 public interface FeatureExtractor extends Serializable {
     Map<String, List<Feature>> extract(JsonNode entity, boolean update,
                                        IndexSpace indexSpace);

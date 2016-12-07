@@ -6,6 +6,7 @@ import org.grouplens.samantha.modeler.featurizer.*;
 import org.grouplens.samantha.modeler.space.IndexSpace;
 import org.grouplens.samantha.modeler.space.VariableSpace;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeatureInstance;
 import org.grouplens.samantha.modeler.tree.*;
 
 import java.util.List;
@@ -29,13 +30,15 @@ public class RegressionTreeGBCent extends AbstractGBCent implements PredictiveMo
 
     public double predict(LearningInstance ins) {
         GBCentLearningInstance centIns = (GBCentLearningInstance) ins;
-        double pred = svdfeaModel.predict(centIns.svdfeaIns);
-        for (Feature feature : centIns.svdfeaIns.getBiasFeatures()) {
+        SVDFeatureInstance svdfeaIns = centIns.getSvdfeaIns();
+        StandardLearningInstance treeIns = centIns.getTreeIns();
+        double pred = svdfeaModel.predict(svdfeaIns);
+        for (Feature feature : svdfeaIns.getBiasFeatures()) {
             int idx = feature.getIndex();
             if (idx < trees.size()) {
                 PredictiveModel tree = trees.get(idx);
                 if (tree != null) {
-                    pred += tree.predict(centIns.treeIns);
+                    pred += tree.predict(treeIns);
                 }
             }
         }
@@ -54,4 +57,9 @@ public class RegressionTreeGBCent extends AbstractGBCent implements PredictiveMo
     //TODO: for updating trees, this needs to copy out the learned tree, i.e. RegressionTree needs to support
     //TODO:     copying constructor
     //public void setNumericalTree(int treeIdx, PredictiveModel tree);
+
+    public void publishModel() {
+        indexSpace.publishSpaceVersion();
+        variableSpace.publishSpaceVersion();
+    }
 }

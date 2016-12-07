@@ -16,6 +16,11 @@ abstract public class AbstractLearningModel implements LearningModel {
         this.indexSpace = indexSpace;
     }
 
+    public void publishModel() {
+        indexSpace.publishSpaceVersion();
+        variableSpace.publishSpaceVersion();
+    }
+
     public RealVector getScalarVarByName(String name) {
         return variableSpace.getScalarVarByName(name);
     }

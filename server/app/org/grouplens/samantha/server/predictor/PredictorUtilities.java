@@ -6,10 +6,11 @@ import org.grouplens.samantha.modeler.common.LearningMethod;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.modeler.featurizer.Featurizer;
 import org.grouplens.samantha.modeler.common.LearningData;
+import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.dao.EntityDAOUtilities;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
@@ -31,16 +32,17 @@ public class PredictorUtilities {
                                                JsonNode daoConfig, Configuration entityDaoConfigs,
                                                List<Configuration> expandersConfig, Injector injector,
                                                boolean update, String serializedKey, String insAttr,
-                                               String labelAttr, String weightAttr) {
+                                               String labelAttr, String weightAttr, List<String> groupKeys) {
         EntityDAO entityDAO = EntityDAOUtilities.getEntityDAO(entityDaoConfigs, requestContext,
                 daoConfig, injector);
         boolean serialized = JsonHelpers.getOptionalBoolean(requestContext.getRequestBody(), serializedKey, false);
         if (serialized) {
-            return new SyncDeserializedLearningData(entityDAO, insAttr, labelAttr, weightAttr);
+            return new SyncDeserializedLearningData(entityDAO, insAttr, groupKeys, labelAttr, weightAttr);
         } else {
             List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                     expandersConfig, injector);
-            return new SyncFeaturizedLearningData(entityDAO, entityExpanders, model, requestContext, update);
+            return new SyncFeaturizedLearningData(entityDAO, groupKeys, entityExpanders,
+                    model, requestContext, update);
         }
     }
 
@@ -69,7 +71,21 @@ public class PredictorUtilities {
             return (LearningMethod) method.invoke(null, config, injector, requestContext);
         } catch (IllegalAccessException | InvocationTargetException
                 | NoSuchMethodException | ClassNotFoundException e) {
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
+        }
+    }
+
+    static public ObjectiveFunction getObjectiveFunction(Configuration config, Injector injector,
+                                                         RequestContext requestContext) {
+        String objectiveClass = config.getString(ConfigKey.OBJECTIVE_CLASS.get());
+        try {
+            Method method = Class.forName(objectiveClass)
+                    .getMethod("getObjectiveFunction", Configuration.class, Injector.class,
+                            RequestContext.class);
+            return (ObjectiveFunction) method.invoke(null, config, injector, requestContext);
+        } catch (IllegalAccessException | InvocationTargetException
+                | NoSuchMethodException | ClassNotFoundException e) {
+            throw new BadRequestException(e);
         }
     }
 }

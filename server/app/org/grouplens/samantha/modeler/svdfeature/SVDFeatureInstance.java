@@ -2,6 +2,7 @@ package org.grouplens.samantha.modeler.svdfeature;
 
 import org.apache.commons.lang3.StringUtils;
 
+import org.grouplens.samantha.modeler.featurizer.AbstractLearningInstance;
 import org.grouplens.samantha.modeler.featurizer.Feature;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 
@@ -11,10 +12,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * @author <a href="http://www.grouplens.org">GroupLens Research</a>
- */
-public class SVDFeatureInstance implements LearningInstance {
+public class SVDFeatureInstance extends AbstractLearningInstance {
     private static final long serialVersionUID = 1L;
 
     double weight;

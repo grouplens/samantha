@@ -1,7 +1,9 @@
 package org.grouplens.samantha.server.evaluator;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.modeler.featurizer.GroupedEntityList;
 import org.grouplens.samantha.server.evaluator.metric.Metric;
+import org.grouplens.samantha.server.evaluator.metric.MetricResult;
 import org.grouplens.samantha.server.indexer.Indexer;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
@@ -10,15 +12,13 @@ import org.grouplens.samantha.server.recommender.Recommender;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import play.Logger;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class RecommendationEvaluator implements Evaluator {
     final private Recommender recommender;
     final private EntityDAO entityDAO;
     final private String type;
-    //TODO: extend groupKey to a list of keys
-    final private String groupKey;
+    final private List<String> groupKeys;
     final private List<Metric> metrics;
     final private List<Indexer> indexers;
     final private List<Indexer> recIndexers;
@@ -26,7 +26,7 @@ public class RecommendationEvaluator implements Evaluator {
     public RecommendationEvaluator(Recommender recommender,
                                    EntityDAO entityDAO,
                                    String type,
-                                   String groupKey,
+                                   List<String> groupKeys,
                                    List<Metric> metrics,
                                    List<Indexer> indexers, 
                                    List<Indexer> recIndexers) {
@@ -36,15 +36,14 @@ public class RecommendationEvaluator implements Evaluator {
         this.indexers = indexers;
         this.recIndexers = recIndexers;
         this.type = type;
-        this.groupKey = groupKey;
+        this.groupKeys = groupKeys;
     }
 
-    private void getRecommendationMetrics(String user, RequestContext requestContext,
+    private void getRecommendationMetrics(RequestContext requestContext,
                                           List<ObjectNode> entityList) {
         long start = System.currentTimeMillis();
         ObjectNode request = entityList.get(entityList.size() - 1).deepCopy();
         IOUtilities.parseEntityFromJsonNode(requestContext.getRequestBody(), request);
-        request.put(groupKey, user);
         RequestContext context = new RequestContext(request, requestContext.getEngineName());
         RankedResult recommendations = recommender.recommend(context);
         for (Indexer indexer : recIndexers) {
@@ -56,31 +55,20 @@ public class RecommendationEvaluator implements Evaluator {
         Logger.debug("Recommendation time: {}", System.currentTimeMillis() - start);
     }
 
-    public List<ObjectNode> evaluate(RequestContext requestContext) {
-        Logger.info("Note that the input evaluation data must be sorted by the group key, e.g. userId");
-        List<ObjectNode> entityList = new ArrayList<>();
-        String oldUser = null;
+    public Evaluation evaluate(RequestContext requestContext) {
+        Logger.info("Note that the input evaluation data must be sorted by the group keys, e.g. groupId");
+        GroupedEntityList groupedEntityList = new GroupedEntityList(groupKeys, entityDAO);
+        List<ObjectNode> entityList;
         int cnt = 0;
-        while (entityDAO.hasNextEntity()) {
-            ObjectNode entity = entityDAO.getNextEntity();
-            String user = entity.get(groupKey).asText();
-            if (oldUser == null) {
-                oldUser = user;
+        while ((entityList = groupedEntityList.getNextGroup()).size() > 0) {
+            getRecommendationMetrics(requestContext, entityList);
+            cnt++;
+            if (cnt % 10000 == 0) {
+                Logger.info("Evaluated on {} groups.", cnt);
             }
-            if (!user.equals(oldUser)) {
-                getRecommendationMetrics(oldUser, requestContext, entityList);
-                cnt++;
-                if (cnt % 1000 == 0) {
-                    Logger.info("Evaluated on {} groups.", cnt);
-                }
-                entityList.clear();
-                oldUser = user;
-            }
-            entityList.add(entity);
         }
-        if (entityList.size() > 0) {
-            getRecommendationMetrics(oldUser, requestContext, entityList);
-        }
-        return EvaluatorUtilities.indexMetrics(type, recommender.getConfig(), requestContext, metrics, indexers);
+        List<MetricResult> metricResults = EvaluatorUtilities.indexMetrics(type, recommender.getConfig(),
+                requestContext, metrics, indexers);
+        return new Evaluation(metricResults);
     }
 }

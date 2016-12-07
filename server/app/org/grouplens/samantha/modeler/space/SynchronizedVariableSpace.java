@@ -33,7 +33,9 @@ public final class SynchronizedVariableSpace implements VariableSpace {
         writeLock = rwl.writeLock();
     }
 
-    public void setSpaceName(String spaceName) {}
+    public void setSpaceState(String spaceName, SpaceMode spaceMode) {}
+
+    public void publishSpaceVersion() {}
 
     private void setDoubleList(DoubleList doubleList, double value) {
         int size = doubleList.size();
@@ -56,11 +58,10 @@ public final class SynchronizedVariableSpace implements VariableSpace {
         }
     }
 
-    private void initializeDoubleList(DoubleList var, double initial,
-                                      boolean randomize, boolean normalize) {
+    private void initializeDoubleList(DoubleList var, double initial, boolean randomize) {
         if (randomize) {
             RandomInitializer randInit = new RandomInitializer();
-            randInit.randInitDoubleList(var, normalize);
+            randInit.randInitDoubleList(var, false);
         } else {
             if (initial != 0.0) {
                 setDoubleList(var, initial);
@@ -80,13 +81,12 @@ public final class SynchronizedVariableSpace implements VariableSpace {
         }
     }
 
-    final public void requestScalarVar(String name, int size, double initial,
-                                       boolean randomize, boolean normalize) {
+    final public void requestScalarVar(String name, int size, double initial, boolean randomize) {
         DoubleList var = new DoubleArrayList(size);
         for (int i=0; i<size; i++) {
             var.add(0.0);
         }
-        initializeDoubleList(var, initial, randomize, normalize);
+        initializeDoubleList(var, initial, randomize);
         writeLock.lock();
         try {
             scalarVars.put(name, var);
@@ -113,7 +113,7 @@ public final class SynchronizedVariableSpace implements VariableSpace {
                 for (int i=0; i<size - curSize; i++) {
                     toAdd.add(0.0);
                 }
-                initializeDoubleList(toAdd, initial, randomize, false);
+                initializeDoubleList(toAdd, initial, randomize);
                 scalarVars.get(name).addAll(toAdd);
             }
             curSize = readLocks.size();

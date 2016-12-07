@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.modeler.featurizer.PercentileModel;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.space.SpaceMode;
 import org.grouplens.samantha.modeler.space.SpaceProducer;
 import org.grouplens.samantha.modeler.space.VariableSpace;
 import org.grouplens.samantha.server.common.*;
@@ -15,6 +16,7 @@ import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PercentileExpander implements EntityExpander {
@@ -38,7 +40,7 @@ public class PercentileExpander implements EntityExpander {
                                       List<String> attrs, int maxNumValues, double sampleRate,
                                       Configuration attr2config, String daoConfigKey,
                                       Configuration daoConfigs) {
-            super(injector, modelName, modelFile);
+            super(injector, modelName, modelFile, new ArrayList<>());
             this.attrs = attrs;
             this.maxNumValues = maxNumValues;
             this.sampleRate = sampleRate;
@@ -62,10 +64,10 @@ public class PercentileExpander implements EntityExpander {
             return model;
         }
 
-        public Object createModel(RequestContext requestContext) {
+        public Object createModel(RequestContext requestContext, SpaceMode spaceMode) {
             SpaceProducer spaceProducer = injector.instanceOf(SpaceProducer.class);
-            IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName);
-            VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName);
+            IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName, spaceMode);
+            VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName, spaceMode);
             return new PercentileModel(modelName, maxNumValues, sampleRate, indexSpace, variableSpace);
         }
     }

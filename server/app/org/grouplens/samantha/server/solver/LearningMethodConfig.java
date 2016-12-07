@@ -6,7 +6,7 @@ import play.Configuration;
 import play.inject.Injector;
 
 public interface LearningMethodConfig {
-    static LearningMethod getLearningMethod(Configuration expanderConfig,
+    static LearningMethod getLearningMethod(Configuration methodConfig,
                                             Injector injector,
                                             RequestContext requestContext) {return null;}
 }

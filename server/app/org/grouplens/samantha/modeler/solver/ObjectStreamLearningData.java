@@ -2,12 +2,15 @@ package org.grouplens.samantha.modeler.solver;
 
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.ArrayList;
+import java.util.List;
 
+//TODO: support grouping learning instance according to group info.
 public class ObjectStreamLearningData implements LearningData {
     final private String filePath;
     private ObjectInputStream inputStream;
@@ -19,7 +22,7 @@ public class ObjectStreamLearningData implements LearningData {
             }
             inputStream = new ObjectInputStream(new FileInputStream(filePath));
         } catch (IOException e) {
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 
@@ -28,20 +31,21 @@ public class ObjectStreamLearningData implements LearningData {
         start();
     }
 
-    public LearningInstance getLearningInstance() {
+    public List<LearningInstance> getLearningInstance() {
         if (inputStream == null) {
             return null;
         }
-        LearningInstance ins;
+        List<LearningInstance> instances = new ArrayList<>(1);
         try {
-            ins = (LearningInstance) inputStream.readUnshared();
+            LearningInstance ins = (LearningInstance) inputStream.readUnshared();
+            instances.add(ins);
         } catch (IOException e) {
             inputStream = null;
-            ins = null;
         } catch (ClassNotFoundException e) {
-            throw new InvalidRequestException(e);
+            inputStream = null;
+            throw new BadRequestException(e);
         }
-        return ins;
+        return instances;
     }
 
     public void startNewIteration() {

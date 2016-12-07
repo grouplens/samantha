@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.ConfigKey;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -30,7 +30,7 @@ public class EntityDAOUtilities {
             return config.getEntityDAO(requestContext, reqDao);
         } catch (IllegalAccessException | InvocationTargetException
                 | NoSuchMethodException | ClassNotFoundException e) {
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 }

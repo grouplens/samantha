@@ -7,5 +7,7 @@ public interface LearningInstance extends Serializable {
     double getWeight();
     void setLabel(double label);
     void setWeight(double weight);
+    default String getGroup() {return null;}
+    default void setGroup(String group) {}
     LearningInstance newInstanceWithLabel(double label);
 }

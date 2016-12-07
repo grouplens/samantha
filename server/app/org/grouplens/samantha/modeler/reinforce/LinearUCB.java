@@ -17,6 +17,7 @@ import org.grouplens.samantha.modeler.space.VariableSpace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class LinearUCB extends AbstractLearningModel implements Featurizer {
@@ -52,22 +53,23 @@ public class LinearUCB extends AbstractLearningModel implements Featurizer {
         ensureVectorVarSpace();
     }
 
-    public StochasticOracle getStochasticOracle(LearningInstance ins) {
-        StochasticOracle orc = new StochasticOracle();
-        StandardLearningInstance instance = (StandardLearningInstance) ins;
-        orc.setInsLabel(instance.getLabel());
-        orc.setInsWeight(instance.getWeight());
-        orc.setModelOutput(-instance.getLabel());
-
-        int dim = features.size();
-        RealVector x = extractDenseVector(dim, ins);
-        RealMatrix increA = x.outerProduct(x);
-        RealVector increB = x.mapMultiplyToSelf(instance.getLabel());
-        for (int i=0; i<dim; i++) {
-            orc.addScalarOracle(LinearUCBKey.B.get(), i, -increB.getEntry(i));
-            orc.addVectorOracle(LinearUCBKey.A.get(), i, increA.getRowVector(i).mapMultiplyToSelf(-1.0));
+    public List<StochasticOracle> getStochasticOracle(List<LearningInstance> instances) {
+        List<StochasticOracle> oracles = new ArrayList<>(instances.size());
+        for (LearningInstance ins : instances) {
+            StochasticOracle orc = new StochasticOracle();
+            StandardLearningInstance instance = (StandardLearningInstance) ins;
+            orc.setValues(-instance.getLabel(), instance.getLabel(), instance.getWeight());
+            int dim = features.size();
+            RealVector x = extractDenseVector(dim, ins);
+            RealMatrix increA = x.outerProduct(x);
+            RealVector increB = x.mapMultiplyToSelf(instance.getLabel());
+            for (int i = 0; i < dim; i++) {
+                orc.addScalarOracle(LinearUCBKey.B.get(), i, -increB.getEntry(i));
+                orc.addVectorOracle(LinearUCBKey.A.get(), i, increA.getRowVector(i).mapMultiplyToSelf(-1.0));
+            }
+            oracles.add(orc);
         }
-        return orc;
+        return oracles;
     }
 
     public ObjectiveFunction getObjectiveFunction() {

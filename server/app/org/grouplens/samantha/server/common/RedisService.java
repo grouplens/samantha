@@ -23,6 +23,10 @@ public interface RedisService {
         return StringUtils.join(keys, "\t");
     }
 
+    String get(String prefix, String key);
+    Long incre(String prefix, String key);
+    void set(String prefix, String key, String value);
+    void del(String prefix, String key);
     void indexIntoSortedSet(String prefix, String key, String scoreAttr, JsonNode data);
     void bulkIndexIntoSortedSet(String prefix, List<String> keyAttrs, String scoreAttr, JsonNode data);
     void bulkIndexIntoHashSet(String prefix, List<String> keyAttrs, List<String> hashAttrs, JsonNode data);

@@ -32,7 +32,7 @@ public class MAP implements Metric {
     public void add(List<ObjectNode> groundTruth, List<Prediction> recommendations) {
         Set<String> releItems = new HashSet<>();
         for (JsonNode entity : groundTruth) {
-            if (config.ratingKey == null || entity.get(config.ratingKey).asDouble() >= config.leastRating) {
+            if (config.relevanceKey == null || entity.get(config.relevanceKey).asDouble() >= config.threshold) {
                 String item = FeatureExtractorUtilities.composeConcatenatedKey(entity, config.itemKeys);
                 releItems.add(item);
             }
@@ -63,7 +63,7 @@ public class MAP implements Metric {
             }
             for (int j=0; j<config.N.size(); j++) {
                 int n = config.N.get(j);
-                if (rank <= n) {
+                if (rank <= n && hit > 0 && hits > 0) {
                     ap[j] += (1.0 * hits / rank) * hit;
                 }
             }
@@ -77,23 +77,28 @@ public class MAP implements Metric {
         cnt += 1;
     }
 
-    public List<ObjectNode> getValues() {
+    public MetricResult getResults() {
         List<ObjectNode> results = new ArrayList<>(config.N.size());
         ObjectNode metricPara = Json.newObject();
+        metricPara.put("threshold", config.threshold);
+        metricPara.put("minValue", config.minValue);
+        boolean pass = true;
         for (int i=0; i<config.N.size(); i++) {
             ObjectNode result = Json.newObject();
             result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "MAP");
             metricPara.put("N", config.N.get(i));
             result.put(ConfigKey.EVALUATOR_METRIC_PARA.get(),
                     metricPara.toString());
+            double value = 0.0;
             if (cnt > 0) {
-                result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(),
-                        AP.getDouble(i) / cnt);
-            } else {
-                result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), 0.0);
+                value = AP.getDouble(i) / cnt;
             }
+            result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
             results.add(result);
+            if (value < config.minValue) {
+                pass = false;
+            }
         }
-        return results;
+        return new MetricResult(results, pass);
     }
 }

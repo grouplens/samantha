@@ -3,8 +3,9 @@ package controllers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.common.JsonHelpers;
+import org.grouplens.samantha.server.evaluator.Evaluation;
 import org.grouplens.samantha.server.evaluator.Evaluator;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.indexer.Indexer;
@@ -38,7 +39,7 @@ public class EngineHandlers extends Controller {
         this.samanthaConfigService = samanthaConfigService;
     }
 
-    public Result getRecommendation(String engine) throws InvalidRequestException {
+    public Result getRecommendation(String engine) throws BadRequestException {
         JsonNode body = request().body().asJson();
         RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
         Recommender recommender = samanthaConfigService.routeRecommender(requestContext);
@@ -49,7 +50,7 @@ public class EngineHandlers extends Controller {
         return ok(resp);
     }
 
-    public Result getPrediction(String engine) throws InvalidRequestException {
+    public Result getPrediction(String engine) throws BadRequestException {
         JsonNode body = request().body().asJson();
         RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
         Predictor predictor = samanthaConfigService.routePredictor(requestContext);
@@ -60,19 +61,19 @@ public class EngineHandlers extends Controller {
         return ok(resp);
     }
 
-    public Result evaluate(String engine) throws InvalidRequestException {
+    public Result evaluate(String engine) throws BadRequestException {
         JsonNode body = request().body().asJson();
         RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
         String evaluatorName = JsonHelpers.getRequiredString(body, "evaluator");
         Evaluator evaluator = samanthaConfigService
                 .getEvaluator(evaluatorName, requestContext);
-        List<ObjectNode> results = evaluator.evaluate(requestContext);
+        Evaluation results = evaluator.evaluate(requestContext);
         ObjectNode resp = JsonHelpers.successJson();
-        resp.set("results", Json.toJson(results));
+        resp.set("data", Json.toJson(results));
         return ok(resp);
     }
 
-    public Result predictorModel(String engine) throws InvalidRequestException {
+    public Result predictorModel(String engine) throws BadRequestException {
         JsonNode body = request().body().asJson();
         RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
         String predictorName = JsonHelpers.getRequiredString(body, "predictor");
@@ -81,7 +82,7 @@ public class EngineHandlers extends Controller {
         return ok(resp);
     }
 
-    public Result retrieverModel(String engine) throws InvalidRequestException {
+    public Result retrieverModel(String engine) throws BadRequestException {
         JsonNode body = request().body().asJson();
         RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
         String retrieverName = JsonHelpers.getRequiredString(body, "retriever");
@@ -90,7 +91,7 @@ public class EngineHandlers extends Controller {
         return ok(resp);
     }
 
-    public Result rankerModel(String engine) throws InvalidRequestException {
+    public Result rankerModel(String engine) throws BadRequestException {
         JsonNode body = request().body().asJson();
         RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
         String rankerName = JsonHelpers.getRequiredString(body, "ranker");
@@ -99,7 +100,7 @@ public class EngineHandlers extends Controller {
         return ok(resp);
     }
 
-    public Result indexData(String engine) throws InvalidRequestException {
+    public Result indexData(String engine) throws BadRequestException {
         JsonNode body = request().body().asJson();
         RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
         if (body.has("predictor")) {

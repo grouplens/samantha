@@ -3,7 +3,7 @@ package org.grouplens.samantha.modeler.dao;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import play.libs.Json;
@@ -27,7 +27,7 @@ public class PdfFileEntityDAO implements EntityDAO {
             stripper = new PDFTextStripper();
             pdfDoc = PDDocument.load(new File(filePath));
         } catch (IOException e) {
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
         numPages = pdfDoc.getNumberOfPages();
     }
@@ -41,7 +41,7 @@ public class PdfFileEntityDAO implements EntityDAO {
             try {
                 pdfDoc.close();
             } catch (IOException e) {
-                throw new InvalidRequestException(e);
+                throw new BadRequestException(e);
             }
             return false;
         }
@@ -72,7 +72,7 @@ public class PdfFileEntityDAO implements EntityDAO {
                 paragraph += getParagraph();
             } catch (IOException e) {
                 logger.error("{}", e.getMessage());
-                throw new InvalidRequestException(e);
+                throw new BadRequestException(e);
             }
         }
         ObjectNode entity = Json.newObject();
@@ -94,7 +94,7 @@ public class PdfFileEntityDAO implements EntityDAO {
             pdfDoc.close();
         } catch (IOException e) {
             logger.error("{}", e.getMessage());
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 }

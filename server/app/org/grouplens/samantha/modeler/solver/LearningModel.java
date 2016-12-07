@@ -22,6 +22,6 @@ public interface LearningModel extends PredictiveModel {
     List<String> getAllScalarVarNames();
     List<String> getAllVectorVarNames();
 
-    StochasticOracle getStochasticOracle(LearningInstance ins);
+    List<StochasticOracle> getStochasticOracle(List<LearningInstance> instances);
     ObjectiveFunction getObjectiveFunction();
 }

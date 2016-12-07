@@ -9,7 +9,8 @@ import java.io.Serializable;
  */
 @ImplementedBy(SynchronizedIndexSpace.class)
 public interface IndexSpace extends Serializable {
-    void setSpaceName(String spaceName);
+    void setSpaceState(String spaceName, SpaceMode spaceMode);
+    void publishSpaceVersion();
     void requestKeyMap(String name);
     boolean hasKeyMap(String name);
     int setKey(String name, Object key);

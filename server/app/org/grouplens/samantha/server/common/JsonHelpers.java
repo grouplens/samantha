@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import play.libs.Json;
@@ -105,31 +105,31 @@ public class JsonHelpers {
     }
 
     /**
-     * @return a json object from the input JsonNode with the given name, or throw an InvalidRequestException
+     * @return a json object from the input JsonNode with the given name, or throw an BadRequestException
      */
-    public static JsonNode getRequiredJson(JsonNode json, String name) throws InvalidRequestException {
+    public static JsonNode getRequiredJson(JsonNode json, String name) throws BadRequestException {
         JsonNode node = json.get(name);
         if (node == null || !node.isContainerNode()) {
-            throw new InvalidRequestException("json is missing required object: " + name);
+            throw new BadRequestException("json is missing required object: " + name);
         }
         return node;
     }
 
     /**
-     * @return an array object from the input JsonNode with the given name, or throw an InvalidRequestException
+     * @return an array object from the input JsonNode with the given name, or throw an BadRequestException
      */
-    public static ArrayNode getRequiredArray(JsonNode json, String name) throws InvalidRequestException {
+    public static ArrayNode getRequiredArray(JsonNode json, String name) throws BadRequestException {
         JsonNode node = json.get(name);
         if (node == null || !node.isArray()) {
-            throw new InvalidRequestException("json is missing required array: " + name);
+            throw new BadRequestException("json is missing required array: " + name);
         }
         return (ArrayNode)node;
     }
 
-    public static List<String> getRequiredStringList(JsonNode json, String name) throws InvalidRequestException {
+    public static List<String> getRequiredStringList(JsonNode json, String name) throws BadRequestException {
         JsonNode node = json.get(name);
         if (node == null || !node.isArray()) {
-            throw new InvalidRequestException("json is missing required array: " + name);
+            throw new BadRequestException("json is missing required array: " + name);
         }
         List<String> values = new ArrayList<>(node.size());
         for (JsonNode one : node) {
@@ -141,35 +141,35 @@ public class JsonHelpers {
     /**
      * @return a json object from the input JsonNode with the given name, or null
      */
-    public static JsonNode getOptionalJson(JsonNode json, String name) throws InvalidRequestException {
+    public static JsonNode getOptionalJson(JsonNode json, String name) throws BadRequestException {
         JsonNode node = json.get(name);
         if (node == null) {
             return null;
         }
         if (!node.isContainerNode()) {
-            throw new InvalidRequestException("json is missing required object: " + name);
+            throw new BadRequestException("json is missing required object: " + name);
         }
         return node;
     }
 
     /**
-     * @return a double from the input JsonNode with the given name, or throw an InvalidRequestException
+     * @return a double from the input JsonNode with the given name, or throw an BadRequestException
      */
-    public static double getRequiredDouble(JsonNode json, String name) throws InvalidRequestException {
+    public static double getRequiredDouble(JsonNode json, String name) throws BadRequestException {
         JsonNode node = json.get(name);
         if (node == null || !node.isNumber()) {
-            throw new InvalidRequestException("json is missing required double: " + name);
+            throw new BadRequestException("json is missing required double: " + name);
         }
         return node.asDouble();
     }
 
     /**
-     * @return an int from the input JsonNode with the given name, or throw an InvalidRequestException
+     * @return an int from the input JsonNode with the given name, or throw an BadRequestException
      */
-    public static int getRequiredInt(JsonNode json, String name) throws InvalidRequestException {
+    public static int getRequiredInt(JsonNode json, String name) throws BadRequestException {
         JsonNode node = json.get(name);
         if (node == null || !node.canConvertToInt()) {
-            throw new InvalidRequestException("json is missing required int: " + name);
+            throw new BadRequestException("json is missing required int: " + name);
         }
         return node.asInt();
     }
@@ -177,13 +177,13 @@ public class JsonHelpers {
     /**
      * @return an Integer from the input JsonNode with the given name, or the default value
      */
-    public static Integer getOptionalInt(JsonNode json, String name, Integer defaultInt) throws InvalidRequestException {
+    public static Integer getOptionalInt(JsonNode json, String name, Integer defaultInt) throws BadRequestException {
         JsonNode node = json.get(name);
         if (node == null) {
             return defaultInt;
         }
         if (!node.canConvertToInt()) {
-            throw new InvalidRequestException("json is not an int: " + name);
+            throw new BadRequestException("json is not an int: " + name);
         }
         return node.asInt();
     }
@@ -191,17 +191,17 @@ public class JsonHelpers {
     /**
      * @return an Integer from the input JsonNode with the given name, or null
      */
-    public static Integer getOptionalInt(JsonNode json, String name) throws InvalidRequestException {
+    public static Integer getOptionalInt(JsonNode json, String name) throws BadRequestException {
         return getOptionalInt(json, name, null);
     }
 
     /**
-     * @return a string from the input JsonNode with the given name, or throw an InvalidRequestException
+     * @return a string from the input JsonNode with the given name, or throw an BadRequestException
      */
-    public static String getRequiredString(JsonNode json, String name) throws InvalidRequestException {
+    public static String getRequiredString(JsonNode json, String name) throws BadRequestException {
         JsonNode node = json.get(name);
         if (node == null || !node.isTextual()) {
-            throw new InvalidRequestException("json is missing required String: " + name);
+            throw new BadRequestException("json is missing required String: " + name);
         }
         return node.asText();
     }
@@ -209,20 +209,20 @@ public class JsonHelpers {
     /**
      * @return a String from the input JsonNode with the given name, or null
      */
-    public static String getOptionalString(JsonNode json, String name) throws InvalidRequestException {
+    public static String getOptionalString(JsonNode json, String name) throws BadRequestException {
         return getOptionalString(json, name, null);
     }
 
     /**
      * @return a String from the input JsonNode with the given name, or the defaultVal
      */
-    public static String getOptionalString(JsonNode json, String name, String defaultVal) throws InvalidRequestException {
+    public static String getOptionalString(JsonNode json, String name, String defaultVal) throws BadRequestException {
         JsonNode node = json.get(name);
         if (node == null) {
             return defaultVal;
         }
         if (!node.isTextual()) {
-            throw new InvalidRequestException("json is not a string: " + name);
+            throw new BadRequestException("json is not a string: " + name);
         }
         return node.asText();
     }
@@ -231,13 +231,13 @@ public class JsonHelpers {
      * @return a List<String> from the input JsonNode with the given name, or the defaultVal
      */
     public static List<String> getOptionalStringList(JsonNode json, String name, List<String> defaultVal)
-            throws InvalidRequestException {
+            throws BadRequestException {
         JsonNode node = json.get(name);
         if (node == null) {
             return defaultVal;
         }
         if (!node.isArray()) {
-            throw new InvalidRequestException("json is not a string list: " + name);
+            throw new BadRequestException("json is not a string list: " + name);
         }
         List<String> strList = new ArrayList<>();
         for (JsonNode str : node) {
@@ -249,38 +249,38 @@ public class JsonHelpers {
     /**
      * @return a Boolean from the input JsonNode with the given name, or null
      */
-    public static Boolean getOptionalBoolean(JsonNode json, String name) throws InvalidRequestException {
+    public static Boolean getOptionalBoolean(JsonNode json, String name) throws BadRequestException {
         return getOptionalBoolean(json, name, null);
     }
 
     /**
      * @return a Boolean from the input JsonNode with the given name, or the defaultVal
      */
-    public static Boolean getOptionalBoolean(JsonNode json, String name, Boolean defaultVal) throws InvalidRequestException {
+    public static Boolean getOptionalBoolean(JsonNode json, String name, Boolean defaultVal) throws BadRequestException {
         JsonNode node = json.get(name);
         if (node == null) {
             return defaultVal;
         }
         if (!node.isBoolean()) {
-            throw new InvalidRequestException("json is not a boolean: " + name);
+            throw new BadRequestException("json is not a boolean: " + name);
         }
         return node.asBoolean();
     }
 
     /**
-     * @return a IntList from the input JsonNode with the given name, or throw an InvalidRequestException
+     * @return a IntList from the input JsonNode with the given name, or throw an BadRequestException
      */
-    public static IntList getRequiredListOfInteger(JsonNode json, String name) throws  InvalidRequestException {
+    public static IntList getRequiredListOfInteger(JsonNode json, String name) throws BadRequestException {
         final JsonNode node = json.get(name);
 
         if (node == null || !(node.isArray())) {
-            throw new InvalidRequestException("json is missing required List: " + name);
+            throw new BadRequestException("json is missing required List: " + name);
         }
 
         final IntList list = new IntArrayList(node.size());
         for (JsonNode innerNode : node) {
             if (!innerNode.canConvertToInt()) {
-                throw new InvalidRequestException("json is not an int: " + innerNode.toString());
+                throw new BadRequestException("json is not an int: " + innerNode.toString());
             }
             list.add(innerNode.asInt());
         }
@@ -288,14 +288,14 @@ public class JsonHelpers {
     }
 
     /**
-     * @return a Map<String, String> from the input JsonNode with the given name, or throw an InvalidRequestException.
-     *         Must be a flat JsonNode or it will throw an InvalidRequestException.
+     * @return a Map<String, String> from the input JsonNode with the given name, or throw an BadRequestException.
+     *         Must be a flat JsonNode or it will throw an BadRequestException.
      */
-    public static Map<String, String> getRequiredMapOfString(JsonNode json, String name) throws  InvalidRequestException {
+    public static Map<String, String> getRequiredMapOfString(JsonNode json, String name) throws BadRequestException {
         final JsonNode node = json.get(name);
 
         if (node == null || !(node.isObject())) {
-            throw new InvalidRequestException("json is missing required object: " + name);
+            throw new BadRequestException("json is missing required object: " + name);
         }
 
         final Map<String, String> map = new HashMap<>();

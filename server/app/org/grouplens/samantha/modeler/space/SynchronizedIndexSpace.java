@@ -16,7 +16,9 @@ public final class SynchronizedIndexSpace implements IndexSpace {
     @Inject
     public SynchronizedIndexSpace() {}
 
-    public void setSpaceName(String spaceName) {}
+    public void setSpaceState(String spaceName, SpaceMode spaceMode) {}
+
+    public void publishSpaceVersion() {}
 
     public void requestKeyMap(String name) {
         writeLock.lock();

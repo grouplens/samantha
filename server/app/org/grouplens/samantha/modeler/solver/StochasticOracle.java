@@ -11,26 +11,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class StochasticOracle { 
-    List<String> scalarNames;
-    IntList scalarIndexes;
-    DoubleList scalarGrads;
-    List<String> vectorNames;
-    IntList vectorIndexes;
-    List<RealVector> vectorGrads;
+    final List<String> scalarNames = new ArrayList<>();
+    final IntList scalarIndexes = new IntArrayList();
+    final DoubleList scalarGrads = new DoubleArrayList();
+    final List<String> vectorNames = new ArrayList<>();
+    final IntList vectorIndexes = new IntArrayList();
+    final List<RealVector> vectorGrads = new ArrayList<>();
 
-    double objVal = 0.0;
-    double modelOutput = 0.0;
-    double gradient = 0.0;
-    double insLabel = 0.0;
-    double insWeight = 0.0;
+    private double objVal = 0.0;
+    private double gradient = 0.0;
+    private double label = 0.0;
+    private double weight = 0.0;
+    private double modelOutput = 0.0;
 
-    public StochasticOracle() {
-        scalarNames = new ArrayList<>();
-        scalarIndexes = new IntArrayList();
-        scalarGrads = new DoubleArrayList();
-        vectorNames = new ArrayList<>();
-        vectorIndexes = new IntArrayList();
-        vectorGrads = new ArrayList<>();
+    public StochasticOracle() {}
+
+    public StochasticOracle(double modelOutput, double label, double weight) {
+        this.modelOutput = modelOutput;
+        this.label = label;
+        this.weight = weight;
     }
 
     public void addScalarOracle(String name, int index, double grad) {
@@ -45,8 +44,8 @@ public class StochasticOracle {
         vectorGrads.add(grad);
     }
 
-    public void setModelOutput(double modelOutput) {
-        this.modelOutput = modelOutput;
+    public double getModelOutput() {
+        return this.modelOutput;
     }
 
     public double getGradient() {
@@ -57,11 +56,31 @@ public class StochasticOracle {
         return objVal;
     }
 
-    public void setInsLabel(double insLabel) {
-        this.insLabel = insLabel;
+    public double getLabel() {
+        return label;
     }
 
-    public void setInsWeight(double insWeight) {
-        this.insWeight = insWeight;
+    public double getWeight() {
+        return weight;
+    }
+
+    public void setObjVal(double objVal) {
+        this.objVal = objVal;
+    }
+
+    public void setGradient(double gradient) {
+        this.gradient = gradient;
+        for (int i=0; i<scalarGrads.size(); i++) {
+            scalarGrads.set(i, scalarGrads.getDouble(i) * gradient);
+        }
+        for (int i=0; i<vectorGrads.size(); i++) {
+            vectorGrads.get(i).mapMultiplyToSelf(gradient);
+        }
+    }
+
+    public void setValues(double modelOutput, double insLabel, double insWeight) {
+        this.modelOutput = modelOutput;
+        this.label = insLabel;
+        this.weight = insWeight;
     }
 }

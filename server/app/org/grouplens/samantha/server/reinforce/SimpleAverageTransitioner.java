@@ -6,11 +6,8 @@ import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.modeler.space.SpaceProducer;
-import org.grouplens.samantha.modeler.space.VariableSpace;
+import org.grouplens.samantha.modeler.space.*;
 import org.grouplens.samantha.server.common.*;
-import org.grouplens.samantha.modeler.space.IndexedVectorModel;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.dao.EntityDAOUtilities;
 import org.grouplens.samantha.server.expander.EntityExpander;
@@ -45,7 +42,7 @@ public class SimpleAverageTransitioner implements Transitioner {
         public TransitionModelManager(String modelName, String modelFile, Configuration daoConfigs,
                                       List<Configuration> expandersConfig, String daoConfigKey,
                                       List<String> actionAttrs, List<String> stateKeys, Injector injector) {
-            super(injector, modelName, modelFile);
+            super(injector, modelName, modelFile, new ArrayList<>());
             this.actionAttrs = actionAttrs;
             this.stateKeys = stateKeys;
             this.daoConfigKey = daoConfigKey;
@@ -129,10 +126,10 @@ public class SimpleAverageTransitioner implements Transitioner {
             }
         }
 
-        public Object createModel(RequestContext requestContext) {
+        public Object createModel(RequestContext requestContext, SpaceMode spaceMode) {
             SpaceProducer spaceProducer = injector.instanceOf(SpaceProducer.class);
-            IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName);
-            VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName);
+            IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName, spaceMode);
+            VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName, spaceMode);
             return new IndexedVectorModel(modelName, 10, actionAttrs.size() + 1, indexSpace, variableSpace);
         }
 

@@ -11,7 +11,7 @@ import com.lambdaworks.redis.api.StatefulRedisConnection;
 import com.lambdaworks.redis.api.async.RedisAsyncCommands;
 import com.lambdaworks.redis.api.sync.RedisCommands;
 import org.grouplens.samantha.server.config.ConfigKey;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import play.Configuration;
 import play.Logger;
 import play.inject.ApplicationLifecycle;
@@ -87,6 +87,22 @@ public class RedisLettuceService implements RedisService {
         }
     }
 
+    public Long incre(String prefix, String key) {
+        return syncCommands.incr(RedisService.composeKey(prefix, key));
+    }
+
+    public String get(String prefix, String key) {
+        return (String) syncCommands.get(RedisService.composeKey(prefix, key));
+    }
+
+    public void set(String prefix, String key, String value) {
+        syncCommands.set(RedisService.composeKey(prefix, key), value);
+    }
+
+    public void del(String prefix, String key) {
+        syncCommands.del(RedisService.composeKey(prefix, key));
+    }
+
     public List<JsonNode> getFromHashSet(String prefix, List<String> keyAttrs, JsonNode data) {
         List<JsonNode> results = new ArrayList<>();
         String key = RedisService.composeKey(prefix, RedisService.composeKey(data, keyAttrs));
@@ -113,7 +129,7 @@ public class RedisLettuceService implements RedisService {
                     results.add(Json.parse(val));
                 }
             } catch (ExecutionException | TimeoutException | InterruptedException e) {
-                throw new InvalidRequestException(e);
+                throw new BadRequestException(e);
             }
         }
         return results;

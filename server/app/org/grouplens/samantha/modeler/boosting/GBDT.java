@@ -82,4 +82,9 @@ public class GBDT extends StandardFeaturizer implements BoostedPredictiveModel {
             }
         }
     }
+
+    public void publishModel() {
+        indexSpace.publishSpaceVersion();
+        variableSpace.publishSpaceVersion();
+    }
 }

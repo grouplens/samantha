@@ -2,6 +2,7 @@ package org.grouplens.samantha.server.predictor;
 
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.common.LearningData;
+import org.grouplens.samantha.modeler.space.SpaceMode;
 import org.grouplens.samantha.modeler.tree.RegressionTree;
 import org.grouplens.samantha.modeler.tree.RegressionTreeProducer;
 import org.grouplens.samantha.modeler.tree.TreeLearningMethod;
@@ -80,17 +81,17 @@ public class RegressionTreePredictorConfig implements PredictorConfig {
     private class RegressionTreeModelManager extends AbstractModelManager {
 
         public RegressionTreeModelManager(String modelName, String modelFile, Injector injector) {
-            super(injector, modelName, modelFile);
+            super(injector, modelName, modelFile, new ArrayList<>());
         }
 
-        public Object createModel(RequestContext requestContext) {
+        public Object createModel(RequestContext requestContext, SpaceMode spaceMode) {
             List<FeatureExtractor> featureExtractors = new ArrayList<>();
             for (FeatureExtractorConfig feaExtConfig : feaExtConfigs) {
                 featureExtractors.add(feaExtConfig.getFeatureExtractor(requestContext));
             }
             RegressionTreeProducer producer = injector.instanceOf(RegressionTreeProducer.class);
-            RegressionTree model = producer.createRegressionTree(modelName, features, featureExtractors,
-                    labelName, weightName);
+            RegressionTree model = producer.createRegressionTree(modelName, spaceMode,
+                    features, featureExtractors, labelName, weightName);
             return model;
         }
 
@@ -98,7 +99,7 @@ public class RegressionTreePredictorConfig implements PredictorConfig {
             RegressionTree regressionTree = (RegressionTree) model;
             LearningData data = PredictorUtilities.getLearningData(regressionTree, requestContext,
                     requestContext.getRequestBody().get(daoConfigKey), daoConfigs, expandersConfig,
-                    injector, true, serializedKey, insName, labelName, weightName);
+                    injector, true, serializedKey, insName, labelName, weightName, null);
             method.learn(regressionTree, data, null);
             return model;
         }

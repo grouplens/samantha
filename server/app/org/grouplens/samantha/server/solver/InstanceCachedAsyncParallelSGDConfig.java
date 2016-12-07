@@ -18,11 +18,15 @@ public class InstanceCachedAsyncParallelSGDConfig {
         if (methodConfig.asMap().containsKey("tol")) {
             tol = methodConfig.getDouble("tol");
         }
+        int num = Runtime.getRuntime().availableProcessors();
+        if (methodConfig.asMap().containsKey("numProcessors")) {
+            num = methodConfig.getInt("numProcessors");
+        }
         OptimizationMethod optMethod = new InstanceCachedAsyncParallelSGD(
                 methodConfig.getInt("maxIter"),
                 methodConfig.getDouble("l2coef"),
                 methodConfig.getDouble("learningRate"),
-                tol, Runtime.getRuntime().availableProcessors(),
+                tol, num,
                 methodConfig.getString("cachePath")
         );
         return optMethod;

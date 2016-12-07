@@ -193,32 +193,34 @@ public class ExactGreedy extends AbstractTreeLearningMethod {
     }
 
     public void learn(DecisionTree tree, LearningData learningData) {
-        LearningInstance ins;
         List<double[]> respList = new ArrayList<>();
         Int2ObjectOpenHashMap<List<double[]>> fea2sub = new Int2ObjectOpenHashMap<>();
         int cnt = 0;
         IntList relevant = new IntArrayList();
         learningData.startNewIteration();
-        while ((ins = learningData.getLearningInstance()) != null) {
-            StandardLearningInstance treeIns = tree.getLearningInstance(ins);
-            double[] resp = {treeIns.getLabel(), treeIns.getWeight()};
-            respList.add(resp);
-            for (Int2DoubleMap.Entry feature : treeIns.getFeatures().int2DoubleEntrySet()) {
-                int index = feature.getIntKey();
-                List<double[]> feaList;
-                if (fea2sub.containsKey(index)) {
-                    feaList = fea2sub.get(index);
-                } else {
-                    feaList = new ArrayList<>();
-                    fea2sub.put(index, feaList);
+        List<LearningInstance> instances;
+        while ((instances = learningData.getLearningInstance()).size() > 0) {
+            for (LearningInstance ins : instances) {
+                StandardLearningInstance treeIns = tree.getLearningInstance(ins);
+                double[] resp = {treeIns.getLabel(), treeIns.getWeight()};
+                respList.add(resp);
+                for (Int2DoubleMap.Entry feature : treeIns.getFeatures().int2DoubleEntrySet()) {
+                    int index = feature.getIntKey();
+                    List<double[]> feaList;
+                    if (fea2sub.containsKey(index)) {
+                        feaList = fea2sub.get(index);
+                    } else {
+                        feaList = new ArrayList<>();
+                        fea2sub.put(index, feaList);
+                    }
+                    double[] insVal = {cnt, feature.getDoubleValue()};
+                    feaList.add(insVal);
                 }
-                double[] insVal = {cnt, feature.getDoubleValue()};
-                feaList.add(insVal);
-            }
-            relevant.add(cnt);
-            cnt++;
-            if (cnt % 10000 == 0) {
-                logger.info("Loaded {} instances.", cnt);
+                relevant.add(cnt);
+                cnt++;
+                if (cnt % 10000 == 0) {
+                    logger.info("Loaded {} instances.", cnt);
+                }
             }
         }
         learnTreeNode(tree, -1, true, 0, respList, relevant, fea2sub);

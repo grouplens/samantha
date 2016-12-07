@@ -6,6 +6,7 @@ import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.solver.OnlineOptimizationMethod;
 import org.grouplens.samantha.modeler.reinforce.LinearUCB;
 import org.grouplens.samantha.modeler.reinforce.LinearUCBProducer;
+import org.grouplens.samantha.modeler.space.SpaceMode;
 import org.grouplens.samantha.server.common.AbstractModelManager;
 import org.grouplens.samantha.server.common.ModelManager;
 import org.grouplens.samantha.server.config.ConfigKey;
@@ -96,17 +97,17 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
     private class LinearUCBModelManager extends AbstractModelManager {
 
         public LinearUCBModelManager(String modelName, String modelFile, Injector injector) {
-            super(injector, modelName, modelFile);
+            super(injector, modelName, modelFile, new ArrayList<>());
         }
 
-        public Object createModel(RequestContext requestContext) {
+        public Object createModel(RequestContext requestContext, SpaceMode spaceMode) {
             List<FeatureExtractor> featureExtractors = new ArrayList<>();
             for (FeatureExtractorConfig feaExtConfig : feaExtConfigs) {
                 featureExtractors.add(feaExtConfig.getFeatureExtractor(requestContext));
             }
             LinearUCBProducer producer = injector.instanceOf(LinearUCBProducer.class);
-            LinearUCB model = producer.createLinearUCBModel(modelName, features, numMainFeatures,
-                    labelName, weightName, alpha, lambda, featureExtractors);
+            LinearUCB model = producer.createLinearUCBModel(modelName, spaceMode, features,
+                    numMainFeatures, labelName, weightName, alpha, lambda, featureExtractors);
             return model;
         }
 
@@ -115,12 +116,12 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
             JsonNode reqBody = requestContext.getRequestBody();
             LearningData data = PredictorUtilities.getLearningData(ucbModel, requestContext,
                     reqBody.get("learningDaoConfig"), daoConfigs, expandersConfig, injector, true,
-                    serializedKey, insName, labelName, weightName);
+                    serializedKey, insName, labelName, weightName, null);
             LearningData valid = null;
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(ucbModel, requestContext,
                         reqBody.get("validationDaoConfig"), daoConfigs, expandersConfig,
-                        injector, false, serializedKey, insName, labelName, weightName);
+                        injector, false, serializedKey, insName, labelName, weightName, null);
             }
             OnlineOptimizationMethod method = (OnlineOptimizationMethod) PredictorUtilities
                     .getLearningMethod(methodConfig, injector, requestContext);
@@ -132,7 +133,8 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
             LinearUCB ucbModel = (LinearUCB) model;
             LearningData data = PredictorUtilities.getLearningData(ucbModel, requestContext,
                     requestContext.getRequestBody().get(daoConfigKey), daoConfigs,
-                    expandersConfig, injector, true, serializedKey, insName, labelName, weightName);
+                    expandersConfig, injector, true, serializedKey, insName, labelName,
+                    weightName, null);
             OnlineOptimizationMethod onlineMethod = (OnlineOptimizationMethod) PredictorUtilities
                     .getLearningMethod(methodConfig, injector, requestContext);
             onlineMethod.update(ucbModel, data);

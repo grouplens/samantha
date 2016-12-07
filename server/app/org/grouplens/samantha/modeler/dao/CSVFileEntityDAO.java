@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +33,7 @@ public class CSVFileEntityDAO implements EntityDAO {
             this.cnt = 0;
         } catch (IOException e) {
             logger.error("{}", e.getMessage());
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 
@@ -76,7 +76,7 @@ public class CSVFileEntityDAO implements EntityDAO {
             it = null;
         } catch (IOException e) {
             logger.error("{}", e.getMessage());
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 }

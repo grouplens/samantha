@@ -3,7 +3,7 @@ package org.grouplens.samantha.modeler.featurizer;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 
-public class StandardLearningInstance implements LearningInstance {
+public class StandardLearningInstance extends AbstractLearningInstance {
     private static final long serialVersionUID = 1L;
     public static double defaultWeight = 1.0;
     public static double defaultLabel = 0.0;

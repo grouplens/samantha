@@ -34,9 +34,12 @@ public enum ConfigKey {
     RANKER_PAGE_SIZE("pageSize"),
     RANKER_OFFSET("offset"),
     RANKER_LIMIT("limit"),
-    MODEL_OPERATION_KEY("modelOperation"),
-    MODEL_NAME_KEY("modelName"),
+    MODEL_OPERATION("modelOperation"),
+    MODEL_NAME("modelName"),
+    MODEL_FILE("modelFile"),
+    MODEL_EVALUATING_PREFIX("evaluatingModel"),
     METHOD_CLASS("methodClass"),
+    OBJECTIVE_CLASS("objectiveClass")
     ;
     private final String key;
 

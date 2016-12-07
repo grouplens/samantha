@@ -7,6 +7,7 @@ import org.grouplens.samantha.modeler.boosting.RegressionTreeGBCent;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningMethod;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
+import org.grouplens.samantha.modeler.space.SpaceMode;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.server.common.AbstractModelManager;
 import org.grouplens.samantha.server.common.ModelManager;
@@ -32,6 +33,7 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
     private final String modelName;
     private final String modelFile;
     private final List<String> treeFeatures;
+    private final List<String> groupKeys;
     private final List<FeatureExtractorConfig> treeExtractorsConfig;
     private final Configuration daosConfig;
     private final List<Configuration> expandersConfig;
@@ -44,7 +46,8 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
     private final Configuration config;
 
     private RegressionTreeGBCentPredictorConfig(String modelName, String svdfeaModelName, String svdfeaPredictorName,
-                                                List<String> treeFeatures, List<FeatureExtractorConfig> treeExtractorsConfig,
+                                                List<String> treeFeatures, List<String> groupKeys,
+                                                List<FeatureExtractorConfig> treeExtractorsConfig,
                                                 Configuration daosConfig, List<Configuration> expandersConfig,
                                                 Configuration methodConfig, Injector injector, String modelFile,
                                                 String daoConfigKey, String serializedKey, String insName,
@@ -56,6 +59,7 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
         this.svdfeaPredictorName = svdfeaPredictorName;
         this.injector = injector;
         this.methodConfig = methodConfig;
+        this.groupKeys = groupKeys;
         this.treeExtractorsConfig = treeExtractorsConfig;
         this.treeFeatures = treeFeatures;
         this.modelFile = modelFile;
@@ -77,7 +81,8 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
         List<Configuration> expanders = ExpanderUtilities.getEntityExpandersConfig(predictorConfig);
         return new RegressionTreeGBCentPredictorConfig(predictorConfig.getString("modelName"),
                 predictorConfig.getString("svdfeaModelName"), predictorConfig.getString("svdfeaPredictorName"),
-                predictorConfig.getStringList("treeFeatures"), feaExtConfigs, daosConfig, expanders,
+                predictorConfig.getStringList("treeFeatures"), predictorConfig.getStringList("groupKeys"),
+                feaExtConfigs, daosConfig, expanders,
                 predictorConfig.getConfig("methodConfig"), injector, predictorConfig.getString("modelFile"),
                 predictorConfig.getString("daoConfigKey"),
                 predictorConfig.getString("instanceName"),
@@ -89,10 +94,10 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
     private class RegressionTreeGBCentModelManager extends AbstractModelManager {
 
         public RegressionTreeGBCentModelManager(String modelName, String modelFile, Injector injector) {
-            super(injector, modelName, modelFile);
+            super(injector, modelName, modelFile, new ArrayList<>());
         }
 
-        public Object createModel(RequestContext requestContext) {
+        public Object createModel(RequestContext requestContext, SpaceMode spaceMode) {
             List<FeatureExtractor> featureExtractors = new ArrayList<>();
             for (FeatureExtractorConfig feaExtConfig : treeExtractorsConfig) {
                 featureExtractors.add(feaExtConfig.getFeatureExtractor(requestContext));
@@ -103,8 +108,8 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
             SVDFeature svdfeaModel = (SVDFeature) modelService.getModel(requestContext.getEngineName(),
                     svdfeaModelName);
             RegressionTreeGBCentProducer producer = injector.instanceOf(RegressionTreeGBCentProducer.class);
-            RegressionTreeGBCent model = producer.createGBCentWithSVDFeatureModel(modelName, treeFeatures,
-                    featureExtractors, svdfeaModel);
+            RegressionTreeGBCent model = producer.createGBCentWithSVDFeatureModel(modelName, spaceMode,
+                    treeFeatures, featureExtractors, svdfeaModel);
             return model;
         }
 
@@ -113,12 +118,12 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
             RegressionTreeGBCent gbcent = (RegressionTreeGBCent) model;
             LearningData data = PredictorUtilities.getLearningData(gbcent, requestContext,
                     reqBody.get("learningDaoConfig"), daosConfig, expandersConfig, injector, true,
-                    serializedKey, insName, labelName, weightName);
+                    serializedKey, insName, labelName, weightName, groupKeys);
             LearningData valid = null;
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(gbcent, requestContext,
                         reqBody.get("validationDaoConfig"), daosConfig, expandersConfig, injector, false,
-                        serializedKey, insName, labelName, weightName);
+                        serializedKey, insName, labelName, weightName, groupKeys);
             }
             LearningMethod method = PredictorUtilities.getLearningMethod(methodConfig, injector, requestContext);
             method.learn(gbcent, data, valid);

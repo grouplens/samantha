@@ -2,6 +2,7 @@ package org.grouplens.samantha.server.retriever;
 
 import org.grouplens.samantha.modeler.knn.FeatureKnnModel;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.space.SpaceMode;
 import org.grouplens.samantha.modeler.space.SpaceProducer;
 import org.grouplens.samantha.modeler.space.VariableSpace;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
@@ -11,6 +12,7 @@ import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.inject.Injector;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class FeatureKnnModelManager extends AbstractModelManager {
@@ -25,7 +27,7 @@ public class FeatureKnnModelManager extends AbstractModelManager {
                                   String svdfeaPredictorName,
                                   String svdfeaModelName, List<String> itemAttrs,
                                   int numNeighbors, boolean reverse, int minSupport) {
-        super(injector, modelName, modelFile);
+        super(injector, modelName, modelFile, new ArrayList<>());
         this.svdfeaModelName = svdfeaModelName;
         this.svdfeaPredictorName = svdfeaPredictorName;
         this.itemAttrs = itemAttrs;
@@ -34,7 +36,7 @@ public class FeatureKnnModelManager extends AbstractModelManager {
         this.minSupport = minSupport;
     }
 
-    public Object createModel(RequestContext requestContext) {
+    public Object createModel(RequestContext requestContext, SpaceMode spaceMode) {
         String engineName = requestContext.getEngineName();
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         configService.getPredictor(svdfeaPredictorName, requestContext);
@@ -42,8 +44,8 @@ public class FeatureKnnModelManager extends AbstractModelManager {
         SVDFeature svdFeature = (SVDFeature) modelService.getModel(engineName,
                 svdfeaModelName);
         SpaceProducer spaceProducer = injector.instanceOf(SpaceProducer.class);
-        IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName);
-        VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName);
+        IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName, spaceMode);
+        VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName, spaceMode);
         FeatureKnnModel knnModel = new FeatureKnnModel(modelName, itemAttrs,
                 numNeighbors, reverse, minSupport, svdFeature, indexSpace, variableSpace);
         return knnModel;

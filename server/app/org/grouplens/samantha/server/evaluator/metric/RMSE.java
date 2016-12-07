@@ -10,11 +10,13 @@ import java.util.List;
 
 public class RMSE implements Metric {
     private final String labelName;
+    private final double maxValue;
     private double errorSquared = 0;
     private long n = 0;
 
-    public RMSE(String labelName) {
+    public RMSE(String labelName, double maxValue) {
         this.labelName = labelName;
+        this.maxValue = maxValue;
     }
 
     public void add(List<ObjectNode> groundTruth, List<Prediction> predictions) {
@@ -27,20 +29,23 @@ public class RMSE implements Metric {
         }
     }
 
-    public List<ObjectNode> getValues() {
+    public MetricResult getResults() {
         ObjectNode result = Json.newObject();
         result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "RMSE");
         ObjectNode para = Json.newObject();
         para.put("N", n);
         result.set(ConfigKey.EVALUATOR_METRIC_PARA.get(), para);
+        double value = 0.0;
         if (n > 0) {
-            result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(),
-                    Math.sqrt(errorSquared / n));
-        } else {
-            result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), 0.0);
+            value = Math.sqrt(errorSquared / n);
         }
+        result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
         List<ObjectNode> results = new ArrayList<>(1);
         results.add(result);
-        return results;
+        boolean pass = true;
+        if (value > maxValue) {
+            pass = false;
+        }
+        return new MetricResult(results, pass);
     }
 }

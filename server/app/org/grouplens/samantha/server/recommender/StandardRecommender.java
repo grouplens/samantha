@@ -1,6 +1,6 @@
 package org.grouplens.samantha.server.recommender;
 
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.ranker.RankedResult;
 import org.grouplens.samantha.server.ranker.Ranker;
@@ -8,8 +8,6 @@ import org.grouplens.samantha.server.retriever.RetrievedResult;
 import org.grouplens.samantha.server.retriever.Retriever;
 import play.Configuration;
 import play.Logger;
-
-import java.util.Map;
 
 public class StandardRecommender implements Recommender {
     private final Configuration config;
@@ -23,7 +21,7 @@ public class StandardRecommender implements Recommender {
     }
 
     public RankedResult recommend(RequestContext requestContext)
-            throws InvalidRequestException {
+            throws BadRequestException {
         long start = System.currentTimeMillis();
         RetrievedResult retrievedResult = retriever.retrieve(requestContext);
         Logger.debug("Retriever time: {}", System.currentTimeMillis() - start);

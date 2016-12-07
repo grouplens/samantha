@@ -1,6 +1,8 @@
 package org.grouplens.samantha.modeler.common;
 
+import java.util.List;
+
 public interface LearningData {
-    LearningInstance getLearningInstance();
+    List<LearningInstance> getLearningInstance();
     void startNewIteration();
 }

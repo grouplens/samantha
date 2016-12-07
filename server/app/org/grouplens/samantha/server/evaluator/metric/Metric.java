@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface Metric {
     void add(List<ObjectNode> groundTruth, List<Prediction> results);
-    List<ObjectNode> getValues();
+    MetricResult getResults();
 }

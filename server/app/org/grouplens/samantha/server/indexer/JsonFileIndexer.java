@@ -1,7 +1,7 @@
 package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.grouplens.samantha.server.exception.InvalidRequestException;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Logger;
 
@@ -17,7 +17,7 @@ public class JsonFileIndexer implements Indexer {
         try {
             writer = new BufferedWriter(new FileWriter(jsonFile));
         } catch (IOException e) {
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 
@@ -27,7 +27,7 @@ public class JsonFileIndexer implements Indexer {
             writer.newLine();
             writer.flush();
         } catch (IOException e) {
-            throw new InvalidRequestException(e);
+            throw new BadRequestException(e);
         }
     }
 

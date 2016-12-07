@@ -9,24 +9,32 @@ import java.util.List;
 public class MAPConfig implements MetricConfig {
     final List<Integer> N;
     final List<String> itemKeys;
-    final String ratingKey;
-    final double leastRating;
+    final String relevanceKey;
+    final double threshold;
+    final double minValue;
 
-    private MAPConfig(List<Integer> N, List<String> itemKeys, String ratingKey, double leastRating) {
+    private MAPConfig(List<Integer> N, List<String> itemKeys, String relevanceKey,
+                      double threshold, double minValue) {
         this.N = N;
         this.itemKeys = itemKeys;
-        this.ratingKey = ratingKey;
-        this.leastRating = leastRating;
+        this.relevanceKey = relevanceKey;
+        this.threshold = threshold;
+        this.minValue = minValue;
     }
 
     public static MetricConfig getMetricConfig(Configuration metricConfig,
                                                Injector injector) {
-        double leastRating = 0.0;
-        if (metricConfig.asMap().containsKey("leastRating")) {
-            leastRating = metricConfig.getDouble("leastRating");
+        double threshold = 0.0;
+        if (metricConfig.asMap().containsKey("threshold")) {
+            threshold = metricConfig.getDouble("threshold");
+        }
+        double minValue = 0.0;
+        if (metricConfig.asMap().containsKey("minValue")) {
+            minValue = metricConfig.getDouble("minValue");
         }
         return new MAPConfig(metricConfig.getIntList("N"),
-                metricConfig.getStringList("itemKeys"), metricConfig.getString("ratingKey"), leastRating);
+                metricConfig.getStringList("itemKeys"), metricConfig.getString("relevanceKey"),
+                threshold, minValue);
     }
 
     public Metric getMetric(RequestContext requestContext) {

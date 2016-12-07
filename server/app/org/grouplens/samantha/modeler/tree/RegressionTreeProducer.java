@@ -2,6 +2,7 @@ package org.grouplens.samantha.modeler.tree;
 
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.space.SpaceMode;
 import org.grouplens.samantha.modeler.space.SpaceProducer;
 import org.grouplens.samantha.modeler.space.VariableSpace;
 
@@ -22,13 +23,13 @@ public class RegressionTreeProducer {
         this.spaceProducer = spaceProducer;
     }
 
-    public RegressionTree createRegressionTree(String treeName,
+    public RegressionTree createRegressionTree(String treeName, SpaceMode spaceMode,
                                                List<String> features,
                                                List<FeatureExtractor> featureExtractors,
                                                String labelName, String weightName) {
-        IndexSpace indexSpace = spaceProducer.getIndexSpace(treeName);
+        IndexSpace indexSpace = spaceProducer.getIndexSpace(treeName, spaceMode);
         indexSpace.requestKeyMap(TreeKey.TREE.get());
-        VariableSpace variableSpace = spaceProducer.getVariableSpace(treeName);
+        VariableSpace variableSpace = spaceProducer.getVariableSpace(treeName, spaceMode);
         variableSpace.requestVectorVar(treeName, 0, RegressionTree.nodeSize, 0.0, false, false);
         return new RegressionTree(treeName, criterion, indexSpace, variableSpace,
                 features, featureExtractors, labelName, weightName);
