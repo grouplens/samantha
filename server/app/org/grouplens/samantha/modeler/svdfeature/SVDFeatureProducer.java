@@ -44,12 +44,13 @@ public class SVDFeatureProducer {
                                             List<String> ifactFeas,
                                             String labelName,
                                             String weightName,
+                                            List<String> groupKeys,
                                             List<FeatureExtractor> featureExtractors,
                                             int factDim,
                                             ObjectiveFunction objectiveFunction) {
         IndexSpace indexSpace = getIndexSpace(modelName, spaceMode);
         VariableSpace variableSpace = getVariableSpace(modelName, spaceMode, 0, 0, factDim);
-        return new SVDFeature(biasFeas, ufactFeas, ifactFeas, labelName, weightName, featureExtractors,
-                factDim, objectiveFunction, indexSpace, variableSpace);
+        return new SVDFeature(biasFeas, ufactFeas, ifactFeas, labelName, weightName, groupKeys,
+                featureExtractors, factDim, objectiveFunction, indexSpace, variableSpace);
     }
 }

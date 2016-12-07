@@ -11,14 +11,15 @@ public class StandardLearningInstance extends AbstractLearningInstance {
     double label;
     final Int2DoubleMap features;
 
-    public StandardLearningInstance(Int2DoubleMap features, double label, double weight) {
+    public StandardLearningInstance(Int2DoubleMap features, double label, double weight, String group) {
+        super(group);
         this.features = features;
         this.weight = weight;
         this.label = label;
     }
 
     public LearningInstance newInstanceWithLabel(double label) {
-        return new StandardLearningInstance(this.features, label, this.weight);
+        return new StandardLearningInstance(this.features, label, this.weight, this.group);
     }
 
     public Int2DoubleMap getFeatures() {

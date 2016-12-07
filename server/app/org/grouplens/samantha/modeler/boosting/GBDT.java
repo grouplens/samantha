@@ -32,10 +32,10 @@ public class GBDT extends StandardFeaturizer implements BoostedPredictiveModel {
                 LearningMethod method,
                 IndexSpace indexSpace, VariableSpace variableSpace,
                 ObjectiveFunction objectiveFunction,
-                List<String> features,
+                List<String> features, List<String> groupKeys,
                 List<FeatureExtractor> featureExtractors,
                 String labelName, String weightName) {
-        super(indexSpace, featureExtractors, features, labelName, weightName);
+        super(indexSpace, featureExtractors, features, groupKeys, labelName, weightName);
         this.modelName = modelName;
         this.criterion = criterion;
         this.variableSpace = variableSpace;

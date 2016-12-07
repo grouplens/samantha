@@ -18,7 +18,6 @@ public class SyncFeaturizedLearningData implements LearningData {
     private final EntityDAO entityDAO;
     private final GroupedEntityList groupedEntityList;
     private final List<EntityExpander> entityExpanders;
-    private final List<String> groupKeys;
     private final Featurizer featurizer;
     private final RequestContext requestContext;
     private final boolean update;
@@ -34,7 +33,6 @@ public class SyncFeaturizedLearningData implements LearningData {
         this.featurizer = featurizer;
         this.requestContext = requestContext;
         this.update = update;
-        this.groupKeys = groupKeys;
         if (groupKeys != null && groupKeys.size() > 0) {
             groupedEntityList = new GroupedEntityList(groupKeys, entityDAO);
         } else {
@@ -57,7 +55,7 @@ public class SyncFeaturizedLearningData implements LearningData {
                 }
                 curList = ExpanderUtilities.expand(curList, entityExpanders, requestContext);
             } while (curList.size() == 0);
-            return FeaturizerUtilities.featurize(curList, groupKeys, featurizer, update);
+            return FeaturizerUtilities.featurize(curList, featurizer, update);
         } else {
             List<ObjectNode> entityList;
             do {
@@ -68,7 +66,7 @@ public class SyncFeaturizedLearningData implements LearningData {
                 }
                 entityList = ExpanderUtilities.expand(entityList, entityExpanders, requestContext);
             } while (entityList.size() == 0);
-            return FeaturizerUtilities.featurize(entityList, groupKeys, featurizer, update);
+            return FeaturizerUtilities.featurize(entityList, featurizer, update);
         }
     }
 

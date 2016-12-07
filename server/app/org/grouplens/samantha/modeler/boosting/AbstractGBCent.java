@@ -21,8 +21,8 @@ abstract public class AbstractGBCent extends StandardFeaturizer implements GBCen
 
     public AbstractGBCent(IndexSpace indexSpace, List<FeatureExtractor> featureExtractors,
                           List<String> features, String labelName, String weightName,
-                          SVDFeature svdfeaModel) {
-        super(indexSpace, featureExtractors, features, labelName, weightName);
+                          List<String> groupKeys, SVDFeature svdfeaModel) {
+        super(indexSpace, featureExtractors, features, groupKeys, labelName, weightName);
         this.svdfeaModel = svdfeaModel;
     }
 

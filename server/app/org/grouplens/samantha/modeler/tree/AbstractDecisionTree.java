@@ -29,7 +29,8 @@ abstract public class AbstractDecisionTree implements DecisionTree, Featurizer {
         this.labelName = labelName;
         this.weightName = weightName;
         this.features = features;
-        featurizer = new StandardFeaturizer(indexSpace, featureExtractors, features, labelName, weightName);
+        featurizer = new StandardFeaturizer(indexSpace, featureExtractors, features,
+                null, labelName, weightName);
     }
 
     public StandardLearningInstance getLearningInstance(LearningInstance ins) {

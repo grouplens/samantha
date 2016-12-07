@@ -11,7 +11,6 @@ import java.util.List;
 public class SyncFeaturizedLearningData implements LearningData {
     private final GroupedEntityList groupedEntityList;
     private final EntityDAO entityDAO;
-    private final List<String> groupKeys;
     private final Featurizer featurizer;
     private final boolean update;
 
@@ -22,7 +21,6 @@ public class SyncFeaturizedLearningData implements LearningData {
         this.entityDAO = entityDAO;
         this.featurizer = featurizer;
         this.update = update;
-        this.groupKeys = groupKeys;
         if (groupKeys != null && groupKeys.size() > 0) {
             this.groupedEntityList = new GroupedEntityList(groupKeys, entityDAO);
         } else {
@@ -34,7 +32,7 @@ public class SyncFeaturizedLearningData implements LearningData {
     public List<LearningInstance> getLearningInstance() {
         if (groupedEntityList != null) {
             List<ObjectNode> entityList = groupedEntityList.getNextGroup();
-            return FeaturizerUtilities.featurize(entityList, groupKeys, featurizer, update);
+            return FeaturizerUtilities.featurize(entityList, featurizer, update);
         } else {
             ObjectNode cur = null;
             synchronized (entityDAO) {

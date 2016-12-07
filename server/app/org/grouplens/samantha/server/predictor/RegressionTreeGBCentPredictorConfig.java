@@ -109,7 +109,7 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
                     svdfeaModelName);
             RegressionTreeGBCentProducer producer = injector.instanceOf(RegressionTreeGBCentProducer.class);
             RegressionTreeGBCent model = producer.createGBCentWithSVDFeatureModel(modelName, spaceMode,
-                    treeFeatures, featureExtractors, svdfeaModel);
+                    treeFeatures, groupKeys, featureExtractors, svdfeaModel);
             return model;
         }
 

@@ -29,7 +29,7 @@ public class RegressionTreeGBCentProducer {
     }
 
     public RegressionTreeGBCent createGBCent(String modelName, SpaceMode spaceMode,
-                                             String labelName, String weightName,
+                                             String labelName, String weightName, List<String> groupKeys,
                                              List<FeatureExtractor> svdfeaExtractors,
                                              List<FeatureExtractor> treeExtractors,
                                              List<String> biasFeas, List<String> ufactFeas,
@@ -40,14 +40,15 @@ public class RegressionTreeGBCentProducer {
         VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName, spaceMode);
         SVDFeatureProducer svdfeaProducer = new SVDFeatureProducer(spaceProducer);
         SVDFeature svdfeaModel = svdfeaProducer.createSVDFeatureModel(modelName, spaceMode,
-                biasFeas, ufactFeas, ifactFeas, labelName, weightName, svdfeaExtractors,
-                factDim, objectiveFunction);
-        return new RegressionTreeGBCent(modelName, treeExtractors, treeFeas, labelName, weightName,
-                indexSpace, variableSpace, svdfeaModel, criterion);
+                biasFeas, ufactFeas, ifactFeas, labelName, weightName, groupKeys,
+                svdfeaExtractors, factDim, objectiveFunction);
+        return new RegressionTreeGBCent(modelName, treeExtractors, treeFeas,
+                groupKeys, labelName, weightName, indexSpace, variableSpace, svdfeaModel, criterion);
     }
 
     public RegressionTreeGBCent createGBCentWithSVDFeatureModel(String modelName, SpaceMode spaceMode,
                                                                 List<String> treeFeas,
+                                                                List<String> groupKeys,
                                                                 List<FeatureExtractor> treeExtractors,
                                                                 SVDFeature svdfeaModel) {
         IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName, spaceMode);
@@ -55,7 +56,7 @@ public class RegressionTreeGBCentProducer {
         VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName, spaceMode);
         String labelName = svdfeaModel.getLabelName();
         String weightName = svdfeaModel.getWeightName();
-        return new RegressionTreeGBCent(modelName, treeExtractors, treeFeas, labelName, weightName,
-                indexSpace, variableSpace, svdfeaModel, criterion);
+        return new RegressionTreeGBCent(modelName, treeExtractors, treeFeas,
+                groupKeys, labelName, weightName, indexSpace, variableSpace, svdfeaModel, criterion);
     }
 }

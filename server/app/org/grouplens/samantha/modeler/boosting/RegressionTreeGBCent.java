@@ -11,7 +11,6 @@ import org.grouplens.samantha.modeler.tree.*;
 
 import java.util.List;
 
-//TODO: change this to be an interface so that GB-CENT can depend on other implementations, such as org.grouplens.samantha.xgboost
 public class RegressionTreeGBCent extends AbstractGBCent implements PredictiveModel, GBCent {
     private static final long serialVersionUID = 1L;
     private final String modelName;
@@ -19,10 +18,11 @@ public class RegressionTreeGBCent extends AbstractGBCent implements PredictiveMo
     private final RegressionCriterion criterion;
 
     public RegressionTreeGBCent(String modelName, List<FeatureExtractor> treeExtractors,
-                                List<String> treeFeatures, String labelName, String weightName,
+                                List<String> treeFeatures, List<String> groupKeys,
+                                String labelName, String weightName,
                                 IndexSpace indexSpace, VariableSpace variableSpace,
                                 SVDFeature svdFeature, RegressionCriterion criterion) {
-        super(indexSpace, treeExtractors, treeFeatures, labelName, weightName, svdFeature);
+        super(indexSpace, treeExtractors, treeFeatures, labelName, weightName, groupKeys, svdFeature);
         this.modelName = modelName;
         this.variableSpace = variableSpace;
         this.criterion = criterion;

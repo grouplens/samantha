@@ -24,8 +24,9 @@ public class SVDFeatureInstance extends AbstractLearningInstance {
     static public double defaultWeight = 1.0;
     static public double defaultLabel = 0.0;
 
-    SVDFeatureInstance(List<Feature> gfeas, List<Feature> ufeas,
-                       List<Feature> ifeas, double label, double weight) {
+    SVDFeatureInstance(List<Feature> gfeas, List<Feature> ufeas, List<Feature> ifeas,
+                       double label, double weight, String group) {
+        super(group);
         this.gfeas = gfeas;
         this.ufeas = ufeas;
         this.ifeas = ifeas;
@@ -34,7 +35,8 @@ public class SVDFeatureInstance extends AbstractLearningInstance {
     }
 
     public LearningInstance newInstanceWithLabel(double label) {
-        return new SVDFeatureInstance(this.gfeas, this.ufeas, this.ifeas, label, this.weight);
+        return new SVDFeatureInstance(this.gfeas, this.ufeas, this.ifeas,
+                label, this.weight, this.group);
     }
 
     public double getLabel() {
@@ -61,6 +63,11 @@ public class SVDFeatureInstance extends AbstractLearningInstance {
         ArrayList<String> fields = new ArrayList<>(5 + (gfeas.size() + ufeas.size() + ifeas.size()) * 2);
         fields.add(Double.toString(weight));
         fields.add(Double.toString(label));
+        if (group != null) {
+            fields.add(group);
+        } else {
+            fields.add("");
+        }
         fields.add(Integer.toString(gfeas.size()));
         fields.add(Integer.toString(ufeas.size()));
         fields.add(Integer.toString(ifeas.size()));

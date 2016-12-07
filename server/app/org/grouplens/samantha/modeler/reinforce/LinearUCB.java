@@ -44,7 +44,8 @@ public class LinearUCB extends AbstractLearningModel implements Featurizer {
                      IndexSpace indexSpace,
                      VariableSpace variableSpace) {
         super(indexSpace, variableSpace);
-        this.featurizer = new StandardFeaturizer(indexSpace, featureExtractors, features, labelName, weightName);
+        this.featurizer = new StandardFeaturizer(indexSpace, featureExtractors,
+                features, null, labelName, weightName);
         this.lambda = lambda;
         this.alpha = alpha;
         this.numMainFeatures = numMainFeatures;

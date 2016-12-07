@@ -148,12 +148,12 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
                 SVDFeature dependModel = (SVDFeature) modelService
                         .getModel(engineName, dependPredictorModelName);
                 ownModel = SVDFeature.createSVDFeatureModelFromOtherModel(dependModel, biasFeas, ufactFeas,
-                        ifactFeas, labelName, weightName, featureExtractors, loss);
+                        ifactFeas, labelName, weightName, groupKeys, featureExtractors, loss);
             } else {
                 SVDFeatureProducer producer = injector.instanceOf(SVDFeatureProducer.class);
                 ownModel = producer.createSVDFeatureModel(modelName, spaceMode,
                         biasFeas, ufactFeas, ifactFeas, labelName, weightName,
-                        featureExtractors, factDim, loss);
+                        groupKeys, featureExtractors, factDim, loss);
             }
             return ownModel;
         }

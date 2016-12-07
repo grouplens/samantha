@@ -11,6 +11,7 @@ import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.featurizer.Feature;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
+import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.modeler.featurizer.Featurizer;
 import org.grouplens.samantha.modeler.solver.*;
 import org.grouplens.samantha.modeler.space.IndexSpace;
@@ -33,6 +34,7 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
     private final List<String> biasFeas = new ArrayList<>();
     private final List<String> ufactFeas = new ArrayList<>();
     private final List<String> ifactFeas = new ArrayList<>();
+    private final List<String> groupKeys;
     private final String labelName;
     private final String weightName;
     private final List<FeatureExtractor> featureExtractors = new ArrayList<>();
@@ -44,9 +46,10 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
                                                                  List<String> ifactFeas,
                                                                  String labelName,
                                                                  String weightName,
+                                                                 List<String> groupKeys,
                                                                  List<FeatureExtractor> featureExtractors,
                                                                  ObjectiveFunction objectiveFunction) {
-        return new SVDFeature(biasFeas, ufactFeas, ifactFeas, labelName, weightName,
+        return new SVDFeature(biasFeas, ufactFeas, ifactFeas, labelName, weightName, groupKeys,
                 featureExtractors, otherModel.factDim, objectiveFunction, otherModel.indexSpace,
                 otherModel.variableSpace);
     }
@@ -59,6 +62,7 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
                       List<String> ifactFeas,
                       String labelName,
                       String weightName,
+                      List<String> groupKeys,
                       List<FeatureExtractor> featureExtractors,
                       int factDim,
                       ObjectiveFunction objectiveFunction,
@@ -71,6 +75,7 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
         this.ifactFeas.addAll(ifactFeas);
         this.labelName = labelName;
         this.weightName = weightName;
+        this.groupKeys = groupKeys;
         this.featureExtractors.addAll(featureExtractors);
         this.objectiveFunction = objectiveFunction;
     }
@@ -206,7 +211,11 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
         } else if (feaMap.containsKey(weightName)) {
             weight = feaMap.get(weightName).get(0).getValue();
         }
-        return new SVDFeatureInstance(gfeas, ufeas, ifeas, label, weight);
+        String group = null;
+        if (groupKeys != null && groupKeys.size() > 0) {
+            group = FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys);
+        }
+        return new SVDFeatureInstance(gfeas, ufeas, ifeas, label, weight, group);
     }
 
     public ObjectiveFunction getObjectiveFunction() {

@@ -15,13 +15,16 @@ public class StandardFeaturizer implements Featurizer, Serializable {
     protected final IndexSpace indexSpace;
     protected final List<FeatureExtractor> featureExtractors;
     protected final List<String> features;
+    protected final List<String> groupKeys;
     protected final String labelName;
     protected final String weightName;
 
     public StandardFeaturizer(IndexSpace indexSpace, List<FeatureExtractor> featureExtractors,
-                              List<String> features, String labelName, String weightName) {
+                              List<String> features, List<String> groupKeys,
+                              String labelName, String weightName) {
         this.indexSpace = indexSpace;
         this.featureExtractors = featureExtractors;
+        this.groupKeys = groupKeys;
         this.features = features;
         this.labelName = labelName;
         this.weightName = weightName;
@@ -53,6 +56,10 @@ public class StandardFeaturizer implements Featurizer, Serializable {
         } else if (feaMap.containsKey(weightName)) {
             weight = feaMap.get(weightName).get(0).getValue();
         }
-        return new StandardLearningInstance(feas, label, weight);
+        String group = null;
+        if (groupKeys != null && groupKeys.size() > 0) {
+            group = FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys);
+        }
+        return new StandardLearningInstance(feas, label, weight, group);
     }
 }

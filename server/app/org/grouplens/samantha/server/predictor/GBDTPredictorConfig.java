@@ -6,7 +6,6 @@ import org.grouplens.samantha.modeler.boosting.GBDT;
 import org.grouplens.samantha.modeler.boosting.StandardBoostingMethod;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
-import org.grouplens.samantha.modeler.solver.L2NormLoss;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
 import org.grouplens.samantha.modeler.space.SpaceMode;
 import org.grouplens.samantha.modeler.tree.TreeLearningMethod;
@@ -108,7 +107,7 @@ public class GBDTPredictorConfig implements PredictorConfig {
             ObjectiveFunction objectiveFunction = PredictorUtilities.getObjectiveFunction(objectiveConfig,
                     injector, requestContext);
             GBDT model = producer.createGBRT(modelName, spaceMode, objectiveFunction, method,
-                    features, featureExtractors, labelName, weightName);
+                    features, groupKeys, featureExtractors, labelName, weightName);
             return model;
         }
 

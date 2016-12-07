@@ -32,7 +32,7 @@ public class SVDFeatureInstanceDAO implements LearningData {
                 List<Feature> gfeas = new ArrayList<>();
                 List<Feature> ufeas = new ArrayList<>();
                 List<Feature> ifeas = new ArrayList<>();
-                SVDFeatureInstance ins = new SVDFeatureInstance(gfeas, ufeas, ifeas, 0.0, 0.0);
+                SVDFeatureInstance ins = new SVDFeatureInstance(gfeas, ufeas, ifeas, 0.0, 0.0, null);
                 SVDFeatureUtilities.parseInstanceFromString(line, ins);
                 instances.add(ins);
                 return instances;

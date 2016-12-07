@@ -31,12 +31,13 @@ public class GBDTProducer {
                            ObjectiveFunction objectiveFunction,
                            LearningMethod method,
                            List<String> features,
+                           List<String> groupKeys,
                            List<FeatureExtractor> featureExtractors,
                            String labelName, String weightName) {
         IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName, spaceMode);
         indexSpace.requestKeyMap(TreeKey.TREE.get());
         VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName, spaceMode);
         return new GBDT(modelName, criterion, method, indexSpace, variableSpace,
-                objectiveFunction, features, featureExtractors, labelName, weightName);
+                objectiveFunction, features, groupKeys, featureExtractors, labelName, weightName);
     }
 }
