@@ -20,7 +20,7 @@ import java.util.List;
 public class EvaluatorUtilities {
     private EvaluatorUtilities() {}
 
-    static public List<MetricResult> indexMetrics(String type, Configuration config,
+    static public List<MetricResult> indexMetrics(Configuration config,
                                                   RequestContext requestContext,
                                                   List<Metric> metrics,
                                                   List<Indexer> indexers) {
@@ -35,7 +35,7 @@ public class EvaluatorUtilities {
             }
             all.add(result);
             for (Indexer indexer : indexers) {
-                indexer.index(type, Json.toJson(result), requestContext);
+                indexer.index(Json.toJson(result), requestContext);
             }
         }
         return all;

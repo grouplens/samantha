@@ -11,21 +11,19 @@ import play.libs.Json;
 
 import java.util.List;
 
-public class ESBasedEntityDAO implements EntityDAO {
+public class ESBasedDAO implements EntityDAO {
 
-    private final ESBasedEntityDAOConfig config;
     private final ESQueryBasedRetriever retriever;
     private final String engineName;
     private int idx = 0;
     private List<ObjectNode> entityList = null;
     private final RequestContext requestContext;
 
-    public ESBasedEntityDAO(ESQueryBasedRetriever retriever,
-                            RequestContext requestContext,
-                            ESBasedEntityDAOConfig config) {
+    public ESBasedDAO(ESQueryBasedRetriever retriever,
+                      RequestContext requestContext,
+                      ESBasedDAOConfig config) {
         this.retriever = retriever;
         this.engineName = requestContext.getEngineName();
-        this.config = config;
         ObjectNode req = Json.newObject();
         IOUtilities.parseEntityFromJsonNode(requestContext.getRequestBody(), req);
         req.set(config.elasticSearchReqKey, Json.parse(QueryBuilders.matchAllQuery().toString()));

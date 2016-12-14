@@ -17,18 +17,16 @@ public class InstanceCachedAsyncParallelSGD extends AbstractOptimizationMethod i
     final private double lr;
 
     public InstanceCachedAsyncParallelSGD(String cachePath) {
-        super();
+        super(5.0, 50);
         this.cachePath = cachePath;
         this.numThreads = Runtime.getRuntime().availableProcessors();
         this.lr = 0.001;
         this.l2coef = 0.0;
-        this.tol = 5.0;
-        this.maxIter = 50;
     }
 
     public InstanceCachedAsyncParallelSGD(int maxIter, double l2coef, double learningRate, double tol,
                                           int numThreads, String cachePath) {
-        super();
+        super(tol, maxIter);
         this.cachePath = cachePath;
         this.numThreads = numThreads;
         this.l2coef = l2coef;
@@ -90,7 +88,7 @@ public class InstanceCachedAsyncParallelSGD extends AbstractOptimizationMethod i
                         runnables, threads);
             }
             learnObjVal = SolverUtilities.joinObjectiveRunnableThreads(numThreads, runnables, threads);
-            learnCrit.addIteration(AbstractOnlineOptimizationMethod.class.toString()
+            learnCrit.addIteration(InstanceCachedAsyncParallelSGD.class.toString()
                     + " -- Learning", learnObjVal);
             if (validData != null) {
                 threads.clear();
@@ -105,7 +103,7 @@ public class InstanceCachedAsyncParallelSGD extends AbstractOptimizationMethod i
                     thread.start();
                 }
                 double validObjVal = SolverUtilities.joinObjectiveRunnableThreads(numThreads, runnables, threads);
-                validCrit.addIteration(AbstractOnlineOptimizationMethod.class.toString()
+                validCrit.addIteration(InstanceCachedAsyncParallelSGD.class.toString()
                         + " -- Validating", validObjVal);
             }
         }

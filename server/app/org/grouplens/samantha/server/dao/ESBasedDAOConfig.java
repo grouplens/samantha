@@ -8,14 +8,14 @@ import org.grouplens.samantha.modeler.dao.EntityDAO;
 import play.Configuration;
 import play.inject.Injector;
 
-public class ESBasedEntityDAOConfig implements EntityDAOConfig {
+public class ESBasedDAOConfig implements EntityDAOConfig {
     final Injector injector;
     final String retrieverName;
     final String elasticSearchReqKey;
 
-    private ESBasedEntityDAOConfig(Injector injector,
-                                   String retrieverName,
-                                   String elasticSearchReqKey) {
+    private ESBasedDAOConfig(Injector injector,
+                             String retrieverName,
+                             String elasticSearchReqKey) {
         this.injector = injector;
         this.retrieverName = retrieverName;
         this.elasticSearchReqKey = elasticSearchReqKey;
@@ -23,14 +23,14 @@ public class ESBasedEntityDAOConfig implements EntityDAOConfig {
 
     static public EntityDAOConfig getEntityDAOConfig(Configuration daoConfig,
                                               Injector injector) {
-        return new ESBasedEntityDAOConfig(injector,
+        return new ESBasedDAOConfig(injector,
                 daoConfig.getString("retriever"), daoConfig.getString("elasticSearchReqKey"));
     }
 
     public EntityDAO getEntityDAO(RequestContext requestContext, JsonNode daoConfig) {
         SamanthaConfigService configService = injector
                 .instanceOf(SamanthaConfigService.class);
-        return new ESBasedEntityDAO((ESQueryBasedRetriever)configService
+        return new ESBasedDAO((ESQueryBasedRetriever)configService
                 .getRetriever(retrieverName, requestContext), requestContext, this);
     }
 }

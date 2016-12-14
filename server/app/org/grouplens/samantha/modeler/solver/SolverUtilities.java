@@ -15,17 +15,17 @@ public class SolverUtilities {
 
     private static Logger logger = LoggerFactory.getLogger(SolverUtilities.class);
 
-    public static double getL2RegularizationObjective(LearningModel model, L2Regularizer l2term, double l2coef) {
+    public static double getRegularizationObjective(LearningModel model, Regularizer regularizer, double coef) {
         double objVal = 0.0;
         List<String> allScalarVarNames = model.getAllScalarVarNames();
         for (String name : allScalarVarNames) {
             RealVector var = model.getScalarVarByName(name);
-            objVal += l2term.getObjective(l2coef, var);
+            objVal += regularizer.getObjective(coef, var);
         }
         List<String> allVectorVarNames = model.getAllVectorVarNames();
         for (String name : allVectorVarNames) {
             List<RealVector> vars = model.getVectorVarByName(name);
-            objVal += l2term.getObjective(l2coef, vars);
+            objVal += regularizer.getObjective(coef, vars);
         }
         return objVal;
     }

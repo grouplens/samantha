@@ -86,6 +86,7 @@ public class SVDFeatureInstance extends AbstractLearningInstance {
         return StringUtils.join(fields, "\t");
     }
 
+    /*
     private void writeObject(ObjectOutputStream stream) throws IOException {
         stream.writeObject(toString());
     }
@@ -97,4 +98,5 @@ public class SVDFeatureInstance extends AbstractLearningInstance {
         ifeas = new ArrayList<>();
         SVDFeatureUtilities.parseInstanceFromString(line, this);
     }
+    */
 }

@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * @author <a href="http://www.grouplens.org">GroupLens Research</a>
  */
-public class L2Regularizer {
+public class L2Regularizer implements Regularizer {
     public L2Regularizer() {}
 
     public double getValue(double var) {

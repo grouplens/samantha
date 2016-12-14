@@ -2,6 +2,7 @@ package org.grouplens.samantha.server.retriever;
 
 import com.typesafe.config.ConfigRenderOptions;
 
+import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.ElasticSearchService;
 
 import org.grouplens.samantha.server.exception.ConfigurationException;
@@ -13,10 +14,8 @@ import play.inject.Injector;
 
 import java.util.List;
 
-public class ESQueryBasedRetrieverConfig implements RetrieverConfig {
+public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig implements RetrieverConfig {
     final private Injector injector;
-    final private Configuration elasticSearchSetting;
-    final private Configuration elasticSearchMapping;
     final private String defaultElasticSearchReq;
     final private String elasticSearchIndex;
     final private String elasticSearchScoreName;
@@ -24,32 +23,24 @@ public class ESQueryBasedRetrieverConfig implements RetrieverConfig {
     final private String retrieveType;
     final private String setScrollKey;
     final private List<String> retrieveFields;
-    final private List<Configuration> expandersConfig;
-    final private Configuration config;
 
-    private ESQueryBasedRetrieverConfig(Configuration elasticSearchMapping,
-                                        String elasticSearchIndex,
+    private ESQueryBasedRetrieverConfig(String elasticSearchIndex,
                                         String elasticSearchScoreName,
                                         String retrieveType,
                                         List<String> retrieveFields,
                                         String elasticSearchReqKey,
                                         String setScrollKey,
-                                        List<Configuration> expandersConfig,
-                                        Configuration elasticSearchSetting,
                                         String defaultElasticSearchReq,
                                         Injector injector, Configuration config) {
+        super(config);
         this.injector = injector;
         this.retrieveFields = retrieveFields;
         this.retrieveType = retrieveType;
-        this.elasticSearchMapping = elasticSearchMapping;
         this.elasticSearchIndex = elasticSearchIndex;
         this.elasticSearchReqKey = elasticSearchReqKey;
         this.elasticSearchScoreName = elasticSearchScoreName;
-        this.elasticSearchSetting = elasticSearchSetting;
         this.setScrollKey = setScrollKey;
-        this.expandersConfig = expandersConfig;
         this.defaultElasticSearchReq = defaultElasticSearchReq;
-        this.config = config;
     }
 
     static public RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
@@ -72,18 +63,16 @@ public class ESQueryBasedRetrieverConfig implements RetrieverConfig {
                         mappingConfig.getConfig(typeName));
             }
         }
-        List<Configuration> expandersConfig = ExpanderUtilities.getEntityExpandersConfig(retrieverConfig);
         String defaultReq = null;
         if (retrieverConfig.asMap().containsKey("defaultElasticSearchReq")) {
             defaultReq = retrieverConfig.getConfig("defaultElasticSearchReq")
                     .underlying().root().render(ConfigRenderOptions.concise());
         }
-        return new ESQueryBasedRetrieverConfig(mappingConfig,
-                retrieverConfig.getString("elasticSearchIndex"), elasticSearchScoreName,
-                retrieverConfig.getString("retrieveType"),
+        return new ESQueryBasedRetrieverConfig(retrieverConfig.getString("elasticSearchIndex"),
+                elasticSearchScoreName, retrieverConfig.getString("retrieveType"),
                 retrieveFields, retrieverConfig.getString("elasticSearchReqKey"),
-                retrieverConfig.getString("setScrollKey"), expandersConfig,
-                settingConfig, defaultReq, injector, retrieverConfig);
+                retrieverConfig.getString("setScrollKey"),
+                defaultReq, injector, retrieverConfig);
     }
 
     public Retriever getRetriever(RequestContext requestContext) {

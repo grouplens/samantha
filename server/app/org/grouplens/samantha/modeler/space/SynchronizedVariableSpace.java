@@ -301,4 +301,14 @@ public final class SynchronizedVariableSpace implements VariableSpace {
             readLock.unlock();
         }
     }
+
+    public void freeSpace() {}
+
+    public void freeScalarVar(String name) {
+        scalarVars.remove(name);
+    }
+
+    public void freeVectorVar(String name) {
+        vectorVars.remove(name);
+    }
 }

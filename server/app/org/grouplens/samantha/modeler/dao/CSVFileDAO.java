@@ -15,8 +15,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Map;
 
-public class CSVFileEntityDAO implements EntityDAO {
-    private static Logger logger = LoggerFactory.getLogger(CSVFileEntityDAO.class);
+public class CSVFileDAO implements EntityDAO {
+    private static Logger logger = LoggerFactory.getLogger(CSVFileDAO.class);
     private final String filePath;
     private BufferedReader reader;
     private MappingIterator<Map<String, Object>> it;
@@ -37,7 +37,7 @@ public class CSVFileEntityDAO implements EntityDAO {
         }
     }
 
-    public CSVFileEntityDAO(String separator, String filePath) {
+    public CSVFileDAO(String separator, String filePath) {
         this.filePath = filePath;
         this.schema = CsvSchema.emptySchema().withHeader().withColumnSeparator(separator.charAt(0));
         start();

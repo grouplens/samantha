@@ -82,9 +82,17 @@ public class PercentileExpander implements EntityExpander {
                 expanderConfig.getString("attrNamesKey"),
                 expanderConfig.getStringList("attrNames"));
         Configuration daoConfigs = expanderConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get());
+        double sampleRate = 1.0;
+        if (expanderConfig.asMap().containsKey("sampleRate")) {
+            sampleRate = expanderConfig.getDouble("sampleRate");
+        }
+        int maxNumValues = 100;
+        if (expanderConfig.asMap().containsKey("maxNumValues")) {
+            maxNumValues = expanderConfig.getInt("maxNumValues");
+        }
         ModelManager modelManager = new PercentileModelManager(modelName, modelFile, injector,
-                attrNames, expanderConfig.getInt("maxNumValues"), expanderConfig.getDouble("sampleRate"),
-                expanderConfig.getConfig("attrName2Config"), expanderConfig.getString("daoConfigKey"), daoConfigs);
+                attrNames, maxNumValues, sampleRate, expanderConfig.getConfig("attrName2Config"),
+                expanderConfig.getString("daoConfigKey"), daoConfigs);
         PercentileModel model = (PercentileModel) modelManager.manage(requestContext);
         return new PercentileExpander(expanderConfig.getStringList("attrNames"), model);
     }

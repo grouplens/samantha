@@ -17,7 +17,6 @@ import java.util.List;
 public class RecommendationEvaluator implements Evaluator {
     final private Recommender recommender;
     final private EntityDAO entityDAO;
-    final private String type;
     final private List<String> groupKeys;
     final private List<Metric> metrics;
     final private List<Indexer> indexers;
@@ -25,7 +24,6 @@ public class RecommendationEvaluator implements Evaluator {
 
     public RecommendationEvaluator(Recommender recommender,
                                    EntityDAO entityDAO,
-                                   String type,
                                    List<String> groupKeys,
                                    List<Metric> metrics,
                                    List<Indexer> indexers, 
@@ -35,7 +33,6 @@ public class RecommendationEvaluator implements Evaluator {
         this.metrics = metrics;
         this.indexers = indexers;
         this.recIndexers = recIndexers;
-        this.type = type;
         this.groupKeys = groupKeys;
     }
 
@@ -47,7 +44,7 @@ public class RecommendationEvaluator implements Evaluator {
         RequestContext context = new RequestContext(request, requestContext.getEngineName());
         RankedResult recommendations = recommender.recommend(context);
         for (Indexer indexer : recIndexers) {
-            indexer.index(type, recommendations.toJson(), requestContext);
+            indexer.index(recommendations.toJson(), requestContext);
         }
         for (Metric metric : metrics) {
             metric.add(entityList, recommendations.getRankingList());
@@ -67,7 +64,7 @@ public class RecommendationEvaluator implements Evaluator {
                 Logger.info("Evaluated on {} groups.", cnt);
             }
         }
-        List<MetricResult> metricResults = EvaluatorUtilities.indexMetrics(type, recommender.getConfig(),
+        List<MetricResult> metricResults = EvaluatorUtilities.indexMetrics(recommender.getConfig(),
                 requestContext, metrics, indexers);
         return new Evaluation(metricResults);
     }

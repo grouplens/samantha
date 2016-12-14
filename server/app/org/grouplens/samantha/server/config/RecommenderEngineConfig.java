@@ -7,17 +7,13 @@ import org.grouplens.samantha.server.ranker.RankerConfig;
 import org.grouplens.samantha.server.recommender.RecommenderConfig;
 import org.grouplens.samantha.server.retriever.RetrieverConfig;
 import org.grouplens.samantha.server.router.RouterConfig;
+import org.grouplens.samantha.server.scheduler.SchedulerConfig;
 
 import java.util.Map;
 
-class RecommenderEngineConfig implements EngineConfig {
-    private final Map<String, RetrieverConfig> retrieverConfigs;
-    private final Map<String, PredictorConfig> predictorConfigs;
+class RecommenderEngineConfig extends PredictorEngineConfig {
     private final Map<String, RankerConfig> rankerConfigs;
     private final Map<String, RecommenderConfig> recommenderConfigs;
-    private final Map<String, IndexerConfig> indexerConfigs;
-    private final Map<String, EvaluatorConfig> evaluatorConfigs;
-    private final RouterConfig routerConfig;
 
     RecommenderEngineConfig(Map<String, RetrieverConfig> retrieverConfigs,
                             Map<String, PredictorConfig> predictorConfigs,
@@ -25,35 +21,18 @@ class RecommenderEngineConfig implements EngineConfig {
                             Map<String, RecommenderConfig> recommenderConfigs,
                             Map<String, IndexerConfig> indexerConfigs,
                             Map<String, EvaluatorConfig> evaluatorConfigs,
+                            Map<String, SchedulerConfig> schedulerConfigs,
                             RouterConfig routerConfig) {
-        this.retrieverConfigs = retrieverConfigs;
-        this.predictorConfigs = predictorConfigs;
+        super(retrieverConfigs, predictorConfigs, indexerConfigs, evaluatorConfigs,
+                schedulerConfigs, routerConfig);
         this.rankerConfigs = rankerConfigs;
         this.recommenderConfigs = recommenderConfigs;
-        this.indexerConfigs = indexerConfigs;
-        this.evaluatorConfigs = evaluatorConfigs;
-        this.routerConfig = routerConfig;
     }
 
-    public Map<String, RetrieverConfig> getRetrieverConfigs() {
-        return retrieverConfigs;
-    }
-    public Map<String, PredictorConfig> getPredictorConfigs() {
-        return predictorConfigs;
-    }
     public Map<String, RankerConfig> getRankerConfigs() {
         return rankerConfigs;
     }
     public Map<String, RecommenderConfig> getRecommenderConfigs() {
         return recommenderConfigs;
-    }
-    public Map<String, IndexerConfig> getIndexerConfigs() {
-        return indexerConfigs;
-    }
-    public Map<String, EvaluatorConfig> getEvaluatorConfigs() {
-        return evaluatorConfigs;
-    }
-    public RouterConfig getRouterConfig() {
-        return routerConfig;
     }
 }

@@ -5,6 +5,6 @@ import play.Configuration;
 import play.inject.Injector;
 
 interface EngineConfigLoader {
-    EngineConfig loadConfig(Configuration engineConfig, Injector injector)
+    EngineConfig loadConfig(String engineName, Configuration engineConfig, Injector injector)
             throws ConfigurationException;
 }

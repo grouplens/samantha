@@ -7,6 +7,7 @@ import org.grouplens.samantha.server.exception.ConfigurationException;
 
 import org.grouplens.samantha.server.indexer.Indexer;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.grouplens.samantha.server.scheduler.QuartzSchedulerService;
 import org.grouplens.samantha.server.predictor.Predictor;
 import org.grouplens.samantha.server.predictor.PredictorConfig;
 import org.grouplens.samantha.server.ranker.Ranker;
@@ -37,6 +38,8 @@ public class SamanthaConfigService {
     }
 
     private void loadConfig(Configuration config) {
+        QuartzSchedulerService jobService = injector.instanceOf(QuartzSchedulerService.class);
+        jobService.clearAllJobs();
         namedEngineConfig.clear();
         List<String> enabledEngines = config.
                 getStringList(ConfigKey.ENGINES_ENABLED.get());
@@ -45,7 +48,7 @@ public class SamanthaConfigService {
                     getConfig(ConfigKey.SAMANTHA_BASE.get() + "." + engine);
             String engineType = engineConfig.getString(ConfigKey.ENGINE_TYPE.get());
             namedEngineConfig.put(engine,
-                    EngineType.valueOf(engineType).loadConfig(engineConfig, injector));
+                    EngineType.valueOf(engineType).loadConfig(engine, engineConfig, injector));
         }
     }
 
@@ -96,6 +99,10 @@ public class SamanthaConfigService {
         return namedEngineConfig.get(engineName)
                 .getRecommenderConfigs().get(recommenderName)
                 .getRecommender(requestContext);
+    }
+
+    public Router getRouter(String engineName, RequestContext requestContext) {
+        return namedEngineConfig.get(engineName).getRouterConfig().getRouter(requestContext);
     }
 
     public Predictor routePredictor(RequestContext requestContext) {

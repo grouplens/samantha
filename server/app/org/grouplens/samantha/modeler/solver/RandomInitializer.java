@@ -8,9 +8,6 @@ import org.apache.commons.math3.linear.RealVector;
 
 import java.util.Random;
 
-/**
- * @author <a href="http://www.grouplens.org">GroupLens Research</a>
- */
 public class RandomInitializer {
     final private double multi;
     final private double subtract;

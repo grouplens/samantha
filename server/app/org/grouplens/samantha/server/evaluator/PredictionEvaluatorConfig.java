@@ -20,7 +20,6 @@ import java.util.List;
 public class PredictionEvaluatorConfig implements EvaluatorConfig {
     final private Injector injector;
     final private String predictorNameKey;
-    final private String type;
     final private List<String> groupKeys;
     final private List<String> indexerNames;
     final private List<String> predIndexerNames;
@@ -30,7 +29,6 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
 
     private PredictionEvaluatorConfig(List<MetricConfig> metricConfigs,
                                       String predictorNameKey,
-                                      String type,
                                       List<String> groupKeys,
                                       List<String> indexerNames,
                                       List<String> predIndexerNames,
@@ -38,7 +36,6 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
                                       Injector injector, String daoConfigKey) {
         this.metricConfigs = metricConfigs;
         this.predictorNameKey = predictorNameKey;
-        this.type = type;
         this.groupKeys = groupKeys;
         this.indexerNames = indexerNames;
         this.predIndexerNames = predIndexerNames;
@@ -53,7 +50,6 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
                 .getMetricConfigs(evalConfig.getConfigList("metrics"), injector);
         return new PredictionEvaluatorConfig(metricConfigs,
                 evalConfig.getString("predictorKey"),
-                evalConfig.getString("indexerType"),
                 evalConfig.getStringList("groupKeys"),
                 evalConfig.getStringList("indexers"),
                 evalConfig.getStringList("predictionIndexers"),
@@ -82,6 +78,6 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
         }
         EntityDAO entityDao = EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 reqBody.get(daoConfigKey), injector);
-        return new PredictionEvaluator(predictor, entityDao, type, groupKeys, metrics, indexers, predIndexers);
+        return new PredictionEvaluator(predictor, entityDao, groupKeys, metrics, indexers, predIndexers);
     }
 }

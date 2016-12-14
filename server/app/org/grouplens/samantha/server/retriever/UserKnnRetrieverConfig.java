@@ -1,22 +1,19 @@
 package org.grouplens.samantha.server.retriever;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.knn.FeatureKnnModel;
 import org.grouplens.samantha.modeler.knn.KnnModelFeatureTrigger;
+import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.ModelManager;
-import org.grouplens.samantha.server.common.ModelOperation;
-import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
-import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
 
 import java.util.List;
 
-public class UserKnnRetrieverConfig implements RetrieverConfig {
+public class UserKnnRetrieverConfig extends AbstractComponentConfig implements RetrieverConfig {
     final private String retrieverName;
     final private String knnModelName;
     final private String kdnModelName;
@@ -31,14 +28,13 @@ public class UserKnnRetrieverConfig implements RetrieverConfig {
     final private String svdfeaPredictorName;
     final private String svdfeaModelName;
     final private Injector injector;
-    final private List<Configuration> expandersConfig;
-    final private Configuration config;
 
     private UserKnnRetrieverConfig(String retrieverName, String knnModelName, String kdnModelName,
                                    String knnModelFile, String kdnModelFile, int minSupport,
                                    String weightAttr, String scoreAttr, List<String> itemAttrs, List<String> userAttrs,
                                    int numNeighbors, String svdfeaPredictorName, String svdfeaModelName, Injector injector,
-                                   List<Configuration> expandersConfig, Configuration config) {
+                                   Configuration config) {
+        super(config);
         this.retrieverName = retrieverName;
         this.knnModelName = knnModelName;
         this.kdnModelName = kdnModelName;
@@ -53,13 +49,10 @@ public class UserKnnRetrieverConfig implements RetrieverConfig {
         this.svdfeaModelName = svdfeaModelName;
         this.svdfeaPredictorName = svdfeaPredictorName;
         this.numNeighbors = numNeighbors;
-        this.expandersConfig = expandersConfig;
-        this.config = config;
     }
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
                                                      Injector injector) {
-        List<Configuration> expandersConfig = ExpanderUtilities.getEntityExpandersConfig(retrieverConfig);
         return new UserKnnRetrieverConfig(retrieverConfig.getString("userInterRetrieverName"),
                 retrieverConfig.getString("knnModelName"),
                 retrieverConfig.getString("kdnModelName"),
@@ -73,7 +66,7 @@ public class UserKnnRetrieverConfig implements RetrieverConfig {
                 retrieverConfig.getInt("numNeighbors"),
                 retrieverConfig.getString("svdfeaPredictorName"),
                 retrieverConfig.getString("svdfeaModelName"),
-                injector, expandersConfig, retrieverConfig);
+                injector, retrieverConfig);
     }
 
 

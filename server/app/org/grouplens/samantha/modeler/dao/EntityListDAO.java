@@ -4,11 +4,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 
-public class EntityListEntityDAO implements EntityDAO {
+public class EntityListDAO implements EntityDAO {
     private int iter = 0;
     private final List<ObjectNode> entityList;
 
-    public EntityListEntityDAO(List<ObjectNode> entityList) {
+    public EntityListDAO(List<ObjectNode> entityList) {
         this.entityList = entityList;
     }
 

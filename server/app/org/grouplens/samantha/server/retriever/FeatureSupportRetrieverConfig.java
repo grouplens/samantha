@@ -1,6 +1,7 @@
 package org.grouplens.samantha.server.retriever;
 
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
+import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.expander.EntityExpander;
@@ -11,38 +12,34 @@ import play.inject.Injector;
 
 import java.util.List;
 
-public class FeatureSupportRetrieverConfig implements RetrieverConfig {
+public class FeatureSupportRetrieverConfig extends AbstractComponentConfig implements RetrieverConfig {
     final private String modelName;
     final private String predictorName;
     final private List<String> itemAttrs;
     final private String supportAttr;
     final private Integer maxHits;
-    final private List<Configuration> expandersConfig;
     final private Injector injector;
-    final private Configuration config;
 
     private FeatureSupportRetrieverConfig(String modelName, String predictorName, List<String> itemAttrs,
-                                          String supportAttr, Integer maxHits, List<Configuration> expandersConfig,
+                                          String supportAttr, Integer maxHits,
                                           Injector injector, Configuration config) {
+        super(config);
         this.modelName = modelName;
         this.predictorName = predictorName;
         this.itemAttrs = itemAttrs;
         this.supportAttr = supportAttr;
         this.maxHits = maxHits;
-        this.expandersConfig = expandersConfig;
         this.injector = injector;
-        this.config = config;
     }
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
                                                      Injector injector) {
-        List<Configuration> expanders = ExpanderUtilities.getEntityExpandersConfig(retrieverConfig);
         return new FeatureSupportRetrieverConfig(retrieverConfig.getString("modelName"),
                 retrieverConfig.getString("predictorName"),
                 retrieverConfig.getStringList("itemAttrs"),
                 retrieverConfig.getString("supportAttr"),
                 retrieverConfig.getInt("maxHits"),
-                expanders, injector, retrieverConfig);
+                injector, retrieverConfig);
     }
 
     public Retriever getRetriever(RequestContext requestContext) {

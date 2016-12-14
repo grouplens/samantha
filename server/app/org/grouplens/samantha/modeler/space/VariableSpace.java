@@ -22,6 +22,9 @@ public interface VariableSpace extends Serializable {
     boolean hasVectorVar(String name);
     void ensureVectorVar(String name, int size, int dim, double initial,
                                       boolean randomize, boolean normalize);
+    void freeSpace();
+    void freeScalarVar(String name);
+    void freeVectorVar(String name);
     RealVector getScalarVarByName(String name);
     int getScalarVarSizeByName(String name);
     void setScalarVarByName(String name, RealVector vars);

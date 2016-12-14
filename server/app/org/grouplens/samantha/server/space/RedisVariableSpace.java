@@ -93,4 +93,16 @@ public class RedisVariableSpace extends RedisSpace implements VariableSpace {
     public List<String> getAllVectorVarNames() {
         return null;
     }
+
+    public void freeSpace() {
+
+    }
+
+    public void freeScalarVar(String name) {
+
+    }
+
+    public void freeVectorVar(String name) {
+
+    }
 }

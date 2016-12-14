@@ -10,8 +10,13 @@ public enum ConfigKey {
     REDIS_PORT("samantha.redis.port"),
     REDIS_DBID("samantha.redis.dbid"),
     ENGINES_ENABLED("samantha.engines.enabled"),
+    CSV_FILE_SERVICE_SEPARATOR("samantha.csvFileService.separator"),
+    CSV_FILE_SERVICE_DATA_DIRS("samantha.csvFileService.dataDirs"),
+    CSV_FILE_SERVICE_DIR_PATTERN("samantha.csvFileService.dirPattern"),
+    CSV_FILE_SERVICE_MAX_WRITER("samantha.csvFileService.maxWriter"),
     ENGINE_TYPE("engineType"),
     ENGINE_COMPONENT_NAME("name"),
+    ENGINE_COMPONENT_TYPE("componentType"),
     ENGINE_COMPONENT_CONFIG("config"),
     ENGINE_COMPONENT_CONFIG_CLASS("configClass"),
     ENGINE_COMPONENT_VERBOSE("verbose"),
@@ -39,7 +44,8 @@ public enum ConfigKey {
     MODEL_FILE("modelFile"),
     MODEL_EVALUATING_PREFIX("evaluatingModel"),
     METHOD_CLASS("methodClass"),
-    OBJECTIVE_CLASS("objectiveClass")
+    OBJECTIVE_CLASS("objectiveClass"),
+    DATA_SUBSCRIBERS("dataSubscribers")
     ;
     private final String key;
 

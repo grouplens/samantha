@@ -12,8 +12,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class JsonFileEntityDAO implements EntityDAO {
-    private static Logger logger = LoggerFactory.getLogger(JsonFileEntityDAO.class);
+public class JsonFileDAO implements EntityDAO {
+    private static Logger logger = LoggerFactory.getLogger(JsonFileDAO.class);
     private final String filePath;
     private BufferedReader reader;
     private String line;
@@ -30,7 +30,7 @@ public class JsonFileEntityDAO implements EntityDAO {
         }
     }
 
-    public JsonFileEntityDAO(String filePath) {
+    public JsonFileDAO(String filePath) {
         this.filePath = filePath;
         start();
     }

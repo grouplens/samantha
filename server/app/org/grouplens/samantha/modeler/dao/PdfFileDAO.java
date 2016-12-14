@@ -11,8 +11,8 @@ import play.libs.Json;
 import java.io.File;
 import java.io.IOException;
 
-public class PdfFileEntityDAO implements EntityDAO {
-    private static Logger logger = LoggerFactory.getLogger(PdfFileEntityDAO.class);
+public class PdfFileDAO implements EntityDAO {
+    private static Logger logger = LoggerFactory.getLogger(PdfFileDAO.class);
     private final PDDocument pdfDoc;
     private final PDFTextStripper stripper;
     private final int paraLength = 250;
@@ -22,7 +22,7 @@ public class PdfFileEntityDAO implements EntityDAO {
     private int idx = 0;
     private int paraIdx = 0;
 
-    private PdfFileEntityDAO(String filePath) {
+    private PdfFileDAO(String filePath) {
         try {
             stripper = new PDFTextStripper();
             pdfDoc = PDDocument.load(new File(filePath));

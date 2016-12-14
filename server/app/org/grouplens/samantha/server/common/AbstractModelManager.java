@@ -85,7 +85,7 @@ abstract public class AbstractModelManager implements ModelManager {
     }
 
     public boolean passModel(Object model, RequestContext requestContext) {
-        if (evaluatorNames.size() == 0) {
+        if (evaluatorNames == null || evaluatorNames.size() == 0) {
             return true;
         }
         ModelService modelService = injector.instanceOf(ModelService.class);

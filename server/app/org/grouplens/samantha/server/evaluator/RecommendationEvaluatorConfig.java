@@ -20,7 +20,6 @@ import java.util.List;
 public class RecommendationEvaluatorConfig implements EvaluatorConfig {
     final private Injector injector;
     final private String recommenderNameKey;
-    final private String type;
     final private List<String> indexerNames;
     final private List<String> recIndexerNames;
     final private List<MetricConfig> metricConfigs;
@@ -30,7 +29,6 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
 
     private RecommendationEvaluatorConfig(List<MetricConfig> metricConfigs,
                                           String recommenderNameKey,
-                                          String type,
                                           List<String> indexerNames,
                                           List<String> recIndexerNames,
                                           Configuration daoConfigs,
@@ -39,7 +37,6 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
                                           Injector injector) {
         this.metricConfigs = metricConfigs;
         this.recommenderNameKey = recommenderNameKey;
-        this.type = type;
         this.indexerNames = indexerNames;
         this.recIndexerNames = recIndexerNames;
         this.injector = injector;
@@ -54,7 +51,6 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
                 .getMetricConfigs(evalConfig.getConfigList("metrics"), injector);
         return new RecommendationEvaluatorConfig(metricConfigs,
                 evalConfig.getString("recommenderKey"),
-                evalConfig.getString("indexerType"),
                 evalConfig.getStringList("indexers"),
                 evalConfig.getStringList("recommendationIndexers"),
                 evalConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
@@ -84,7 +80,7 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
         }
         EntityDAO entityDao = EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 reqBody.get(daoConfigKey), injector);
-        return new RecommendationEvaluator(recommender, entityDao, type, groupKeys,
+        return new RecommendationEvaluator(recommender, entityDao, groupKeys,
                 metrics, indexers, recIndexers);
     }
 }

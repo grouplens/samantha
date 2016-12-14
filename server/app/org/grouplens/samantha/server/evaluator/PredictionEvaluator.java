@@ -17,7 +17,6 @@ import java.util.List;
 public class PredictionEvaluator implements Evaluator {
     final private Predictor predictor;
     final private EntityDAO entityDAO;
-    final private String type;
     final private List<String> groupKeys;
     final private List<Metric> metrics;
     final private List<Indexer> indexers;
@@ -25,7 +24,6 @@ public class PredictionEvaluator implements Evaluator {
 
     public PredictionEvaluator(Predictor predictor,
                                EntityDAO entityDAO,
-                               String type,
                                List<String> groupKeys,
                                List<Metric> metrics,
                                List<Indexer> indexers,
@@ -34,7 +32,6 @@ public class PredictionEvaluator implements Evaluator {
         this.entityDAO = entityDAO;
         this.metrics = metrics;
         this.indexers = indexers;
-        this.type = type;
         this.groupKeys = groupKeys;
         this.predIndexers = predIndexers;
     }
@@ -45,7 +42,7 @@ public class PredictionEvaluator implements Evaluator {
         List<ObjectNode> processed = new ArrayList<>();
         for (Prediction pred : predictions) {
             for (Indexer indexer : predIndexers) {
-                indexer.index(type, pred.toJson(), requestContext);
+                indexer.index(pred.toJson(), requestContext);
             }
             processed.add(pred.getEntity());
         }
@@ -79,7 +76,7 @@ public class PredictionEvaluator implements Evaluator {
                 }
             }
         }
-        List<MetricResult> metricResults = EvaluatorUtilities.indexMetrics(type, predictor.getConfig(),
+        List<MetricResult> metricResults = EvaluatorUtilities.indexMetrics(predictor.getConfig(),
                 requestContext, metrics, indexers);
         return new Evaluation(metricResults);
     }

@@ -1,12 +1,44 @@
 package org.grouplens.samantha.modeler.solver;
 
 import org.grouplens.samantha.modeler.common.LearningData;
-import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.common.PredictiveModel;
+import org.grouplens.samantha.server.exception.BadRequestException;
 
 abstract public class AbstractOptimizationMethod implements OptimizationMethod {
     protected double tol;
     protected int maxIter;
+
+    public AbstractOptimizationMethod(double tol, int maxIter) {
+        this.tol = tol;
+        this.maxIter = maxIter;
+    }
+
+    protected double update(LearningModel model, LearningData learningData) {
+        throw new BadRequestException("update method is not supported.");
+    }
+
+    public double minimize(LearningModel learningModel, LearningData learningData, LearningData validData) {
+        TerminationCriterion learnCrit = new TerminationCriterion(tol, maxIter);
+        TerminationCriterion validCrit = null;
+        if (validData != null) {
+            validCrit = new TerminationCriterion(tol, maxIter);
+        }
+        double learnObjVal = 0.0;
+        while (learnCrit.keepIterate()) {
+            if (validCrit != null && !(validCrit.keepIterate())) {
+                break;
+            }
+            learnObjVal = this.update(learningModel, learningData);
+            learnCrit.addIteration(AbstractOptimizationMethod.class.toString()
+                    + " -- Learning", learnObjVal);
+            if (validData != null) {
+                double validObjVal = SolverUtilities.evaluate(learningModel, validData);
+                validCrit.addIteration(AbstractOptimizationMethod.class.toString()
+                        + " -- Validating", validObjVal);
+            }
+        }
+        return learnObjVal;
+    }
 
     public void learn(PredictiveModel model, LearningData learningData, LearningData validData) {
         LearningModel learningModel = (LearningModel) model;

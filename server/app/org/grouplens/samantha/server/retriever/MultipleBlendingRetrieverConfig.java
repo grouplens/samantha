@@ -1,6 +1,9 @@
 package org.grouplens.samantha.server.retriever;
 
+import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
+import org.grouplens.samantha.server.expander.EntityExpander;
+import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -8,20 +11,19 @@ import play.inject.Injector;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MultipleBlendingRetrieverConfig implements RetrieverConfig {
+public class MultipleBlendingRetrieverConfig extends AbstractComponentConfig implements RetrieverConfig {
     private final List<String> retrieverNames;
     private final List<String> itemAttrs;
     private final Integer maxHits;
     private final Injector injector;
-    private final Configuration config;
 
     private MultipleBlendingRetrieverConfig(List<String> retrieverNames, List<String> itemAttrs, Integer maxHits,
                                             Injector injector, Configuration config) {
+        super(config);
         this.injector = injector;
         this.retrieverNames = retrieverNames;
         this.itemAttrs = itemAttrs;
         this.maxHits = maxHits;
-        this.config = config;
     }
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
@@ -37,6 +39,7 @@ public class MultipleBlendingRetrieverConfig implements RetrieverConfig {
         for (String name : retrieverNames) {
             retrievers.add(configService.getRetriever(name, requestContext));
         }
-        return new MultipleBlendingRetriever(retrievers, itemAttrs, maxHits, config);
+        List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
+        return new MultipleBlendingRetriever(retrievers, itemAttrs, maxHits, config, expanders);
     }
 }

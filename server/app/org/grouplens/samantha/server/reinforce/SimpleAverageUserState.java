@@ -20,22 +20,19 @@ import play.libs.Json;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SimpleAverageTransitioner implements Transitioner {
-    final private RequestContext requestContext;
+public class SimpleAverageUserState implements Transitioner, EntityExpander {
     final private TransitionModelManager modelManager;
     final private boolean update;
 
-    public SimpleAverageTransitioner(TransitionModelManager modelManager, boolean update,
-                                     RequestContext requestContext) {
+    public SimpleAverageUserState(TransitionModelManager modelManager, boolean update) {
         this.update = update;
         this.modelManager = modelManager;
-        this.requestContext = requestContext;
     }
 
     static private class TransitionModelManager extends AbstractModelManager {
-        final private List<String> actionAttrs;
-        final private List<String> stateKeys;
-        final private String daoConfigKey;
+        private final List<String> actionAttrs;
+        private final List<String> stateKeys;
+        private final String daoConfigKey;
         private final Configuration daoConfigs;
         private final List<Configuration> expandersConfig;
 
@@ -79,37 +76,47 @@ public class SimpleAverageTransitioner implements Transitioner {
         }
 
         private RealVector getActionStateValue(ObjectNode action) {
-            RealVector arrayList = MatrixUtils.createRealVector(new double[actionAttrs.size()]);
+            RealVector vec = MatrixUtils.createRealVector(new double[actionAttrs.size()]);
             for (int i=0; i< actionAttrs.size(); i++) {
-                arrayList.setEntry(i, action.get(actionAttrs.get(i)).asDouble());
+                vec.setEntry(i, action.get(actionAttrs.get(i)).asDouble());
             }
-            return arrayList;
+            return vec;
         }
 
-        public List<ObjectNode> getCurrentAndNewStates(ObjectNode state, ObjectNode action,
-                                                       boolean update, RequestContext requestContext) {
-            List<ObjectNode> entityList = new ArrayList<>();
-            entityList.add(state);
-            List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext,
-                    expandersConfig, injector);
-            entityList = ExpanderUtilities.expand(entityList, expanders, requestContext);
-            if (entityList.size() > 0) {
-                state = entityList.get(0);
+        private RealVector getStateValue(ObjectNode state) {
+            RealVector vec = MatrixUtils.createRealVector(new double[actionAttrs.size()]);
+            for (int i=0; i< actionAttrs.size(); i++) {
+                vec.setEntry(i, state.get("state-" + actionAttrs.get(i)).asDouble());
             }
-            IndexedVectorModel stateModel = (IndexedVectorModel) getOrDefaultModel(requestContext);
+            return vec;
+        }
+
+        public void expand(ObjectNode state, RequestContext requestContext, boolean update) {
+            IndexedVectorModel stateModel = getModel(requestContext);
             RealVector curVal = getState(stateModel, state);
             setState(state, curVal);
-            List<ObjectNode> newStates = new ArrayList<>(1);
             ObjectNode newState = Json.newObject();
-            newState.put(ConfigKey.STATE_PROBABILITY_NAME.get(), 1.0);
-            RealVector newVal = getNewState(curVal, action);
+            RealVector newVal = getNewState(curVal, state);
             setState(newState, newVal);
-            newStates.add(newState);
             if (update) {
                 String stateKey = getStateKey(state);
                 stateModel.ensureKey(stateKey);
                 stateModel.setKeyVector(stateKey, newVal);
             }
+        }
+
+        private IndexedVectorModel getModel(RequestContext requestContext) {
+            return (IndexedVectorModel) getOrDefaultModel(requestContext);
+        }
+
+        public List<ObjectNode> transition(ObjectNode state, ObjectNode action) {
+            List<ObjectNode> newStates = new ArrayList<>(1);
+            ObjectNode newState = Json.newObject();
+            newState.put(ConfigKey.STATE_PROBABILITY_NAME.get(), 1.0);
+            RealVector curVal = getStateValue(state);
+            RealVector newVal = getNewState(curVal, action);
+            setState(newState, newVal);
+            newStates.add(newState);
             return newStates;
         }
 
@@ -182,10 +189,23 @@ public class SimpleAverageTransitioner implements Transitioner {
         TransitionModelManager modelManager = new TransitionModelManager(modelName, modelFile, daoConfigs, expanders,
                 daoConfigKey, actionAttrs, config.getStringList("stateKeys"), injector);
         modelManager.manage(requestContext);
-        return new SimpleAverageTransitioner(modelManager, update, requestContext);
+        return new SimpleAverageUserState(modelManager, update);
     }
 
     public List<ObjectNode> transition(ObjectNode state, ObjectNode action) {
-        return modelManager.getCurrentAndNewStates(state, action, update, requestContext);
+        return modelManager.transition(state, action);
+    }
+
+    public static EntityExpander getExpander(Configuration expanderConfig,
+                                             Injector injector, RequestContext requestContext) {
+        return (EntityExpander) getTransitioner(expanderConfig, injector, requestContext);
+    }
+
+    public List<ObjectNode> expand(List<ObjectNode> initialResult,
+                                   RequestContext requestContext) {
+        for (ObjectNode entity : initialResult) {
+            modelManager.expand(entity, requestContext, update);
+        }
+        return initialResult;
     }
 }

@@ -28,8 +28,6 @@ public class EngineHandlers extends Controller {
     private final ResponsePacker responsePacker;
     private final SamanthaConfigService samanthaConfigService;
 
-    //TODO: add outlier condition tests for all codes
-
     @Inject
     public EngineHandlers(RequestParser requestParser,
                           ResponsePacker responsePacker,
@@ -103,21 +101,10 @@ public class EngineHandlers extends Controller {
     public Result indexData(String engine) throws BadRequestException {
         JsonNode body = request().body().asJson();
         RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
-        if (body.has("predictor")) {
-            predictorModel(engine);
-        }
-        if (body.has("retriever")) {
-            retrieverModel(engine);
-        }
-        if (body.has("ranker")) {
-            rankerModel(engine);
-        }
-        boolean indexData = JsonHelpers.getOptionalBoolean(body, "indexData", true);
-        if (indexData) {
-            String indexerName = JsonHelpers.getRequiredString(body, "indexer");
-            Indexer indexer = samanthaConfigService.getIndexer(indexerName, requestContext);
-            indexer.index(requestContext);
-        }
+        String indexerName = JsonHelpers.getRequiredString(body, "indexer");
+        Indexer indexer = samanthaConfigService.getIndexer(indexerName, requestContext);
+        indexer.index(requestContext);
+        indexer.notifyDataSubscribers(requestContext);
         ObjectNode resp = JsonHelpers.successJson();
         return ok(resp);
     }

@@ -6,14 +6,17 @@ import org.grouplens.samantha.modeler.common.LearningInstance;
 import java.util.List;
 
 public class ExpectationMaximization extends AbstractOptimizationMethod {
-    private int maxIter;
-    private double tol;
     private OptimizationMethod method;
     
     public ExpectationMaximization() {
-        maxIter = 50;
-        tol = 1.0;
+        super(1.0, 50);
         method = new StochasticGradientDescent(3, 0.0, 0.01, 10);
+    }
+
+    public ExpectationMaximization(double tol, int maxIter, double subTol, int subMaxIter,
+                                   double l2coef, double learningRate) {
+        super(tol, maxIter);
+        method = new StochasticGradientDescent(subMaxIter, l2coef, learningRate, subTol);
     }
 
     public double minimize(LearningModel learningModel, LearningData learningData, LearningData validData) {
