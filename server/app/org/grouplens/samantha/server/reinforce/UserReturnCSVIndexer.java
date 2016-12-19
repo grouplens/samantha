@@ -36,6 +36,7 @@ public class UserReturnCSVIndexer extends AbstractIndexer {
     private final String sessionIdKey;
     private final String filePath;
     private final String filePathKey;
+    private final int oneOfWhich;
 
     //TODO: a grouped csv indexer and UserReturn indexer inherits from that. Currently, an in-memory temporary solution
     public UserReturnCSVIndexer(SamanthaConfigService configService,
@@ -44,7 +45,7 @@ public class UserReturnCSVIndexer extends AbstractIndexer {
                                 String timestampField, List<String> dataFields,
                                 String daoNameKey, String daoName, String filesKey,
                                 String rewardKey, String userIdKey, String sessionIdKey, String filePath,
-                                String separatorKey, CSVFileIndexer indexer) {
+                                String separatorKey, CSVFileIndexer indexer, int oneOfWhich) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
         this.indexer = indexer;
         this.filePathKey = filePathKey;
@@ -58,6 +59,7 @@ public class UserReturnCSVIndexer extends AbstractIndexer {
         this.userIdKey = userIdKey;
         this.sessionIdKey = sessionIdKey;
         this.filePath = filePath;
+        this.oneOfWhich = oneOfWhich;
     }
 
     private double rewardFunc(double returnTime) {
@@ -85,6 +87,9 @@ public class UserReturnCSVIndexer extends AbstractIndexer {
         while (data.hasNextEntity()) {
             ObjectNode entity = data.getNextEntity();
             String userId = entity.get(userIdKey).asText();
+            if (userId.hashCode() % oneOfWhich != 0) {
+                continue;
+            }
             List<ObjectNode> acts = user2acts.getOrDefault(userId, new ArrayList<>());
             user2acts.put(userId, acts);
             acts.add(entity);
@@ -138,5 +143,8 @@ public class UserReturnCSVIndexer extends AbstractIndexer {
 
     public void index(JsonNode documents, RequestContext requestContext) {
         indexer.index(documents, requestContext);
+    }
+    public void index(RequestContext requestContext) {
+        indexer.index(requestContext);
     }
 }

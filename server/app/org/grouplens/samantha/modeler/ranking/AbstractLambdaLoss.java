@@ -19,21 +19,17 @@ abstract public class AbstractLambdaLoss implements LambdaLoss {
     }
 
     public List<StochasticOracle> wrapOracle(List<StochasticOracle> oracles) {
-        if (oracles.size() == 0) {
-            return oracles;
+        if (oracles.size() <= 1) {
+            return new ArrayList<>();
         }
-        oracles.sort(RankingUtilities.stochasticOracleReverseComparator());
         int maxN = N;
-        List<StochasticOracle> newOracles;
         if (maxN == 0 || maxN > oracles.size()) {
             maxN = oracles.size();
-            newOracles = oracles;
-        } else {
-            newOracles = new ArrayList<>(maxN);
         }
+        List<StochasticOracle> newOracles = new ArrayList<>(maxN);
         Ordering<StochasticOracle> ordering = RankingUtilities.stochasticOracleOrdering();
         List<StochasticOracle> topN = ordering.greatestOf(oracles, maxN);
-        double[] scores = new double[maxN];
+        double[] scores = new double[maxN + 1];
         double[] relevance = new double[maxN];
         double metric = getMetric(maxN, topN, scores, relevance);
         double[] lambdas = new double[maxN];
@@ -42,12 +38,17 @@ abstract public class AbstractLambdaLoss implements LambdaLoss {
                 if (relevance[i] != relevance[j]) {
                     StochasticOracle highOracle = topN.get(i);
                     StochasticOracle lowOracle = topN.get(j);
-                    double deltaAP = getDelta(i, j, scores, relevance);
                     double diff = (highOracle.getModelOutput() - lowOracle.getModelOutput());
                     double ijCoef = -sigma / (1.0 + Math.exp(sigma * diff));
                     double jiCoef = -sigma / (1.0 + Math.exp(-sigma * diff));
-                    lambdas[i] += ijCoef * deltaAP;
-                    lambdas[j] -= jiCoef * deltaAP;
+                    double delta = Math.abs(getDelta(i, j, scores, relevance));
+                    if (relevance[i] > relevance[j]) {
+                        lambdas[i] += ijCoef * delta;
+                        lambdas[j] -= jiCoef * delta;
+                    } else {
+                        lambdas[i] -= ijCoef * delta;
+                        lambdas[j] += jiCoef * delta;
+                    }
                 }
             }
         }
@@ -57,9 +58,7 @@ abstract public class AbstractLambdaLoss implements LambdaLoss {
             double weight = oracle.getWeight();
             oracle.setObjVal(objVal * weight);
             oracle.setGradient(lambdas[i] * weight);
-            if (newOracles.size() <= i) {
-                newOracles.add(oracle);
-            }
+            newOracles.add(oracle);
         }
         return newOracles;
     }

@@ -1,6 +1,10 @@
 package org.grouplens.samantha.modeler.space;
 
+import org.grouplens.samantha.server.exception.BadRequestException;
+
 import javax.inject.Inject;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
@@ -78,6 +82,17 @@ public final class SynchronizedIndexSpace implements IndexSpace {
         readLock.lock();
         try {
             return keyMap.get(name).getKey(index);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    private void writeObject(ObjectOutputStream stream) {
+        readLock.lock();
+        try {
+            stream.defaultWriteObject();
+        } catch (IOException e) {
+            throw new BadRequestException(e);
         } finally {
             readLock.unlock();
         }

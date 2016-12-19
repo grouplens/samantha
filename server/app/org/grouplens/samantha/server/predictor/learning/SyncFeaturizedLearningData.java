@@ -59,10 +59,12 @@ public class SyncFeaturizedLearningData implements LearningData {
         } else {
             List<ObjectNode> entityList;
             do {
-                entityList = groupedEntityList.getNextGroup();
-                if (entityList.size() == 0) {
-                    groupedEntityList.close();
-                    return new ArrayList<>(0);
+                synchronized (groupedEntityList) {
+                    entityList = groupedEntityList.getNextGroup();
+                    if (entityList.size() == 0) {
+                        groupedEntityList.close();
+                        return new ArrayList<>(0);
+                    }
                 }
                 entityList = ExpanderUtilities.expand(entityList, entityExpanders, requestContext);
             } while (entityList.size() == 0);

@@ -12,6 +12,7 @@ import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import play.Configuration;
+import play.Logger;
 import play.inject.Injector;
 import play.libs.Json;
 
@@ -46,6 +47,12 @@ public class ComponentGetterQuartzJob implements Job {
             RequestContext pseudoRequest = new RequestContext(reqBody, engineName);
             String name = runnerConfig.getString(ConfigKey.ENGINE_COMPONENT_NAME.get());
             String type = runnerConfig.getString(ConfigKey.ENGINE_COMPONENT_TYPE.get());
+            ObjectNode logInfo = Json.newObject();
+            logInfo.put(ConfigKey.ENGINE_NAME.get(), engineName);
+            logInfo.put(ConfigKey.ENGINE_COMPONENT_NAME.get(), name);
+            logInfo.put(ConfigKey.ENGINE_COMPONENT_TYPE.get(), type);
+            logInfo.set(ConfigKey.REQUEST_CONTEXT.get(), reqBody);
+            Logger.info(logInfo.toString());
             EngineComponent.valueOf(type).getComponent(configService, name, pseudoRequest);
         }
     }

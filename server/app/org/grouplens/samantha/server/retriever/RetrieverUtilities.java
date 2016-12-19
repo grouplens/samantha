@@ -2,17 +2,8 @@ package org.grouplens.samantha.server.retriever;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
-import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.modeler.space.SpaceProducer;
-import org.grouplens.samantha.modeler.space.VariableSpace;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
-import org.grouplens.samantha.modeler.knn.FeatureKnnModel;
-import org.grouplens.samantha.server.common.ModelService;
-import org.grouplens.samantha.server.config.SamanthaConfigService;
-import org.grouplens.samantha.server.io.RequestContext;
-import play.inject.Injector;
 
-import javax.annotation.Nullable;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.grouplens.samantha.modeler.tree.SortingUtilities.compareValues;
@@ -25,7 +16,7 @@ public class RetrieverUtilities {
         return new Ordering<ObjectNode>() {
             private String orderField = field;
             @Override
-            public int compare(@Nullable ObjectNode left, @Nullable ObjectNode right) {
+            public int compare(ObjectNode left, ObjectNode right) {
                 if (left.has(orderField)) {
                     double leftValue = left.get(orderField).asDouble();
                     double rightValue = right.get(orderField).asDouble();
@@ -33,6 +24,24 @@ public class RetrieverUtilities {
                 } else {
                     return 0;
                 }
+            }
+        };
+    }
+
+    static public Comparator<ObjectNode> jsonStringFieldsComparator(List<String> fields) {
+        return new Comparator<ObjectNode>() {
+            private List<String> orderFields = fields;
+            @Override
+            public int compare(ObjectNode left, ObjectNode right) {
+                for (int i=0; i<orderFields.size(); i++) {
+                    String field = orderFields.get(i);
+                    String leftVal = left.get(field).asText();
+                    String rightVal= right.get(field).asText();
+                    if (!leftVal.equals(rightVal)) {
+                        return leftVal.compareTo(rightVal);
+                    }
+                }
+                return 0;
             }
         };
     }

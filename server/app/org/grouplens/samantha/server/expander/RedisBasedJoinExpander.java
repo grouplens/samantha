@@ -6,6 +6,7 @@ import org.grouplens.samantha.server.common.RedisService;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.Logger;
 import play.inject.Injector;
 
 import java.util.ArrayList;
@@ -53,6 +54,8 @@ public class RedisBasedJoinExpander implements EntityExpander {
                     for (JsonNode val : key2val.get(key)) {
                         IOUtilities.parseEntityFromJsonNode(entityFields, val, entity);
                     }
+                } else {
+                    Logger.warn("Can not find the key for {} while joining.", entity.toString());
                 }
             }
         }

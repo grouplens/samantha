@@ -19,6 +19,7 @@ import java.util.List;
 
 public class PredictionEvaluatorConfig implements EvaluatorConfig {
     final private Injector injector;
+    final private String predictorName;
     final private String predictorNameKey;
     final private List<String> groupKeys;
     final private List<String> indexerNames;
@@ -28,6 +29,7 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
     final private String daoConfigKey;
 
     private PredictionEvaluatorConfig(List<MetricConfig> metricConfigs,
+                                      String predictorName,
                                       String predictorNameKey,
                                       List<String> groupKeys,
                                       List<String> indexerNames,
@@ -35,6 +37,7 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
                                       Configuration daoConfigs,
                                       Injector injector, String daoConfigKey) {
         this.metricConfigs = metricConfigs;
+        this.predictorName = predictorName;
         this.predictorNameKey = predictorNameKey;
         this.groupKeys = groupKeys;
         this.indexerNames = indexerNames;
@@ -49,6 +52,7 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
         List<MetricConfig> metricConfigs = EvaluatorUtilities
                 .getMetricConfigs(evalConfig.getConfigList("metrics"), injector);
         return new PredictionEvaluatorConfig(metricConfigs,
+                evalConfig.getString("predictor"),
                 evalConfig.getString("predictorKey"),
                 evalConfig.getStringList("groupKeys"),
                 evalConfig.getStringList("indexers"),
@@ -61,8 +65,8 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
         JsonNode reqBody = requestContext.getRequestBody();
         SamanthaConfigService configService =
                 injector.instanceOf(SamanthaConfigService.class);
-        String predictorName = JsonHelpers.getRequiredString(reqBody, predictorNameKey);
-        Predictor predictor = configService.getPredictor(predictorName,
+        String predName = JsonHelpers.getOptionalString(reqBody, predictorNameKey, predictorName);
+        Predictor predictor = configService.getPredictor(predName,
                 requestContext);
         List<Metric> metrics = new ArrayList<>(metricConfigs.size());
         for (MetricConfig metricConfig : metricConfigs) {

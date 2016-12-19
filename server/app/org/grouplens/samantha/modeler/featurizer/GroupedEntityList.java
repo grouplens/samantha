@@ -17,7 +17,7 @@ public class GroupedEntityList {
         this.groupKeys = groupKeys;
     }
 
-    synchronized public List<ObjectNode> getNextGroup() {
+    public List<ObjectNode> getNextGroup() {
         List<ObjectNode> entityList = new ArrayList<>();
         if (prevEntity != null) {
             entityList.add(prevEntity);
@@ -40,13 +40,13 @@ public class GroupedEntityList {
         return entityList;
     }
 
-    synchronized public void restart() {
+    public void restart() {
         entityDAO.restart();
         prevEntity = null;
         prevGroup = null;
     }
 
-    synchronized public void close() {
+    public void close() {
         entityDAO.close();
         prevEntity = null;
         prevGroup = null;

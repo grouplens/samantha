@@ -9,6 +9,7 @@ import org.grouplens.samantha.modeler.featurizer.SelfPlusOneRatioFunction;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.Logger;
 import play.inject.Injector;
 import play.libs.Json;
 
@@ -52,6 +53,8 @@ public class TextTermFrequencyExpander implements EntityExpander {
                     newEntity.put(normTermFreqField, function.value(entry.getValue()));
                     expandedList.add(newEntity);
                 }
+            } else {
+                Logger.warn("The text field is not present: {}", entity.toString());
             }
         }
         return expandedList;

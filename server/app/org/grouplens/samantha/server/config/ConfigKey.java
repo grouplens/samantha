@@ -14,6 +14,7 @@ public enum ConfigKey {
     CSV_FILE_SERVICE_DATA_DIRS("samantha.csvFileService.dataDirs"),
     CSV_FILE_SERVICE_DIR_PATTERN("samantha.csvFileService.dirPattern"),
     CSV_FILE_SERVICE_MAX_WRITER("samantha.csvFileService.maxWriter"),
+    ENGINE_NAME("engine"),
     ENGINE_TYPE("engineType"),
     ENGINE_COMPONENT_NAME("name"),
     ENGINE_COMPONENT_TYPE("componentType"),

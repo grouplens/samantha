@@ -3,6 +3,7 @@ package org.grouplens.samantha.server.expander;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.Logger;
 import play.inject.Injector;
 
 import java.util.ArrayList;
@@ -34,6 +35,8 @@ public class FieldThresholdFilterExpander implements EntityExpander {
             double val = 0.0;
             if (entity.has(filterAttr)) {
                 val = entity.get(filterAttr).asDouble();
+            } else {
+                Logger.warn("The attribute to filter on is not present: {}", entity.toString());
             }
             if ((minVal != null && val < minVal) || (maxVal != null && val > maxVal)) {
                 continue;

@@ -1,12 +1,10 @@
 package org.grouplens.samantha.server.expander;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.Logger;
 import play.inject.Injector;
-import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +38,8 @@ public class ColumnToRowExpander implements EntityExpander {
                     newEntity.put(nameAttr, colName);
                     newEntity.set(valueAttr, entity.get(colName));
                     oneExpanded.add(newEntity);
+                } else {
+                    Logger.warn("The column {} is not present: {}", colName, entity.toString());
                 }
             }
             if (oneExpanded.size() > 0) {

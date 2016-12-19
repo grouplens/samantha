@@ -31,7 +31,10 @@ public class SyncFeaturizedLearningData implements LearningData {
 
     public List<LearningInstance> getLearningInstance() {
         if (groupedEntityList != null) {
-            List<ObjectNode> entityList = groupedEntityList.getNextGroup();
+            List<ObjectNode> entityList;
+            synchronized (groupedEntityList) {
+                entityList = groupedEntityList.getNextGroup();
+            }
             return FeaturizerUtilities.featurize(entityList, featurizer, update);
         } else {
             ObjectNode cur = null;

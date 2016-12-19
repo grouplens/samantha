@@ -84,9 +84,11 @@ public class SimpleAverageUserState implements Transitioner, EntityExpander {
         }
 
         private RealVector getStateValue(ObjectNode state) {
-            RealVector vec = MatrixUtils.createRealVector(new double[actionAttrs.size()]);
+            RealVector vec = MatrixUtils.createRealVector(new double[actionAttrs.size() + 1]);
+            double cnt = state.get(modelName + "-state-cnt").asDouble();
+            vec.setEntry(0, cnt);
             for (int i=0; i< actionAttrs.size(); i++) {
-                vec.setEntry(i, state.get("state-" + actionAttrs.get(i)).asDouble());
+                vec.setEntry(i + 1, state.get("state-" + actionAttrs.get(i)).asDouble() * cnt);
             }
             return vec;
         }
@@ -122,6 +124,7 @@ public class SimpleAverageUserState implements Transitioner, EntityExpander {
 
         private void setState(ObjectNode state, RealVector value) {
             double cnt = value.getEntry(0);
+            state.put(modelName + "-state-cnt", cnt);
             for (int i=0; i< actionAttrs.size(); i++) {
                 if (!state.has("state-" + actionAttrs.get(i))) {
                     if (cnt != 0.0) {

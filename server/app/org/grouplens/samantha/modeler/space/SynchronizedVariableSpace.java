@@ -1,5 +1,7 @@
 package org.grouplens.samantha.modeler.space;
 
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 
 import java.util.HashMap;
@@ -14,6 +16,7 @@ import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.solver.RandomInitializer;
+import org.grouplens.samantha.server.exception.BadRequestException;
 
 import javax.inject.Inject;
 
@@ -310,5 +313,16 @@ public final class SynchronizedVariableSpace implements VariableSpace {
 
     public void freeVectorVar(String name) {
         vectorVars.remove(name);
+    }
+
+    private void writeObject(ObjectOutputStream stream) {
+        readLock.lock();
+        try {
+            stream.defaultWriteObject();
+        } catch (IOException e) {
+            throw new BadRequestException(e);
+        } finally {
+            readLock.unlock();
+        }
     }
 }

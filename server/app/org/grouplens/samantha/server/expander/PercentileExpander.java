@@ -14,6 +14,7 @@ import org.grouplens.samantha.server.dao.EntityDAOUtilities;
 import org.grouplens.samantha.server.dao.ExpandedEntityDAO;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.Logger;
 import play.inject.Injector;
 
 import java.util.ArrayList;
@@ -101,8 +102,13 @@ public class PercentileExpander implements EntityExpander {
                                    RequestContext requestContext) {
         for (String attrName : attrNames) {
             for (ObjectNode entity : initialResult) {
-                entity.put(attrName + "Percentile", percentileModel.getPercentile(attrName,
-                        entity.get(attrName).asDouble()));
+                double val = 0.0;
+                if (entity.has(attrName)) {
+                    val = entity.get(attrName).asDouble();
+                } else {
+                    Logger.warn("The attribute to compute percentile is not present: {}", entity.toString());
+                }
+                entity.put(attrName + "Percentile", percentileModel.getPercentile(attrName, val));
             }
         }
         return initialResult;

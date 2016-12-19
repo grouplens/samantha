@@ -19,6 +19,7 @@ import java.util.List;
 
 public class RecommendationEvaluatorConfig implements EvaluatorConfig {
     final private Injector injector;
+    final private String recommenderName;
     final private String recommenderNameKey;
     final private List<String> indexerNames;
     final private List<String> recIndexerNames;
@@ -28,6 +29,7 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
     final private List<String> groupKeys;
 
     private RecommendationEvaluatorConfig(List<MetricConfig> metricConfigs,
+                                          String recommenderName,
                                           String recommenderNameKey,
                                           List<String> indexerNames,
                                           List<String> recIndexerNames,
@@ -36,6 +38,7 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
                                           String daoConfigKey,
                                           Injector injector) {
         this.metricConfigs = metricConfigs;
+        this.recommenderName = recommenderName;
         this.recommenderNameKey = recommenderNameKey;
         this.indexerNames = indexerNames;
         this.recIndexerNames = recIndexerNames;
@@ -50,6 +53,7 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
         List<MetricConfig> metricConfigs = EvaluatorUtilities
                 .getMetricConfigs(evalConfig.getConfigList("metrics"), injector);
         return new RecommendationEvaluatorConfig(metricConfigs,
+                evalConfig.getString("recommender"),
                 evalConfig.getString("recommenderKey"),
                 evalConfig.getStringList("indexers"),
                 evalConfig.getStringList("recommendationIndexers"),
@@ -63,8 +67,9 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
         JsonNode reqBody = requestContext.getRequestBody();
         SamanthaConfigService configService =
                 injector.instanceOf(SamanthaConfigService.class);
-        String recommenderName = JsonHelpers.getRequiredString(reqBody, recommenderNameKey);
-        Recommender recommender = configService.getRecommender(recommenderName,
+        String recName = JsonHelpers.getOptionalString(reqBody, recommenderNameKey,
+                recommenderName);
+        Recommender recommender = configService.getRecommender(recName,
                 requestContext);
         List<Metric> metrics = new ArrayList<>(metricConfigs.size());
         for (MetricConfig metricConfig : metricConfigs) {

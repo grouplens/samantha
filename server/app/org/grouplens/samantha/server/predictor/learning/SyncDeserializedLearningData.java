@@ -78,7 +78,10 @@ public class SyncDeserializedLearningData implements LearningData {
             instances.add(instance);
             return instances;
         } else {
-            List<ObjectNode> entityList = groupedEntityList.getNextGroup();
+            List<ObjectNode> entityList;
+            synchronized (groupedEntityList) {
+                entityList = groupedEntityList.getNextGroup();
+            }
             return deserializeEntityList(entityList);
         }
     }

@@ -3,7 +3,8 @@
 # ~~~~
 
 # global
-POST   /config/reload                    controllers.AdminHandlers.reloadConfig()
+GET    /config                             controllers.AdminHandlers.getConfig()
+POST   /config/reload                      controllers.AdminHandlers.reloadConfig()
 
 # engine
 POST   /:engine/recommendation             controllers.EngineHandlers.getRecommendation(engine: String)

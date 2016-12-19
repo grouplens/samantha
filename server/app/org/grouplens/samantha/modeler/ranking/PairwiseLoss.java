@@ -24,14 +24,15 @@ public class PairwiseLoss extends AbstractLambdaLoss {
                 relevance[i] = 0.0;
             }
             double modelOutput = oracle.getModelOutput();
+            scores[i] = modelOutput;
             loglik += (label * modelOutput - Math.log(1.0 + Math.exp(modelOutput)));
         }
         return loglik;
     }
 
     public double getDelta(int i, int j, double[] scores, double[] relevance) {
-        double dcgi = (Math.pow(2.0, relevance[j]) - 1.0) / Math.log(2 + i);
-        double dcgj = (Math.pow(2.0, relevance[i]) - 1.0) / Math.log(2 + j);
-        return dcgi - dcgj;
+        double logliki = (relevance[i] * scores[i] - Math.log(1.0 + Math.exp(scores[i])));
+        double loglikj = (relevance[j] * scores[j] - Math.log(1.0 + Math.exp(scores[j])));
+        return logliki - loglikj;
     }
 }

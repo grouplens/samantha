@@ -12,6 +12,7 @@ import org.grouplens.samantha.server.common.ElasticSearchService;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.Logger;
 import play.inject.Injector;
 
 import java.util.*;
@@ -78,6 +79,8 @@ public class ESBasedJoinExpander implements EntityExpander {
                 if (keyVals.containsKey(keyVal) && keyVal.size() > 0) {
                     ExpanderUtilities.parseEntityFromSearchHit(entityFields,
                             null, keyVals.get(keyVal), entity);
+                } else {
+                    Logger.warn("Can not find the key while joining: {}", entity.toString());
                 }
             }
         }

@@ -30,7 +30,12 @@ public class MAPLoss extends AbstractLambdaLoss {
                 ap += scores[i];
             }
         }
-        return ap / numHits;
+        scores[maxN] = (double)numHits;
+        if (numHits > 0) {
+            return ap / numHits;
+        } else {
+            return 0.0;
+        }
     }
 
     public double getDelta(int i, int j, double[] scores, double[] relevance) {
@@ -54,6 +59,11 @@ public class MAPLoss extends AbstractLambdaLoss {
         } else {
             delta += scores[j];
         }
-        return delta;
+        int len = relevance.length;
+        if (scores[len] > 0.0) {
+            return delta / scores[len];
+        } else {
+            return 0.0;
+        }
     }
 }

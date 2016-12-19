@@ -36,7 +36,7 @@ public class CSVFileService {
         dataDirs = configuration.getStringList(ConfigKey.CSV_FILE_SERVICE_DATA_DIRS.get());
         String pattern = configuration.getString(ConfigKey.CSV_FILE_SERVICE_DIR_PATTERN.get());
         if (pattern == null) {
-            dirPattern = "/yyyy/";
+            dirPattern = "/yyyy/MM/dd/";
         } else {
             dirPattern = pattern;
         }
@@ -156,8 +156,8 @@ public class CSVFileService {
     }
 
     public List<String> getFiles(String type, int beginTime, int endTime) {
-        List<String> files = new ArrayList<>();
-        String last = getLastFileAndFreeResources(type);
+        Set<String> files = new HashSet<>();
+        //String last = getLastFileAndFreeResources(type);
         for (int idx=0; idx<dataDirs.size(); idx ++) {
             for (int i = beginTime; i <= endTime; i+=3600) {
                 String dir = pickDirectory(idx, type, i);
@@ -176,7 +176,7 @@ public class CSVFileService {
                 }
             }
         }
-        return files;
+        return Lists.newArrayList(files);
     }
 
     public String getSeparator() {

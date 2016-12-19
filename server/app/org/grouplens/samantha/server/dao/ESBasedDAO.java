@@ -11,6 +11,7 @@ import play.libs.Json;
 
 import java.util.List;
 
+//TODO: merge this into ESBasedIndexer
 public class ESBasedDAO implements EntityDAO {
 
     private final ESQueryBasedRetriever retriever;

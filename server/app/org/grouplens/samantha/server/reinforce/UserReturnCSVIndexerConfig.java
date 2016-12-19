@@ -26,13 +26,14 @@ public class UserReturnCSVIndexerConfig implements IndexerConfig {
     private final Configuration config;
     private final Configuration daoConfigs;
     private final String daoConfigKey;
+    private final int oneOfWhich;
     private final Injector injector;
 
     private UserReturnCSVIndexerConfig(Configuration config, Injector injector, Configuration daoConfigs,
                                        String daoConfigKey, String timestampField, List<String> dataFields,
                                        String daoNameKey, String daoName, String filesKey, String filePathKey,
                                        String separatorKey, String indexerName, String rewardKey,
-                                       String userIdKey, String sessionIdKey, String filePath) {
+                                       String userIdKey, String sessionIdKey, String filePath, int oneOfWhich) {
         this.rewardKey = rewardKey;
         this.userIdKey = userIdKey;
         this.filePathKey = filePathKey;
@@ -49,6 +50,7 @@ public class UserReturnCSVIndexerConfig implements IndexerConfig {
         this.daoConfigs = daoConfigs;
         this.daoConfigKey = daoConfigKey;
         this.injector = injector;
+        this.oneOfWhich = oneOfWhich;
     }
 
     public static IndexerConfig getIndexerConfig(Configuration indexerConfig,
@@ -67,7 +69,8 @@ public class UserReturnCSVIndexerConfig implements IndexerConfig {
                 indexerConfig.getString("rewardKey"),
                 indexerConfig.getString("userIdKey"),
                 indexerConfig.getString("sessionIdKey"),
-                indexerConfig.getString("filePath"));
+                indexerConfig.getString("filePath"),
+                indexerConfig.getInt("oneOfWhich"));
     }
 
     public Indexer getIndexer(RequestContext requestContext) {
@@ -75,6 +78,6 @@ public class UserReturnCSVIndexerConfig implements IndexerConfig {
         CSVFileIndexer indexer = (CSVFileIndexer) configService.getIndexer(indexerName, requestContext);
         return new UserReturnCSVIndexer(configService, config, injector, daoConfigs, daoConfigKey,
                 filePathKey, timestampField, dataFields, daoNameKey, daoName, filesKey, rewardKey,
-                userIdKey, sessionIdKey, filePath, separatorKey, indexer);
+                userIdKey, sessionIdKey, filePath, separatorKey, indexer, oneOfWhich);
     }
 }
