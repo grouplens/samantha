@@ -1,0 +1,8 @@
+* Checklist
+1. make sure java/javac uses jdk 1.8
+
+* Deployment after development and configuration.
+1. go to your deployment path
+2. git clone git@github.com:grouplens/samantha.git
+3. cd samantha/server && mkdir -p data/learning data/models data/csvData data/backup
+4. ./activator -J-Xmx4g testProd

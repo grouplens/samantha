@@ -2,6 +2,7 @@ logs
 target
 server/lib
 data/
+/local.application.conf
 /.idea
 /.idea_modules
 /.classpath

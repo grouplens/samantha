@@ -68,7 +68,8 @@ public class ESBasedJoinExpander implements EntityExpander {
                 Map<String, String> keyVal = new HashMap<>(keys.size());
                 for (String key : keys) {
                     if (hitFields.containsKey(key)) {
-                        keyVal.put(key, hitFields.get(key).getValue());
+                        //for some reason, this (String) is necessary for some environments/compilers
+                        keyVal.put(key, (String) hitFields.get(key).getValue());
                     }
                 }
                 keyVals.put(keyVal, hit);
