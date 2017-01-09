@@ -27,6 +27,7 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
     private final String modelFile;
     private final List<FeatureExtractorConfig> feaExtConfigs;
     private final List<String> features;
+    private final List<String> evaluatorNames;
     private final String labelName;
     private final String weightName;
     private final Configuration daoConfigs;
@@ -45,7 +46,7 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
                                      List<String> features, int numMainFeatures, String labelName, String weightName,
                                      Configuration daoConfigs, List<Configuration> expandersConfig,
                                      Injector injector, Configuration methodConfig, String modelFile,
-                                     String daoConfigKey, double lambda, double alpha,
+                                     String daoConfigKey, double lambda, double alpha, List<String> evaluatorNames,
                                      String insName, String serializedKey, Configuration config) {
         this.modelName = modelName;
         this.feaExtConfigs = feaExtConfigs;
@@ -64,6 +65,7 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
         this.serializedKey = serializedKey;
         this.insName = insName;
         this.config = config;
+        this.evaluatorNames = evaluatorNames;
     }
 
     public static PredictorConfig getPredictorConfig(Configuration predictorConfig,
@@ -90,14 +92,16 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
                 predictorConfig.getConfig("onlineOptimizationMethod"),
                 predictorConfig.getString("modelFile"),
                 predictorConfig.getString("daoConfigKey"), lambda, alpha,
+                predictorConfig.getStringList("evaluatorNames"),
                 predictorConfig.getString("instanceName"),
                 predictorConfig.getString("serializedKey"), predictorConfig);
     }
 
     private class LinearUCBModelManager extends AbstractModelManager {
 
-        public LinearUCBModelManager(String modelName, String modelFile, Injector injector) {
-            super(injector, modelName, modelFile, new ArrayList<>());
+        public LinearUCBModelManager(String modelName, String modelFile, Injector injector,
+                                     List<String> evaluatorNames) {
+            super(injector, modelName, modelFile, evaluatorNames);
         }
 
         public Object createModel(RequestContext requestContext, SpaceMode spaceMode) {
@@ -145,7 +149,7 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
     public Predictor getPredictor(RequestContext requestContext) {
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        ModelManager modelManager = new LinearUCBModelManager(modelName, modelFile, injector);
+        ModelManager modelManager = new LinearUCBModelManager(modelName, modelFile, injector, evaluatorNames);
         LinearUCB model = (LinearUCB) modelManager.manage(requestContext);
         return new PredictiveModelBasedPredictor(config, model, model,
                 daoConfigs, injector, entityExpanders, daoConfigKey);

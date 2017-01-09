@@ -11,7 +11,6 @@ import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.indexer.*;
 import org.grouplens.samantha.server.io.RequestContext;
-import org.grouplens.samantha.server.retriever.RetrieverUtilities;
 import play.Configuration;
 import play.inject.Injector;
 import play.libs.Json;
@@ -21,31 +20,30 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
-//TODO: this is just an experimental indexer
-public class UserReturnCSVIndexer extends AbstractIndexer {
-    private final int reinforceThreshold = 7 * 24 * 3600;
-    private final CSVFileIndexer indexer;
+public class UserReturnIndexer extends AbstractIndexer {
+    private final GroupedIndexer indexer;
     private final String timestampField;
     private final List<String> dataFields;
     private final String daoNameKey;
     private final String daoName;
     private final String filesKey;
+    private final String separator;
     private final String separatorKey;
     private final String rewardKey;
-    private final String userIdKey;
+    private final List<String> groupKeys;
     private final String sessionIdKey;
     private final String filePath;
     private final String filePathKey;
-    private final int oneOfWhich;
+    private final int maxTime;
+    private final int reinforceThreshold;
 
-    //TODO: a grouped csv indexer and UserReturn indexer inherits from that. Currently, an in-memory temporary solution
-    public UserReturnCSVIndexer(SamanthaConfigService configService,
-                                Configuration config, Injector injector, Configuration daoConfigs,
-                                String daoConfigKey, String filePathKey,
-                                String timestampField, List<String> dataFields,
-                                String daoNameKey, String daoName, String filesKey,
-                                String rewardKey, String userIdKey, String sessionIdKey, String filePath,
-                                String separatorKey, CSVFileIndexer indexer, int oneOfWhich) {
+    public UserReturnIndexer(SamanthaConfigService configService,
+                             Configuration config, Injector injector, Configuration daoConfigs,
+                             String daoConfigKey, String filePathKey,
+                             String timestampField, List<String> dataFields, String separator,
+                             String daoNameKey, String daoName, String filesKey,
+                             String rewardKey, List<String> groupKeys, String sessionIdKey, String filePath,
+                             String separatorKey, GroupedIndexer indexer, int maxTime, int reinforceThreshold) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
         this.indexer = indexer;
         this.filePathKey = filePathKey;
@@ -55,11 +53,13 @@ public class UserReturnCSVIndexer extends AbstractIndexer {
         this.daoNameKey = daoNameKey;
         this.filesKey = filesKey;
         this.separatorKey = separatorKey;
+        this.separator = separator;
         this.rewardKey = rewardKey;
-        this.userIdKey = userIdKey;
+        this.groupKeys = groupKeys;
         this.sessionIdKey = sessionIdKey;
         this.filePath = filePath;
-        this.oneOfWhich = oneOfWhich;
+        this.maxTime = maxTime;
+        this.reinforceThreshold = reinforceThreshold;
     }
 
     private double rewardFunc(double returnTime) {
@@ -82,30 +82,12 @@ public class UserReturnCSVIndexer extends AbstractIndexer {
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
         EntityDAO data = indexer.getEntityDAO(requestContext);
-        Map<String, List<ObjectNode>> user2acts = new HashMap<>();
-        int maxTime = 0;
-        while (data.hasNextEntity()) {
-            ObjectNode entity = data.getNextEntity();
-            String userId = entity.get(userIdKey).asText();
-            if (userId.hashCode() % oneOfWhich != 0) {
-                continue;
-            }
-            List<ObjectNode> acts = user2acts.getOrDefault(userId, new ArrayList<>());
-            user2acts.put(userId, acts);
-            acts.add(entity);
-            int tstamp = entity.get(timestampField).asInt();
-            if (tstamp > maxTime) {
-                maxTime = tstamp;
-            }
-        }
+        GroupedEntityList userDao = new GroupedEntityList(groupKeys, data);
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
-            IndexerUtilities.writeOutHeader(dataFields, writer,
-                    indexer.getSeparator());
-            Comparator<ObjectNode> comparator = RetrieverUtilities.jsonFieldOrdering(timestampField);
-            for (Map.Entry<String, List<ObjectNode>> userAct : user2acts.entrySet()) {
-                List<ObjectNode> acts = userAct.getValue();
-                acts.sort(comparator);
+            IndexerUtilities.writeOutHeader(dataFields, writer, separator);
+            List<ObjectNode> acts;
+            while ((acts = userDao.getNextGroup()).size() > 0) {
                 EntityDAO listDao = new EntityListDAO(acts);
                 GroupedEntityList grouped = new GroupedEntityList(
                         Lists.newArrayList(sessionIdKey), listDao);
@@ -119,25 +101,27 @@ public class UserReturnCSVIndexer extends AbstractIndexer {
                     if (reward >= 0.0) {
                         for (ObjectNode entity : group) {
                             entity.put(rewardKey, 0.0);
-                            IndexerUtilities.writeOutJson(entity, dataFields,
-                                    writer, indexer.getSeparator());
+                            IndexerUtilities.writeOutJson(entity, dataFields, writer, separator);
                         }
                         lastEntity.put(rewardKey, reward);
-                        IndexerUtilities.writeOutJson(lastEntity, dataFields,
-                                writer, indexer.getSeparator());
+                        IndexerUtilities.writeOutJson(lastEntity, dataFields, writer, separator);
                     }
+                    group.clear();
                     group = nextGrp;
                 }
+                acts.clear();
+                listDao.close();
             }
             writer.close();
         } catch (IOException e) {
             throw new BadRequestException(e);
         }
+        data.close();
         ObjectNode ret = Json.newObject();
         ret.put(daoNameKey, daoName);
         String path = JsonHelpers.getOptionalString(requestContext.getRequestBody(), filePathKey, filePath);
         ret.set(filesKey, Json.toJson(Lists.newArrayList(path)));
-        ret.put(separatorKey, indexer.getSeparator());
+        ret.put(separatorKey, separator);
         return ret;
     }
 

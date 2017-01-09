@@ -62,8 +62,8 @@ public class QLearningExpander implements EntityExpander {
                                    RequestContext requestContext) {
         List<ObjectNode> expandedResult = new ArrayList<>();
         for (ObjectNode input : initialResult) {
-            List<ObjectNode> newStates = transitioner.transition(input, input);
             if (sampleRate == null || new Random().nextDouble() <= sampleRate) {
+                List<ObjectNode> newStates = transitioner.transition(input, input);
                 ObjectNode reqBody = Json.newObject();
                 SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
                 double qvalue = input.get(rewardAttr).asDouble();

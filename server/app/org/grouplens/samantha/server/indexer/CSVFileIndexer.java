@@ -88,8 +88,4 @@ public class CSVFileIndexer extends AbstractIndexer {
         ret.set(subDaoConfigKey, sub);
         return ret;
     }
-
-    public String getSeparator() {
-        return dataService.getSeparator();
-    }
 }

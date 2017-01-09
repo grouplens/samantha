@@ -61,6 +61,7 @@ public class PercentileExpander implements EntityExpander {
                         requestContext.getRequestBody().get(daoConfigKey), injector);
                 EntityDAO expanded = new ExpandedEntityDAO(expanders, entityDAO, requestContext);
                 percentileModel.buildModel(attr, config.getInt("numValues"), expanded);
+                expanded.close();
             });
             return model;
         }

@@ -62,6 +62,7 @@ public class SyncDeserializedLearningData implements LearningData {
     }
 
     public List<LearningInstance> getLearningInstance() {
+        List<LearningInstance> instances;
         if (groupedEntityList == null) {
             LearningInstance instance;
             ObjectNode entity;
@@ -74,7 +75,7 @@ public class SyncDeserializedLearningData implements LearningData {
                 }
             }
             instance = deserializeLearningInstance(entity);
-            List<LearningInstance> instances = new ArrayList<>(1);
+            instances = new ArrayList<>(1);
             instances.add(instance);
             return instances;
         } else {
@@ -82,7 +83,9 @@ public class SyncDeserializedLearningData implements LearningData {
             synchronized (groupedEntityList) {
                 entityList = groupedEntityList.getNextGroup();
             }
-            return deserializeEntityList(entityList);
+            instances = deserializeEntityList(entityList);
+            entityList.clear();
+            return instances;
         }
     }
 

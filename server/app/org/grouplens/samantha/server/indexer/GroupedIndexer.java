@@ -90,6 +90,7 @@ public class GroupedIndexer extends AbstractIndexer {
                     while (csvDao.hasNextEntity()) {
                         buffer.add(csvDao.getNextEntity());
                     }
+                    csvDao.close();
                     tmpFile.delete();
                     Comparator<ObjectNode> comparator;
                     if (orderFields == null || orderFields.size() == 0) {
@@ -110,6 +111,7 @@ public class GroupedIndexer extends AbstractIndexer {
                     for (ObjectNode entity : buffer) {
                         IndexerUtilities.writeOutJson(entity, dataFields, writer, separator);
                     }
+                    buffer.clear();
                     writer.close();
                     files.add(resultFile);
                 }
@@ -117,6 +119,7 @@ public class GroupedIndexer extends AbstractIndexer {
         } catch (IOException e) {
             throw new BadRequestException(e);
         }
+        entityDAO.close();
         ObjectNode reqDao = Json.newObject();
         reqDao.set(filesKey, Json.toJson(files));
         reqDao.put(separatorKey, separator);

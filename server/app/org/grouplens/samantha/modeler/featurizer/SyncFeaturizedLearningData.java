@@ -30,12 +30,15 @@ public class SyncFeaturizedLearningData implements LearningData {
 
 
     public List<LearningInstance> getLearningInstance() {
+        List<LearningInstance> instances;
         if (groupedEntityList != null) {
             List<ObjectNode> entityList;
             synchronized (groupedEntityList) {
                 entityList = groupedEntityList.getNextGroup();
             }
-            return FeaturizerUtilities.featurize(entityList, featurizer, update);
+            instances = FeaturizerUtilities.featurize(entityList, featurizer, update);
+            entityList.clear();
+            return instances;
         } else {
             ObjectNode cur = null;
             synchronized (entityDAO) {
@@ -45,7 +48,7 @@ public class SyncFeaturizedLearningData implements LearningData {
                     entityDAO.close();
                 }
             }
-            List<LearningInstance> instances = new ArrayList<>(1);
+            instances = new ArrayList<>(1);
             if (cur != null) {
                 instances.add(featurizer.featurize(cur, update));
             }

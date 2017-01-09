@@ -41,8 +41,9 @@ public class SyncFeaturizedLearningData implements LearningData {
     }
 
     public List<LearningInstance> getLearningInstance() {
+        List<LearningInstance> instances;
+        List<ObjectNode> curList;
         if (groupedEntityList == null) {
-            List<ObjectNode> curList;
             do {
                 synchronized (entityDAO) {
                     if (entityDAO.hasNextEntity()) {
@@ -55,21 +56,22 @@ public class SyncFeaturizedLearningData implements LearningData {
                 }
                 curList = ExpanderUtilities.expand(curList, entityExpanders, requestContext);
             } while (curList.size() == 0);
-            return FeaturizerUtilities.featurize(curList, featurizer, update);
+            instances = FeaturizerUtilities.featurize(curList, featurizer, update);
         } else {
-            List<ObjectNode> entityList;
             do {
                 synchronized (groupedEntityList) {
-                    entityList = groupedEntityList.getNextGroup();
-                    if (entityList.size() == 0) {
+                    curList = groupedEntityList.getNextGroup();
+                    if (curList.size() == 0) {
                         groupedEntityList.close();
                         return new ArrayList<>(0);
                     }
                 }
-                entityList = ExpanderUtilities.expand(entityList, entityExpanders, requestContext);
-            } while (entityList.size() == 0);
-            return FeaturizerUtilities.featurize(entityList, featurizer, update);
+                curList = ExpanderUtilities.expand(curList, entityExpanders, requestContext);
+            } while (curList.size() == 0);
+            instances = FeaturizerUtilities.featurize(curList, featurizer, update);
         }
+        curList.clear();
+        return instances;
     }
 
     synchronized public void startNewIteration() {

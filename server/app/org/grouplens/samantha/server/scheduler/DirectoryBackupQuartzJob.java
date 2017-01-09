@@ -45,9 +45,9 @@ public class DirectoryBackupQuartzJob implements Job {
                     try {
                         Date curDate = format.parse(dir.getName());
                         if (curDate.before(cutDate)) {
-                            dir.delete();
+                            FileUtils.deleteDirectory(dir);
                         }
-                    } catch (ParseException e) {
+                    } catch (IOException | ParseException e) {
                         Logger.error(e.getMessage());
                     }
                 }

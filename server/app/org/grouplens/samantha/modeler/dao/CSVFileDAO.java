@@ -32,7 +32,6 @@ public class CSVFileDAO implements EntityDAO {
                     .readValues(this.reader);
             this.cnt = 0;
         } catch (IOException e) {
-            logger.error("{}", e.getMessage());
             throw new BadRequestException(e);
         }
     }
@@ -75,7 +74,6 @@ public class CSVFileDAO implements EntityDAO {
             reader = null;
             it = null;
         } catch (IOException e) {
-            logger.error("{}", e.getMessage());
             throw new BadRequestException(e);
         }
     }
