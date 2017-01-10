@@ -140,10 +140,10 @@ public class CSVFileService {
                 break;
             } catch (IOException e) {
                 curDirIdx = idx + 1;
-                freeResources(type, 0);
             } finally {
                 unlockFile(type, file);
             }
+            freeResources(type, 0);
         }
     }
 
