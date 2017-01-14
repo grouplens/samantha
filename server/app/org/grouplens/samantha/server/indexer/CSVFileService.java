@@ -139,11 +139,11 @@ public class CSVFileService {
                 IndexerUtilities.writeOutJson(entity, curFields, writer, separator);
                 break;
             } catch (IOException e) {
+                Logger.error("CSVFileService indexing error for {}: {}", file, e.getMessage());
                 curDirIdx = idx + 1;
             } finally {
                 unlockFile(type, file);
             }
-            freeResources(type, 0);
         }
     }
 
