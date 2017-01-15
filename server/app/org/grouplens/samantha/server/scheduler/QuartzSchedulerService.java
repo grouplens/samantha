@@ -3,6 +3,7 @@ package org.grouplens.samantha.server.scheduler;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
+import play.Logger;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -25,7 +26,7 @@ public class QuartzSchedulerService {
         try {
             scheduler.scheduleJob(job, trigger);
         } catch (SchedulerException e) {
-            throw new ConfigurationException(e);
+            Logger.error("Scheduling job error: {}", e.getMessage());
         }
     }
 
@@ -33,7 +34,7 @@ public class QuartzSchedulerService {
         try {
             scheduler.clear();
         } catch (SchedulerException e) {
-            throw new ConfigurationException(e);
+            Logger.error("Clearing jobs error: {}", e.getMessage());
         }
     }
 }
