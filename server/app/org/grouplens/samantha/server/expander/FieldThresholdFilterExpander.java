@@ -3,7 +3,6 @@ package org.grouplens.samantha.server.expander;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
-import play.Logger;
 import play.inject.Injector;
 
 import java.util.ArrayList;
@@ -13,18 +12,26 @@ public class FieldThresholdFilterExpander implements EntityExpander {
     private final String filterAttr;
     private final Double minVal;
     private final Double maxVal;
+    private final boolean filterWhenNotPresent;
 
-    public FieldThresholdFilterExpander(String filterAttr, Double minVal, Double maxVal) {
+    public FieldThresholdFilterExpander(String filterAttr, Double minVal, Double maxVal,
+                                        boolean filterWhenNotPresent) {
         this.filterAttr = filterAttr;
         this.minVal = minVal;
         this.maxVal = maxVal;
+        this.filterWhenNotPresent = filterWhenNotPresent;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
+        Boolean filterWhenNotPresent = expanderConfig.getBoolean("filterWhenNotPresent");
+        if (filterWhenNotPresent == null) {
+            filterWhenNotPresent = true;
+        }
         return new FieldThresholdFilterExpander(expanderConfig.getString("filterAttr"),
                 expanderConfig.getDouble("minVal"),
-                expanderConfig.getDouble("maxVal"));
+                expanderConfig.getDouble("maxVal"),
+                filterWhenNotPresent);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
@@ -32,14 +39,15 @@ public class FieldThresholdFilterExpander implements EntityExpander {
         List<ObjectNode> filteredResult = new ArrayList<>();
         for (int i=0; i<initialResult.size(); i++) {
             ObjectNode entity = initialResult.get(i);
-            double val = 0.0;
             if (entity.has(filterAttr)) {
-                val = entity.get(filterAttr).asDouble();
+                double val = entity.get(filterAttr).asDouble();
+                if ((minVal != null && val < minVal) || (maxVal != null && val > maxVal)) {
+                    continue;
+                }
             } else {
-                Logger.warn("The attribute to filter on is not present: {}", entity.toString());
-            }
-            if ((minVal != null && val < minVal) || (maxVal != null && val > maxVal)) {
-                continue;
+                if (filterWhenNotPresent) {
+                    continue;
+                }
             }
             filteredResult.add(entity);
         }

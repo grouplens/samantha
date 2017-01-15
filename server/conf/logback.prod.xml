@@ -1,0 +1,52 @@
+<configuration>
+
+    <conversionRule conversionWord="coloredLevel" converterClass="play.api.Logger$ColoredLevel" />
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%date - %coloredLevel - %logger{15} - %message%n%xException</pattern>
+        </encoder>
+    </appender>
+
+    <!-- application.log (30 day rollover) -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${application.home:-.}/logs/application.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>${application.home:-.}/logs/application.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history -->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%date - %coloredLevel - %logger{15} - %message%n%xException</pattern>
+        </encoder>
+    </appender>
+
+    <!-- send email on errors -->
+    <appender name="EMAIL" class="ch.qos.logback.classic.net.SMTPAppender">
+        <smtpHost>mail.cs.umn.edu</smtpHost>
+        <to>zhaox331@umn.edu</to>
+        <from>zhaox331@umn.edu</from>
+        <subject>[Samantha Error] ${HOSTNAME} - %d{yyyy-MM-dd}</subject>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%date - %coloredLevel - %logger{15} - %message%n%xException</pattern>
+        </layout>
+        <cyclicBufferTracker class="ch.qos.logback.core.spi.CyclicBufferTracker">
+            <bufferSize>4</bufferSize>
+        </cyclicBufferTracker>
+    </appender>
+
+    <!--
+      The logger name is typically the Java/Scala package name.
+      This configures the log level to log at for a package and its children packages.
+    -->
+    <logger name="play" level="INFO" />
+    <logger name="application" level="INFO" />
+    <logger name="org.grouplens.samantha" level="INFO" />
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="FILE" />
+    </root>
+
+</configuration>

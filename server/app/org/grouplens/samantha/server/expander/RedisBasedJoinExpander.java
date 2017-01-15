@@ -55,7 +55,7 @@ public class RedisBasedJoinExpander implements EntityExpander {
                         IOUtilities.parseEntityFromJsonNode(entityFields, val, entity);
                     }
                 } else {
-                    Logger.warn("Can not find the key for {} while joining.", entity.toString());
+                    Logger.warn("Can not find the key {} for {} while joining.", key, entity.toString());
                 }
             }
         }

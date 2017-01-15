@@ -81,7 +81,8 @@ public class ESBasedJoinExpander implements EntityExpander {
                     ExpanderUtilities.parseEntityFromSearchHit(entityFields,
                             null, keyVals.get(keyVal), entity);
                 } else {
-                    Logger.warn("Can not find the key while joining: {}", entity.toString());
+                    Logger.warn("Can not find the key {} while joining: {}", keyVal.toString(),
+                            entity.toString());
                 }
             }
         }
