@@ -32,7 +32,6 @@ public class AsyncParallelSGD extends AbstractOptimizationMethod  implements Onl
      * @param learningData must be synchronized.
      */
     public double update(LearningModel model, LearningData learningData) {
-        L2Regularizer l2term = new L2Regularizer();
         learningData.startNewIteration();
         logger.info("Using numThreads={}", numThreads);
         List<Thread> threads = new ArrayList<>(numThreads);

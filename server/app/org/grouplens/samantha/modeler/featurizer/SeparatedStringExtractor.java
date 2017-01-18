@@ -32,10 +32,14 @@ public class SeparatedStringExtractor implements FeatureExtractor {
             List<Feature> features = new ArrayList<>();
             String attr = entity.get(attrName).asText();
             String[] fields = attr.split(separator);
+            double val = 0.0;
+            if (fields.length > 0) {
+                val = 1.0 / Math.sqrt(fields.length);
+            }
             for (String field : fields) {
                 String key = FeatureExtractorUtilities.composeKey(attrName, field);
                 FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                        indexSpace, indexName, key, 1.0);
+                        indexSpace, indexName, key, val);
             }
             feaMap.put(feaName, features);
         }
