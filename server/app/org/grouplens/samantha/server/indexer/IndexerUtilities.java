@@ -21,18 +21,22 @@ public class IndexerUtilities {
 
     /**
      * TODO: deal with timezone problem.
-     * @param timeStr yyyy-MM-dd HH:mm:SS or now - <n> <TIMEUNIT string value in Java>
+     * @param timeStr yyyy-MM-dd HH:mm:SS or now/today - <n> <TIMEUNIT string value in Java>
      */
     public static int parseTime(String timeStr) {
         try {
             Date date;
-            if (timeStr.startsWith("now")) {
+            if (timeStr.startsWith("now") || timeStr.startsWith("today")) {
                 String[] fields = timeStr.split(" ");
                 long mul = Long.parseLong(fields[2]);
                 String unit = fields[3];
-                long now = new Date().getTime();
+                long current = new Date().getTime();
+                if (timeStr.startsWith("today")) {
+                    DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+                    current = format.parse(format.format(new Date())).getTime();
+                }
                 long minus = TimeUnit.valueOf(unit).toMillis(mul);
-                date = new Date(now - minus);
+                date = new Date(current - minus);
             } else if (timeStr.split("-").length > 1) {
                 DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:SS");
                 date = format.parse(timeStr);
