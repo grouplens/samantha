@@ -2,6 +2,7 @@ package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.StringUtils;
+import play.Logger;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 
 import javax.inject.Singleton;
@@ -43,6 +44,7 @@ public class IndexerUtilities {
             } else {
                 return Integer.parseInt(timeStr);
             }
+            Logger.info("{}", date.toString());
             return (int)(date.getTime() / 1000);
         } catch (ParseException e) {
             throw new ConfigurationException(e);
