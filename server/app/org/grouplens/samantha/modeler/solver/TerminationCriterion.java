@@ -6,15 +6,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TerminationCriterion {
-    private static Logger logger = LoggerFactory.getLogger(TerminationCriterion.class);
-    private int maxIter;
+    final private static Logger logger = LoggerFactory.getLogger(TerminationCriterion.class);
+    final private int maxIter;
+    final private int minIter;
+    final private double tol;
+    final private DoubleList objHistory;
     private int curIter;
-    private double tol;
-    private DoubleList objHistory;
 
-    public TerminationCriterion(double tol, int maxIter) {
+    public TerminationCriterion(double tol, int maxIter, int minIter) {
         this.maxIter = maxIter;
         this.tol = tol;
+        this.minIter = minIter;
         curIter = 0;
         objHistory = new DoubleArrayList();
     }
@@ -32,7 +34,7 @@ public class TerminationCriterion {
     }
 
     public boolean keepIterate() {
-        if (curIter < 2) {
+        if (curIter < minIter) {
             return true;
         } else if (curIter >= maxIter) {
             return false;

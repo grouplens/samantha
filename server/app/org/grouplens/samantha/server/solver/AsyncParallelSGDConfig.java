@@ -17,12 +17,20 @@ public class AsyncParallelSGDConfig implements LearningMethodConfig {
         if (methodConfig.asMap().containsKey("tol")) {
             tol = methodConfig.getDouble("tol");
         }
+        int maxIter = 50;
+        if (methodConfig.asMap().containsKey("maxIter")) {
+            maxIter = methodConfig.getInt("maxIter");
+        }
+        int minIter = 2;
+        if (methodConfig.asMap().containsKey("minIter")) {
+            minIter = methodConfig.getInt("minIter");
+        }
         int num = Runtime.getRuntime().availableProcessors();
         if (methodConfig.asMap().containsKey("numProcessors")) {
             num = methodConfig.getInt("numProcessors");
         }
         OnlineOptimizationMethod onlineMethod = new AsyncParallelSGD(
-                methodConfig.getInt("maxIter"), methodConfig.getDouble("l2coef"),
+                maxIter, minIter, methodConfig.getDouble("l2coef"),
                 methodConfig.getDouble("learningRate"), tol, num
         );
         return onlineMethod;

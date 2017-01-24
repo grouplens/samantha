@@ -16,7 +16,7 @@ public class ProximalGradientMethod extends AbstractOptimizationMethod {
     @Inject private VariableSpace variableSpace;
 
     public ProximalGradientMethod() {
-        super(5.0, 50);
+        super(5.0, 50, 2);
         this.l1coef = 4.0;
         this.l2coef = 0.1;
         this.ro = 5.0;

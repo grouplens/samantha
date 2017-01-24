@@ -18,12 +18,20 @@ public class InstanceCachedAsyncParallelSGDConfig {
         if (methodConfig.asMap().containsKey("tol")) {
             tol = methodConfig.getDouble("tol");
         }
+        int minIter = 2;
+        if (methodConfig.asMap().containsKey("minIter")) {
+            minIter = methodConfig.getInt("minIter");
+        }
+        int maxIter = 50;
+        if (methodConfig.asMap().containsKey("maxIter")) {
+            maxIter = methodConfig.getInt("maxIter");
+        }
         int num = Runtime.getRuntime().availableProcessors();
         if (methodConfig.asMap().containsKey("numProcessors")) {
             num = methodConfig.getInt("numProcessors");
         }
         OptimizationMethod optMethod = new InstanceCachedAsyncParallelSGD(
-                methodConfig.getInt("maxIter"),
+                maxIter, minIter,
                 methodConfig.getDouble("l2coef"),
                 methodConfig.getDouble("learningRate"),
                 tol, num,

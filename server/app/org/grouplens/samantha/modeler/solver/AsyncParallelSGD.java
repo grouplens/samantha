@@ -14,15 +14,15 @@ public class AsyncParallelSGD extends AbstractOptimizationMethod  implements Onl
     final private int numThreads;
 
     public AsyncParallelSGD() {
-        super(5.0, 50);
+        super(5.0, 50, 2);
         l2coef = 0.0;
         lr = 0.001;
         numThreads = Runtime.getRuntime().availableProcessors();
     }
 
-    public AsyncParallelSGD(int maxIter, double l2coef, double learningRate, double tol,
-                            int numThreads) {
-        super(tol, maxIter);
+    public AsyncParallelSGD(int maxIter, int minIter, double l2coef,
+                            double learningRate, double tol, int numThreads) {
+        super(tol, maxIter, minIter);
         this.l2coef = l2coef;
         this.lr = learningRate;
         this.numThreads = numThreads;
