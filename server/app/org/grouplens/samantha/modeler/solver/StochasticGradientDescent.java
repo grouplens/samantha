@@ -7,17 +7,15 @@ public class StochasticGradientDescent extends AbstractOptimizationMethod implem
     private double lr;
 
     public StochasticGradientDescent() {
-        super(5.0, 50);
+        super(5.0, 50, 2);
         l2coef = 0.0;
         lr = 0.001;
     }
 
-    public StochasticGradientDescent(int maxIter, double l2coef, double learningRate, double tol) {
-        super(tol, maxIter);
-        this.maxIter = maxIter;
+    public StochasticGradientDescent(int maxIter, int minIter, double l2coef, double learningRate, double tol) {
+        super(tol, maxIter, minIter);
         this.l2coef = l2coef;
         this.lr = learningRate;
-        this.tol = tol;
     }
 
     public double update(LearningModel model, LearningData learningData) {

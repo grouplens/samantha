@@ -17,22 +17,21 @@ public class InstanceCachedAsyncParallelSGD extends AbstractOptimizationMethod i
     final private double lr;
 
     public InstanceCachedAsyncParallelSGD(String cachePath) {
-        super(5.0, 50);
+        super(5.0, 50, 2);
         this.cachePath = cachePath;
         this.numThreads = Runtime.getRuntime().availableProcessors();
         this.lr = 0.001;
         this.l2coef = 0.0;
     }
 
-    public InstanceCachedAsyncParallelSGD(int maxIter, double l2coef, double learningRate, double tol,
+    public InstanceCachedAsyncParallelSGD(int maxIter, int minIter, double l2coef,
+                                          double learningRate, double tol,
                                           int numThreads, String cachePath) {
-        super(tol, maxIter);
+        super(tol, maxIter, minIter);
         this.cachePath = cachePath;
         this.numThreads = numThreads;
         this.l2coef = l2coef;
         this.lr = learningRate;
-        this.tol = tol;
-        this.maxIter = maxIter;
     }
 
     private void cacheLearningData(LearningData data, String prefix) {
@@ -67,10 +66,10 @@ public class InstanceCachedAsyncParallelSGD extends AbstractOptimizationMethod i
         if (validData != null) {
             cacheLearningData(validData, "valid");
         }
-        TerminationCriterion learnCrit = new TerminationCriterion(tol, maxIter);
+        TerminationCriterion learnCrit = new TerminationCriterion(tol, maxIter, minIter);
         TerminationCriterion validCrit = null;
         if (validData != null) {
-            validCrit = new TerminationCriterion(tol, maxIter);
+            validCrit = new TerminationCriterion(tol, maxIter, minIter);
         }
         logger.info("Using numThreads={}", numThreads);
         List<Thread> threads = new ArrayList<>(numThreads);

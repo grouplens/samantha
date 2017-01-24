@@ -9,19 +9,20 @@ public class ExpectationMaximization extends AbstractOptimizationMethod {
     private OptimizationMethod method;
     
     public ExpectationMaximization() {
-        super(1.0, 50);
-        method = new StochasticGradientDescent(3, 0.0, 0.01, 10);
+        super(1.0, 50, 2);
+        method = new StochasticGradientDescent(3, 2, 0.0, 0.01, 10);
     }
 
-    public ExpectationMaximization(double tol, int maxIter, double subTol, int subMaxIter,
+    public ExpectationMaximization(double tol, int maxIter, int minIter,
+                                   double subTol, int subMaxIter, int subMinIter,
                                    double l2coef, double learningRate) {
-        super(tol, maxIter);
-        method = new StochasticGradientDescent(subMaxIter, l2coef, learningRate, subTol);
+        super(tol, maxIter, minIter);
+        method = new StochasticGradientDescent(subMaxIter, subMinIter, l2coef, learningRate, subTol);
     }
 
     public double minimize(LearningModel learningModel, LearningData learningData, LearningData validData) {
         LatentLearningModel model = (LatentLearningModel)learningModel;
-        TerminationCriterion termCrit = new TerminationCriterion(tol, maxIter);
+        TerminationCriterion termCrit = new TerminationCriterion(tol, maxIter, minIter);
         double objVal = 0;
         while (termCrit.keepIterate()) {
             objVal = 0;
