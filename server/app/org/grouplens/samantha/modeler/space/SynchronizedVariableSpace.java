@@ -308,11 +308,21 @@ public final class SynchronizedVariableSpace implements VariableSpace {
     public void freeSpace() {}
 
     public void freeScalarVar(String name) {
-        scalarVars.remove(name);
+        writeLock.lock();
+        try {
+            scalarVars.remove(name);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     public void freeVectorVar(String name) {
-        vectorVars.remove(name);
+        writeLock.lock();
+        try {
+            vectorVars.remove(name);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     private void writeObject(ObjectOutputStream stream) {

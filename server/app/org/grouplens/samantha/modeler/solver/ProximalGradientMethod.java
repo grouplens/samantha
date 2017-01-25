@@ -4,6 +4,8 @@ import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
+import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.space.SynchronizedVariableSpace;
 import org.grouplens.samantha.modeler.space.VariableSpace;
 
 import javax.inject.Inject;
@@ -13,16 +15,24 @@ public class ProximalGradientMethod extends AbstractOptimizationMethod {
     final private double l1coef;
     final private double l2coef;
     final private double ro;
-    @Inject private VariableSpace variableSpace;
 
     public ProximalGradientMethod() {
         super(5.0, 50, 2);
         this.l1coef = 4.0;
         this.l2coef = 0.1;
-        this.ro = 5.0;
+        this.ro = 1000000.0;
+    }
+
+    public ProximalGradientMethod(int maxIter, int minIter, double tol, double l1coef, double l2coef, double ro) {
+        super(tol, maxIter, minIter);
+        this.l2coef = l2coef;
+        this.l1coef = l1coef;
+        this.ro = ro;
     }
 
     protected double update(LearningModel model, LearningData learningData) {
+        VariableSpace variableSpace = new SynchronizedVariableSpace();
+        variableSpace.setSpaceState(Long.valueOf(System.currentTimeMillis()).toString(), SpaceMode.BUILDING);
         List<String> allScalarVarNames = model.getAllScalarVarNames();
         for (String name : allScalarVarNames) {
             variableSpace.requestScalarVar(name, 0, 0.0, false);
@@ -35,6 +45,7 @@ public class ProximalGradientMethod extends AbstractOptimizationMethod {
         double objVal = 0.0;
         List<LearningInstance> instances;
         ObjectiveFunction objective = model.getObjectiveFunction();
+        learningData.startNewIteration();
         while ((instances = learningData.getLearningInstance()).size() > 0) {
             List<StochasticOracle> oracles = model.getStochasticOracle(instances);
             oracles = objective.wrapOracle(oracles);
