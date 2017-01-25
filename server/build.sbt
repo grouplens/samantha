@@ -26,12 +26,12 @@ libraryDependencies ++= Seq(
   "org.quartz-scheduler" % "quartz-jobs" % "2.2.1"
 )
 
-// For xgboost extension; Optional; uncomment if cloned submodule
-// unmanagedSourceDirectories in Compile += baseDirectory.value / "extension/xgboost"
-// libraryDependencies ++= Seq(
-//  "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-//  "ml.dmlc" % "xgboost4j" % "0.7"
-//)
+//For xgboost extension; Optional; uncomment if cloned submodule
+unmanagedSourceDirectories in Compile += baseDirectory.value / "extension/xgboost"
+libraryDependencies ++= Seq(
+ "org.scala-lang" % "scala-compiler" % scalaVersion.value,
+ "ml.dmlc" % "xgboost4j" % "0.7"
+)
 
 // Play provides two styles of routers, one expects its actions to be injected, the
 // other, legacy style, accesses its actions statically.
