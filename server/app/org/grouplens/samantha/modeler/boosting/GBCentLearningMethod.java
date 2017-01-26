@@ -29,10 +29,9 @@ public class GBCentLearningMethod implements LearningMethod {
     private final OnlineOptimizationMethod optimizationMethod;
     private final boolean learnSvdfea;
 
-    //TODO: change to final
-    private int minSupport;
-    private double minTreeGain;
-    private TreeLearningMethod treeLearningMethod;
+    private final int minSupport;
+    private final double minTreeGain;
+    private final TreeLearningMethod treeLearningMethod;
 
     @Inject
     public GBCentLearningMethod(OnlineOptimizationMethod optimizationMethod,
@@ -184,7 +183,6 @@ public class GBCentLearningMethod implements LearningMethod {
             gbm.boostModel(learnPreds, validPreds, learnSub, validSub, tree,
                     treeLearningMethod, treeLearnData, treeValidData);
             if (validData != null) {
-                //TODO: curVal sometimes gives NaN, not sure why
                 double curVal = gbm.evaluate(validPreds, tree, treeValidData, validSub);
                 double oldVal = validObjs.getDouble(treeIdx);
                 logger.debug("Before adding: {}, after adding: {}", oldVal, curVal);
