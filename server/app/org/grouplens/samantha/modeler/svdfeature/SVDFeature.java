@@ -298,9 +298,6 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
 
     public double predict(LearningInstance ins) {
         SVDFeatureInstance svdIns = (SVDFeatureInstance) ins;
-        svdIns.gfeas = ensureMinSupport(svdIns.gfeas, true);
-        svdIns.ufeas = ensureMinSupport(svdIns.ufeas, false);
-        svdIns.ifeas = ensureMinSupport(svdIns.ifeas, false);
         RealVector ufactSum = MatrixUtils.createRealVector(new double[factDim]);
         RealVector ifactSum = MatrixUtils.createRealVector(new double[factDim]);
         double output = predict(svdIns, null, ufactSum, ifactSum);

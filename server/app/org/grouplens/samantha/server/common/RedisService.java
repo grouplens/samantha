@@ -27,6 +27,11 @@ public interface RedisService {
     Long incre(String prefix, String key);
     void set(String prefix, String key, String value);
     void del(String prefix, String key);
+    void delWithKey(String key);
+    JsonNode getValue(String prefix, String key);
+    void setValue(String prefix, String key, JsonNode value);
+    List<String> keysWithPrefixPattern(String prefix, String key);
+    List<JsonNode> bulkGet(List<String> keys);
     void indexIntoSortedSet(String prefix, String key, String scoreAttr, JsonNode data);
     void bulkIndexIntoSortedSet(String prefix, List<String> keyAttrs, String scoreAttr, JsonNode data);
     void bulkIndexIntoHashSet(String prefix, List<String> keyAttrs, List<String> hashAttrs, JsonNode data);

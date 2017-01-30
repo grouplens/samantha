@@ -25,6 +25,10 @@ public class RandomInitializer {
         this.rand = new Random(seed);
     }
 
+    public double randInitValue() {
+        return (rand.nextDouble() - subtract) * multi;
+    }
+
     public void randInitVector(RealVector vec, boolean normalize) {
         int len = vec.getDimension();
         double sum = 0.0;

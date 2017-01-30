@@ -95,12 +95,32 @@ public class RedisLettuceService implements RedisService {
         return (String) syncCommands.get(RedisService.composeKey(prefix, key));
     }
 
+    public JsonNode getValue(String prefix, String key) {
+        return Json.parse((String) syncCommands.get(RedisService.composeKey(prefix, key)));
+    }
+
     public void set(String prefix, String key, String value) {
         syncCommands.set(RedisService.composeKey(prefix, key), value);
     }
 
+    public void setValue(String prefix, String key, JsonNode value) {
+        syncCommands.set(RedisService.composeKey(prefix, key), value.toString());
+    }
+
     public void del(String prefix, String key) {
         syncCommands.del(RedisService.composeKey(prefix, key));
+    }
+
+    public void delWithKey(String key) {
+        syncCommands.del(key);
+    }
+
+    public List<String> keysWithPrefixPattern(String prefix, String key) {
+        String pattern = prefix;
+        if (key != null) {
+            pattern = RedisService.composeKey(prefix, key);
+        }
+        return syncCommands.keys(pattern + "*");
     }
 
     public List<JsonNode> getFromHashSet(String prefix, List<String> keyAttrs, JsonNode data) {
@@ -109,6 +129,26 @@ public class RedisLettuceService implements RedisService {
         List<String> vals = syncCommands.hvals(key);
         for (String val : vals) {
             results.add(Json.parse(val));
+        }
+        return results;
+    }
+
+    public List<JsonNode> bulkGet(List<String> keys) {
+        List<RedisFuture<String>> futures = new ArrayList<>();
+        for (String key : keys) {
+            RedisFuture<String> future = asyncCommands.get(key);
+            futures.add(future);
+        }
+        asyncConnection.flushCommands();
+        LettuceFutures.awaitAll(1, TimeUnit.MINUTES, futures.toArray(new RedisFuture[futures.size()]));
+        List<JsonNode> results = new ArrayList<>(keys.size());
+        for (RedisFuture<String> future : futures) {
+            try {
+                String ret = future.get(5, TimeUnit.SECONDS);
+                results.add(Json.parse(ret));
+            } catch (ExecutionException | TimeoutException | InterruptedException e) {
+                throw new BadRequestException(e);
+            }
         }
         return results;
     }

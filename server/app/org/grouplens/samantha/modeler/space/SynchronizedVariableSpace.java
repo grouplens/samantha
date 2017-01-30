@@ -72,18 +72,6 @@ public final class SynchronizedVariableSpace implements VariableSpace {
         }
     }
 
-    private void initializeVector(RealVector vec, double initial,
-                                  boolean randomize, boolean normalize) {
-        if (randomize) {
-            RandomInitializer randInit = new RandomInitializer();
-            randInit.randInitVector(vec, normalize);
-        } else {
-            if (initial != 0.0) {
-                vec.set(initial);
-            }
-        }
-    }
-
     final public void requestScalarVar(String name, int size, double initial, boolean randomize) {
         DoubleList var = new DoubleArrayList(size);
         for (int i=0; i<size; i++) {
