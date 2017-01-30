@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.solver.RandomInitializer;
+import org.grouplens.samantha.server.space.RedisVariableSpace;
 
 import java.io.Serializable;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.List;
 /**
  * Every method needs to be thread-safe.
  */
-@ImplementedBy(SynchronizedVariableSpace.class)
+@ImplementedBy(RedisVariableSpace.class)
 public interface VariableSpace extends Serializable {
     default void initializeVector(RealVector vec, double initial,
                                   boolean randomize, boolean normalize) {

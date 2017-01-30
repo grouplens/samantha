@@ -7,6 +7,7 @@ abstract public class RedisSpace {
     protected SpaceMode spaceMode;
     protected String spaceVersion;
     protected String spaceName;
+    protected SpaceType spaceType;
     protected String spaceIdentifier;
     protected final RedisService redisService;
 
@@ -14,20 +15,9 @@ abstract public class RedisSpace {
         this.redisService = redisService;
     }
 
-    synchronized public void setSpaceState(String spaceName, SpaceMode spaceMode) {
-        spaceVersion = redisService.get(spaceName, spaceMode.get());
-        if (spaceVersion == null) {
-            spaceVersion = redisService.incre(spaceName, "version").toString();
-            redisService.set(spaceName, spaceMode.get(), spaceVersion);
-        }
-        this.spaceMode = spaceMode;
-        this.spaceName = spaceName;
-        this.spaceIdentifier = RedisService.composeKey(spaceName, spaceVersion);
-    }
-
     synchronized public void publishSpaceVersion() {
-        redisService.set(spaceName, SpaceMode.DEFAULT.get(), spaceVersion);
-        redisService.del(spaceName, SpaceMode.BUILDING.get());
+        redisService.set(spaceName + "_" + spaceType.get(), SpaceMode.DEFAULT.get(), spaceVersion);
+        redisService.del(spaceName + "_" + spaceType.get(), SpaceMode.BUILDING.get());
         spaceMode = SpaceMode.DEFAULT;
     }
 }

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
+import org.grouplens.samantha.modeler.space.SpaceMode;
 import org.grouplens.samantha.modeler.space.VariableSpace;
 import org.grouplens.samantha.server.common.RedisService;
 import org.grouplens.samantha.server.io.IOUtilities;
@@ -21,6 +22,17 @@ public class RedisVariableSpace extends RedisSpace implements VariableSpace {
     @Inject
     public RedisVariableSpace(RedisService redisService) {
         super(redisService);
+    }
+
+    synchronized public void setSpaceState(String spaceName, SpaceMode spaceMode) {
+        if (spaceVersion == null) {
+            spaceVersion = redisService.incre(spaceName, SpaceType.VARIABLE.get()).toString();
+            redisService.set(spaceName + "_" + SpaceType.VARIABLE.get(), spaceMode.get(), spaceVersion);
+        }
+        this.spaceMode = spaceMode;
+        this.spaceName = spaceName;
+        this.spaceType = SpaceType.VARIABLE;
+        this.spaceIdentifier = RedisService.composeKey(spaceName + "_" + spaceType.get(), spaceVersion);
     }
 
     public void requestScalarVar(String name, int size, double initial, boolean randomize) {

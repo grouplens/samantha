@@ -87,6 +87,18 @@ public class RedisLettuceService implements RedisService {
         }
     }
 
+    public void watchKey(String key) {
+        syncCommands.watch(key);
+    }
+
+    public void multi() {
+        syncCommands.multi();
+    }
+
+    public List<Object> exec() {
+        return syncCommands.exec();
+    }
+
     public Long incre(String prefix, String key) {
         return syncCommands.incr(RedisService.composeKey(prefix, key));
     }

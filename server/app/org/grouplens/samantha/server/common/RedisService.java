@@ -23,6 +23,9 @@ public interface RedisService {
         return StringUtils.join(keys, "\t");
     }
 
+    void watchKey(String key);
+    void multi();
+    List<Object> exec();
     String get(String prefix, String key);
     Long incre(String prefix, String key);
     void set(String prefix, String key, String value);
