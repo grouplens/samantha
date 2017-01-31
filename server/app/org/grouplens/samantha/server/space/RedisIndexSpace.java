@@ -17,6 +17,9 @@ public class RedisIndexSpace extends RedisSpace implements IndexSpace {
     }
 
     synchronized public void setSpaceState(String spaceName, SpaceMode spaceMode) {
+        if (spaceMode.equals(SpaceMode.DEFAULT)) {
+            spaceVersion = redisService.get(spaceName + "_" + SpaceType.INDEX.get(), spaceMode.get());
+        }
         if (spaceVersion == null) {
             spaceVersion = redisService.incre(spaceName, SpaceType.INDEX.get()).toString();
             redisService.set(spaceName + "_" + SpaceType.INDEX.get(), spaceMode.get(), spaceVersion);
@@ -41,21 +44,23 @@ public class RedisIndexSpace extends RedisSpace implements IndexSpace {
     }
 
     public int setKey(String name, Object key) {
-        String value = redisService.get(spaceIdentifier, RedisService.composeKey(name, (String) key));
+        String watchKey = RedisService.composeKey(name, (String) key);
+        String value = redisService.get(spaceIdentifier, watchKey);
         if (value != null) {
             return Integer.parseInt(value);
         }
-        String watchKey = RedisService.composeKey(name, (String) key);
-        redisService.watchKey(watchKey);
-        redisService.multi();
-        int index = redisService.incre(spaceIdentifier, name).intValue();
-        redisService.set(spaceIdentifier, RedisService.composeKey(name, (String) key), Integer.valueOf(index).toString());
+        int index = Integer.parseInt(redisService.get(spaceIdentifier, name));
+        index += 1;
+        String idxStr = RedisService.composeKey(name + "_IDX_", Integer.valueOf(index).toString());
+        redisService.watch(spaceIdentifier, watchKey);
+        redisService.multi(false);
+        redisService.setWithoutLock(spaceIdentifier, watchKey, Integer.valueOf(index).toString());
+        redisService.increWithoutLock(spaceIdentifier, name);
+        redisService.setWithoutLock(spaceIdentifier, idxStr, (String) key);
         List<Object> resps = redisService.exec();
         if (resps.get(0) == null) {
             index = getIndexForKey(name, key);
         }
-        String idxStr = RedisService.composeKey(RedisService.composeKey(name, "index"), Integer.valueOf(index).toString());
-        redisService.set(spaceIdentifier, idxStr, (String) key);
         return index;
     }
 

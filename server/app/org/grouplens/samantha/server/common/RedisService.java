@@ -23,12 +23,14 @@ public interface RedisService {
         return StringUtils.join(keys, "\t");
     }
 
-    void watchKey(String key);
-    void multi();
+    void watch(String prefix, String key);
+    void multi(boolean lock);
     List<Object> exec();
     String get(String prefix, String key);
     Long incre(String prefix, String key);
-    void set(String prefix, String key, String value);
+    Long increWithoutLock(String prefix, String key);
+    String set(String prefix, String key, String value);
+    String setWithoutLock(String prefix, String key, String value);
     void del(String prefix, String key);
     void delWithKey(String key);
     JsonNode getValue(String prefix, String key);

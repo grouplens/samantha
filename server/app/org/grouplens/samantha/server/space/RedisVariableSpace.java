@@ -25,6 +25,9 @@ public class RedisVariableSpace extends RedisSpace implements VariableSpace {
     }
 
     synchronized public void setSpaceState(String spaceName, SpaceMode spaceMode) {
+        if (spaceMode.equals(SpaceMode.DEFAULT)) {
+            spaceVersion = redisService.get(spaceName + "_" + SpaceType.INDEX.get(), spaceMode.get());
+        }
         if (spaceVersion == null) {
             spaceVersion = redisService.incre(spaceName, SpaceType.VARIABLE.get()).toString();
             redisService.set(spaceName + "_" + SpaceType.VARIABLE.get(), spaceMode.get(), spaceVersion);
@@ -55,12 +58,11 @@ public class RedisVariableSpace extends RedisSpace implements VariableSpace {
 
     public void ensureScalarVar(String name, int size, double initial, boolean randomize) {
         String varName = "S_" + name;
-        JsonNode val = redisService.getValue(spaceIdentifier, varName);
         ObjectNode obj = Json.newObject();
         obj.put("name", name);
         obj.put("initial", initial);
         obj.put("randomize", randomize);
-        ensureVar(val, obj, varName, size);
+        ensureVar(obj, varName, size);
     }
 
     public void requestVectorVar(String name, int size, int dim, double initial,
@@ -68,7 +70,7 @@ public class RedisVariableSpace extends RedisSpace implements VariableSpace {
         ObjectNode val = Json.newObject();
         val.put("name", name);
         val.put("size", size);
-        val.put("dim", size);
+        val.put("dim", dim);
         val.put("initial", initial);
         val.put("randomize", randomize);
         val.put("normalize", normalize);
@@ -84,32 +86,36 @@ public class RedisVariableSpace extends RedisSpace implements VariableSpace {
         }
     }
 
-    private void ensureVar(JsonNode val, ObjectNode obj, String varName, int size) {
-        synchronized (spaceIdentifier + varName) {
+    private void ensureVar(ObjectNode obj, String varName, int size) {
+        List<Object> resps;
+        do {
+            JsonNode val = redisService.getValue(spaceIdentifier, varName);
+            redisService.watch(spaceIdentifier, varName);
+            redisService.multi(false);
             if (val != null) {
                 IOUtilities.parseEntityFromJsonNode(val, obj);
                 if (size > obj.get("size").asInt()) {
                     obj.put("size", size);
-                    redisService.set(spaceIdentifier, varName, val.toString());
+                    redisService.setWithoutLock(spaceIdentifier, varName, obj.toString());
                 }
             } else {
                 obj.put("size", size);
-                redisService.set(spaceIdentifier, varName, val.toString());
+                redisService.setWithoutLock(spaceIdentifier, varName, obj.toString());
             }
-        }
+            resps = redisService.exec();
+        } while (resps.size() > 0 && resps.get(0) == null);
     }
 
     public void ensureVectorVar(String name, int size, int dim, double initial,
                                 boolean randomize, boolean normalize) {
         String varName = "V_" + name;
-        JsonNode val = redisService.getValue(spaceIdentifier, varName);
         ObjectNode obj = Json.newObject();
         obj.put("name", name);
         obj.put("dim", size);
         obj.put("initial", initial);
         obj.put("randomize", randomize);
         obj.put("normalize", normalize);
-        ensureVar(val, obj, varName, size);
+        ensureVar(obj, varName, size);
     }
 
     public RealVector getScalarVarByName(String name) {
