@@ -1,13 +1,14 @@
 package org.grouplens.samantha.modeler.space;
 
 import com.google.inject.ImplementedBy;
+import org.grouplens.samantha.server.space.RedisIndexSpace;
 
 import java.io.Serializable;
 
 /**
  * Every method needs to be thread-safe.
  */
-@ImplementedBy(SynchronizedIndexSpace.class)
+@ImplementedBy(RedisIndexSpace.class)
 public interface IndexSpace extends Serializable {
     void setSpaceState(String spaceName, SpaceMode spaceMode);
     void publishSpaceVersion();

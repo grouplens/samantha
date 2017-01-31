@@ -3,6 +3,8 @@ package org.grouplens.samantha.modeler.space;
 import com.google.inject.ImplementedBy;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
+import org.grouplens.samantha.modeler.solver.RandomInitializer;
+import org.grouplens.samantha.server.space.RedisVariableSpace;
 
 import java.io.Serializable;
 import java.util.List;
@@ -10,8 +12,29 @@ import java.util.List;
 /**
  * Every method needs to be thread-safe.
  */
-@ImplementedBy(SynchronizedVariableSpace.class)
+@ImplementedBy(RedisVariableSpace.class)
 public interface VariableSpace extends Serializable {
+    default void initializeVector(RealVector vec, double initial,
+                                  boolean randomize, boolean normalize) {
+        if (randomize) {
+            RandomInitializer randInit = new RandomInitializer();
+            randInit.randInitVector(vec, normalize);
+        } else {
+            if (initial != 0.0) {
+                vec.set(initial);
+            }
+        }
+    }
+
+    default double initialScalarVar(double initial, boolean randomize) {
+        if (randomize) {
+            RandomInitializer randInit = new RandomInitializer();
+            return randInit.randInitValue();
+        } else {
+            return initial;
+        }
+    }
+
     void setSpaceState(String spaceName, SpaceMode spaceMode);
     void publishSpaceVersion();
     void requestScalarVar(String name, int size, double initial, boolean randomize);

@@ -54,7 +54,11 @@ public final class SynchronizedIndexSpace implements IndexSpace {
     public int setKey(String name, Object key) {
         writeLock.lock();
         try {
-            return keyMap.get(name).setKey(key);
+            if (keyMap.get(name).containsKey(key)) {
+                return keyMap.get(name).getIndex(key);
+            } else {
+                return keyMap.get(name).setKey(key);
+            }
         } finally {
             writeLock.unlock();
         }

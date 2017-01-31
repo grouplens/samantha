@@ -72,18 +72,6 @@ public final class SynchronizedVariableSpace implements VariableSpace {
         }
     }
 
-    private void initializeVector(RealVector vec, double initial,
-                                  boolean randomize, boolean normalize) {
-        if (randomize) {
-            RandomInitializer randInit = new RandomInitializer();
-            randInit.randInitVector(vec, normalize);
-        } else {
-            if (initial != 0.0) {
-                vec.set(initial);
-            }
-        }
-    }
-
     final public void requestScalarVar(String name, int size, double initial, boolean randomize) {
         DoubleList var = new DoubleArrayList(size);
         for (int i=0; i<size; i++) {
@@ -308,11 +296,21 @@ public final class SynchronizedVariableSpace implements VariableSpace {
     public void freeSpace() {}
 
     public void freeScalarVar(String name) {
-        scalarVars.remove(name);
+        writeLock.lock();
+        try {
+            scalarVars.remove(name);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     public void freeVectorVar(String name) {
-        vectorVars.remove(name);
+        writeLock.lock();
+        try {
+            vectorVars.remove(name);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     private void writeObject(ObjectOutputStream stream) {

@@ -1,9 +1,7 @@
 package org.grouplens.samantha.server.ranker;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
-import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
