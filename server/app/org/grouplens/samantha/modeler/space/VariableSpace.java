@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Every method needs to be thread-safe.
  */
-@ImplementedBy(RedisVariableSpace.class)
+@ImplementedBy(SynchronizedVariableSpace.class)
 public interface VariableSpace extends Serializable {
     default void initializeVector(RealVector vec, double initial,
                                   boolean randomize, boolean normalize) {

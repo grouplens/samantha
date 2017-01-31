@@ -8,7 +8,7 @@ import java.io.Serializable;
 /**
  * Every method needs to be thread-safe.
  */
-@ImplementedBy(RedisIndexSpace.class)
+@ImplementedBy(SynchronizedIndexSpace.class)
 public interface IndexSpace extends Serializable {
     void setSpaceState(String spaceName, SpaceMode spaceMode);
     void publishSpaceVersion();
