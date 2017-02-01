@@ -24,7 +24,7 @@
 * schedulers for regular model rebuilding or backup
 * control and customize all these components through one centralized configuration file
 
-#### why do we develop Samantha
+#### why do I develop Samantha
 
 * user-centered/human-centered research
 * offline to online trend
