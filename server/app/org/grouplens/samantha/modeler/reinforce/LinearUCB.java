@@ -28,7 +28,7 @@ public class LinearUCB extends AbstractLearningModel implements Featurizer {
     private final int numMainFeatures;
     private final List<String> features;
 
-    /**
+    /*
      * Directly calling this is discouraged. Use {@link LinearUCBProducer} instead.
      * Note that the featureExtractors must have main features first and interaction features next, because
      *   by default the weight of interaction features is set to zero using this order and numMainFeatures.

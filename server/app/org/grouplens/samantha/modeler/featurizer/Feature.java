@@ -2,9 +2,6 @@ package org.grouplens.samantha.modeler.featurizer;
 
 import java.io.Serializable;
 
-/**
- * @author <a href="http://www.grouplens.org">GroupLens Research</a>
- */
 public class Feature implements Serializable {
     private double value;
     private int index;

@@ -4,6 +4,8 @@ version := "1.0-SNAPSHOT"
 
 lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
+sources in (Compile, doc) <<= sources in (Compile, doc) map { _.filterNot(_.getName endsWith ".scala") }
+
 scalaVersion := "2.11.6"
 
 resolvers += Resolver.mavenLocal
