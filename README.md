@@ -1,7 +1,7 @@
 
 ###Note
 
-* Samantha is in the processing of integrating with <a href="http://lenskit.org/">Lenskit</a>.
+* Samantha is in the process of integrating with <a href="http://lenskit.org/">Lenskit</a>. 
 
 ###Introduction
 
