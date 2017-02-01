@@ -3,7 +3,7 @@
 
 * Samantha is in the process of integrating with <a href="http://lenskit.org/" target="_blank">Lenskit</a>. 
 
-###Samantha: the Engine of Data-Driven Intelligent Systems
+###Introduction
 
 #### what is Samantha
 
