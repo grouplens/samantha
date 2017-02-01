@@ -35,10 +35,10 @@
 * individuals/organizations who want to deploy a data-driven predictive system with minimum effort. They might need it to support answering relevant research questions involving an intelligent predictive part in their system or just to have an initial try to see the effects of such a predictive component. 
 * individuals/organizations who are working on comparing and developing new machine learning or recommendation models/algorithms, especially those who care about deploying their models/algorithms into production and evaluate them in front of end users
 
-#### the goal
+#### the goal: the engine of data-driven intelligent/predictive systems
 
-* the engine of data-driven intelligent/predictive systems
-* what to support in the near future
+#### what to support in the near future
+
 * text modeling
 * model chaining/composition, i.e. deep learning
 * scale up to clusters: learning algorithm and offline data storage
