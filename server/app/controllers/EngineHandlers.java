@@ -28,6 +28,21 @@ public class EngineHandlers extends Controller {
     private final ResponsePacker responsePacker;
     private final SamanthaConfigService samanthaConfigService;
 
+    /**
+     * Handlers for requests to specific engines.
+     *
+     * This class is part of the play framework.
+     * See conf/routes for how request urls and the methods here relate. Note that the implementation
+     * of these handlers dictates the request processing flow of Samantha. Generally, it first gets
+     * the right component from SamanthaConfigService and then ask the component to do the actual work.
+     * A quick going through of the codes in this class in the concept level is enough to have a good
+     * idea on how Samantha handles requests. Some handlers require certain keys to be present in the
+     * body of the request, e.g. evaluator, predictor, retriever etc.
+     *
+     * @param requestParser must be injected with play injector. singleton.
+     * @param responsePacker must be injected with play injector. singleton.
+     * @param samanthaConfigService must be injected with play injector. singleton.
+     */
     @Inject
     public EngineHandlers(RequestParser requestParser,
                           ResponsePacker responsePacker,
