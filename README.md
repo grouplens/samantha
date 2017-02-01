@@ -1,7 +1,7 @@
 
 ###Note
 
-* Samantha is in the process of integrating with <a href="http://lenskit.org/">Lenskit</a>. 
+* Samantha is in the process of integrating with <a href="http://lenskit.org/" target="_blank">Lenskit</a>. 
 
 ###Introduction
 
@@ -24,7 +24,7 @@
 * schedulers for regular model rebuilding or backup
 * control and customize all these components through one centralized configuration file
 
-#### why do I develop Samantha
+#### why do we develop Samantha
 
 * user-centered/human-centered research
 * offline to online trend
