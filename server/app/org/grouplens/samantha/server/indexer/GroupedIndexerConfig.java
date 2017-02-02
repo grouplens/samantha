@@ -24,6 +24,7 @@ public class GroupedIndexerConfig implements IndexerConfig {
     private final String dataDir;
     private final String dataDirKey;
     private final int numBuckets;
+    private final int usedBuckets;
     private final List<String> groupKeys;
     private final List<String> orderFields;
     private final Boolean descending;
@@ -34,7 +35,7 @@ public class GroupedIndexerConfig implements IndexerConfig {
                                    String daoNameKey, String daoName, String filesKey,
                                    String separatorKey, int numBuckets, List<String> groupKeys,
                                    List<String> orderFields, Boolean descending, String separator,
-                                   Configuration daoConfigs, String daoConfigKey) {
+                                   Configuration daoConfigs, String daoConfigKey, int usedBuckets) {
         this.config = config;
         this.injector = injector;
         this.dataFields = dataFields;
@@ -52,20 +53,26 @@ public class GroupedIndexerConfig implements IndexerConfig {
         this.separator = separator;
         this.daoConfigKey = daoConfigKey;
         this.daoConfigs = daoConfigs;
+        this.usedBuckets = usedBuckets;
     }
 
     public static IndexerConfig getIndexerConfig(Configuration indexerConfig,
                                                  Injector injector) {
+        int numBuckets = indexerConfig.getInt("numBuckets");
+        int usedBuckets = numBuckets;
+        if (indexerConfig.asMap().containsKey("usedBuckets")) {
+            usedBuckets = indexerConfig.getInt("usedBuckets");
+        }
         return new GroupedIndexerConfig(indexerConfig, injector,
                 indexerConfig.getString("dataDir"), indexerConfig.getString("dependedIndexer"),
                 indexerConfig.getString("dataDirKey"), indexerConfig.getStringList("dataFields"),
                 indexerConfig.getString("daoNameKey"), indexerConfig.getString("daoName"),
                 indexerConfig.getString("filesKey"), indexerConfig.getString("separatorKey"),
-                indexerConfig.getInt("numBuckets"), indexerConfig.getStringList("groupKeys"),
+                numBuckets, indexerConfig.getStringList("groupKeys"),
                 indexerConfig.getStringList("orderFields"), indexerConfig.getBoolean("descending"),
                 indexerConfig.getString("separator"),
                 indexerConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
-                indexerConfig.getString("daoConfigKey"));
+                indexerConfig.getString("daoConfigKey"), usedBuckets);
     }
 
     public Indexer getIndexer(RequestContext requestContext) {
@@ -75,6 +82,6 @@ public class GroupedIndexerConfig implements IndexerConfig {
         Indexer indexer = configService.getIndexer(indexerName, requestContext);
         return new GroupedIndexer(configService, config, injector, daoConfigs, daoConfigKey,
                 indexer, datDir, numBuckets, groupKeys, dataFields, separator, orderFields, descending,
-                filesKey, daoName, daoNameKey, separatorKey);
+                filesKey, daoName, daoNameKey, separatorKey, usedBuckets);
     }
 }

@@ -34,6 +34,7 @@ public class GroupedIndexer extends AbstractIndexer {
     private final String daoNameKey;
     private final String daoName;
     private final String separatorKey;
+    private final int usedBuckets;
 
     public GroupedIndexer(SamanthaConfigService configService,
                           Configuration config, Injector injector,
@@ -42,7 +43,8 @@ public class GroupedIndexer extends AbstractIndexer {
                           int numBuckets, List<String> groupKeys,
                           List<String> dataFields, String separator,
                           List<String> orderFields, Boolean descending,
-                          String filesKey, String daoName, String daoNameKey, String separatorKey) {
+                          String filesKey, String daoName, String daoNameKey,
+                          String separatorKey, int usedBuckets) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
         this.indexer = indexer;
         this.dataDir = dataDir;
@@ -56,16 +58,17 @@ public class GroupedIndexer extends AbstractIndexer {
         this.daoName = daoName;
         this.daoNameKey = daoNameKey;
         this.separatorKey = separatorKey;
+        this.usedBuckets = usedBuckets;
     }
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
         EntityDAO entityDAO = indexer.getEntityDAO(requestContext);
         String prefix = dataDir + "/";
         List<BufferedWriter> writers = new ArrayList<>();
-        List<String> files = new ArrayList<>(numBuckets);
+        List<String> files = new ArrayList<>(usedBuckets);
         try {
             new File(prefix).mkdirs();
-            for (int i = 0; i < numBuckets; i++) {
+            for (int i = 0; i < usedBuckets; i++) {
                 BufferedWriter writer = new BufferedWriter(new FileWriter(prefix +
                         Integer.valueOf(i).toString() + ".tmp"));
                 IndexerUtilities.writeOutHeader(dataFields, writer, separator);
@@ -75,13 +78,15 @@ public class GroupedIndexer extends AbstractIndexer {
                 ObjectNode entity = entityDAO.getNextEntity();
                 int idx = FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys)
                         .hashCode() % numBuckets;
-                IndexerUtilities.writeOutJson(entity, dataFields, writers.get(idx), separator);
+                if (idx < usedBuckets) {
+                    IndexerUtilities.writeOutJson(entity, dataFields, writers.get(idx), separator);
+                }
             }
-            for (int i = 0; i < numBuckets; i++) {
+            for (int i = 0; i < usedBuckets; i++) {
                 writers.get(i).close();
             }
             writers.clear();
-            for (int i=0; i<numBuckets; i++) {
+            for (int i=0; i<usedBuckets; i++) {
                 String tmpFilePath = prefix + Integer.valueOf(i).toString() + ".tmp";
                 File tmpFile = new File(tmpFilePath);
                 if (tmpFile.isFile()) {
