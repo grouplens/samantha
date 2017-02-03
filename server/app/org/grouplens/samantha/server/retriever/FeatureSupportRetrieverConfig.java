@@ -3,8 +3,10 @@ package org.grouplens.samantha.server.retriever;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.space.*;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.AbstractModelManager;
@@ -76,10 +78,8 @@ public class FeatureSupportRetrieverConfig extends AbstractComponentConfig imple
             ModelService modelService = injector.instanceOf(ModelService.class);
             SVDFeature svdfeaModel = (SVDFeature) modelService.getModel(requestContext.getEngineName(), svdfeaModelName);
             Object2DoubleMap<String> fea2sup = svdfeaModel.getFactorFeatures(10);
-            List<ObjectNode> all = new ArrayList<>(fea2sup.size());
+            List<Object2DoubleMap.Entry<String>> all = new ArrayList<>(fea2sup.size());
             for (Object2DoubleMap.Entry<String> entry : fea2sup.object2DoubleEntrySet()) {
-                ObjectNode one = Json.newObject();
-                one.put(supportAttr, entry.getDoubleValue());
                 Map<String, String> keys = FeatureExtractorUtilities.decomposeKey(entry.getKey());
                 boolean include = true;
                 for (String attr : itemAttrs) {
@@ -88,18 +88,26 @@ public class FeatureSupportRetrieverConfig extends AbstractComponentConfig imple
                     }
                 }
                 if (include) {
-                    for (String attr : itemAttrs) {
-                        one.put(attr, keys.get(attr));
-                    }
-                    all.add(one);
+                    all.add(entry);
                 }
             }
-            Ordering<ObjectNode> ordering = RetrieverUtilities.jsonFieldOrdering(supportAttr);
+            Ordering<Object2DoubleMap.Entry<String>> ordering = RetrieverUtilities.object2DoubleEntryOrdering();
             int limit = all.size();
             if (maxHits != null && maxHits < limit) {
                 limit = maxHits;
             }
-            return ordering.greatestOf(all, limit);
+            SpaceProducer spaceProducer = injector.instanceOf(SpaceProducer.class);
+            IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName, SpaceMode.BUILDING);
+            VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName, SpaceMode.BUILDING);
+            IndexedVectorModel vectorModel = new IndexedVectorModel(modelName, maxHits, 1, indexSpace, variableSpace);
+            List<Object2DoubleMap.Entry<String>> results = ordering.greatestOf(all, limit);
+            for (Object2DoubleMap.Entry<String> entry : results) {
+                int index = vectorModel.ensureKey(entry.getKey());
+                RealVector vector = MatrixUtils.createRealVector(new double[1]);
+                vector.setEntry(0, entry.getDoubleValue());
+                vectorModel.setIndexVector(index, vector);
+            }
+            return vectorModel;
         }
     }
 
@@ -107,7 +115,19 @@ public class FeatureSupportRetrieverConfig extends AbstractComponentConfig imple
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
         FeatureSupportModelManager manager = new FeatureSupportModelManager(modelName, modelFile, injector);
-        List<ObjectNode> model = (List<ObjectNode>) manager.manage(requestContext);
-        return new PrecomputedRetriever(model, entityExpanders, config);
+        IndexedVectorModel model = (IndexedVectorModel) manager.manage(requestContext);
+        List<ObjectNode> results = new ArrayList<>();
+        int size = model.getIndexSize();
+        for (int i=0; i<size; i++) {
+            ObjectNode one = Json.newObject();
+            Map<String, String> keys = FeatureExtractorUtilities.decomposeKey(model.getKeyByIndex(i));
+            RealVector vector = model.getIndexVector(i);
+            one.put(supportAttr, vector.getEntry(0));
+            for (String attr : itemAttrs) {
+                one.put(attr, keys.get(attr));
+            }
+            results.add(one);
+        }
+        return new PrecomputedRetriever(results, entityExpanders, config);
     }
 }
