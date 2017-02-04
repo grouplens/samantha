@@ -48,6 +48,7 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
         if (requestBody.has(elasticSearchReqKey)) {
             elasticSearchRequest = JsonHelpers.getRequiredJson(requestBody, elasticSearchReqKey);
         } else if (defaultElasticSearchReq != null) {
+            //TODO: provide the capability of parameterize this defaultElasticSearchReq with request body
             elasticSearchRequest = Json.parse(defaultElasticSearchReq);
         } else {
             elasticSearchRequest = Json.parse(QueryBuilders.matchAllQuery().toString());

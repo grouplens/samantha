@@ -1,10 +1,9 @@
 package org.grouplens.samantha.server.retriever;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
-import org.apache.commons.math3.linear.MatrixUtils;
-import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.modeler.space.*;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
@@ -14,6 +13,7 @@ import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
+import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -63,9 +63,12 @@ public class FeatureSupportRetrieverConfig extends AbstractComponentConfig imple
     }
 
     private class FeatureSupportModelManager extends AbstractModelManager {
+        private final List<EntityExpander> expanders;
 
-        public FeatureSupportModelManager(String modelName, String modelFile, Injector injector) {
+        public FeatureSupportModelManager(String modelName, String modelFile, Injector injector,
+                                          List<EntityExpander> expanders) {
             super(injector, modelName, modelFile, new ArrayList<>());
+            this.expanders = expanders;
         }
 
         public Object createModel(RequestContext requestContext, SpaceMode spaceMode) {
@@ -78,56 +81,53 @@ public class FeatureSupportRetrieverConfig extends AbstractComponentConfig imple
             ModelService modelService = injector.instanceOf(ModelService.class);
             SVDFeature svdfeaModel = (SVDFeature) modelService.getModel(requestContext.getEngineName(), svdfeaModelName);
             Object2DoubleMap<String> fea2sup = svdfeaModel.getFactorFeatures(10);
-            List<Object2DoubleMap.Entry<String>> all = new ArrayList<>(fea2sup.size());
+            List<ObjectNode> all = new ArrayList<>(fea2sup.size());
             for (Object2DoubleMap.Entry<String> entry : fea2sup.object2DoubleEntrySet()) {
                 Map<String, String> keys = FeatureExtractorUtilities.decomposeKey(entry.getKey());
+                ObjectNode one = Json.newObject();
                 boolean include = true;
                 for (String attr : itemAttrs) {
                     if (!keys.containsKey(attr)) {
                         include = false;
+                    } else {
+                        one.put(attr, keys.get(attr));
                     }
                 }
                 if (include) {
-                    all.add(entry);
+                    one.put(supportAttr, entry.getDoubleValue());
+                    all.add(one);
                 }
             }
-            Ordering<Object2DoubleMap.Entry<String>> ordering = RetrieverUtilities.object2DoubleEntryOrdering();
+            Ordering<ObjectNode> ordering = RetrieverUtilities.jsonFieldOrdering(supportAttr);
             int limit = all.size();
             if (maxHits != null && maxHits < limit) {
                 limit = maxHits;
             }
+            List<ObjectNode> results = ordering.greatestOf(all, limit);
+            results = ExpanderUtilities.expand(results, expanders, requestContext);
             SpaceProducer spaceProducer = injector.instanceOf(SpaceProducer.class);
             IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName, SpaceMode.BUILDING);
-            VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName, SpaceMode.BUILDING);
-            IndexedVectorModel vectorModel = new IndexedVectorModel(modelName, maxHits, 1, indexSpace, variableSpace);
-            List<Object2DoubleMap.Entry<String>> results = ordering.greatestOf(all, limit);
-            for (Object2DoubleMap.Entry<String> entry : results) {
-                int index = vectorModel.ensureKey(entry.getKey());
-                RealVector vector = MatrixUtils.createRealVector(new double[1]);
-                vector.setEntry(0, entry.getDoubleValue());
-                vectorModel.setIndexVector(index, vector);
+            for (ObjectNode entry : results) {
+                indexSpace.setKey(modelName, entry.toString());
             }
-            return vectorModel;
+            return indexSpace;
         }
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        FeatureSupportModelManager manager = new FeatureSupportModelManager(modelName, modelFile, injector);
-        IndexedVectorModel model = (IndexedVectorModel) manager.manage(requestContext);
+        FeatureSupportModelManager manager = new FeatureSupportModelManager(modelName, modelFile,
+                injector, entityExpanders);
+        IndexSpace model = (IndexSpace) manager.manage(requestContext);
         List<ObjectNode> results = new ArrayList<>();
-        int size = model.getIndexSize();
+        int size = model.getKeyMapSize(modelName);
         for (int i=0; i<size; i++) {
             ObjectNode one = Json.newObject();
-            Map<String, String> keys = FeatureExtractorUtilities.decomposeKey(model.getKeyByIndex(i));
-            RealVector vector = model.getIndexVector(i);
-            one.put(supportAttr, vector.getEntry(0));
-            for (String attr : itemAttrs) {
-                one.put(attr, keys.get(attr));
-            }
+            JsonNode stored = Json.parse((String)model.getKeyForIndex(modelName, i));
+            IOUtilities.parseEntityFromJsonNode(stored, one);
             results.add(one);
         }
-        return new PrecomputedRetriever(results, entityExpanders, config);
+        return new PrecomputedRetriever(results, config);
     }
 }
