@@ -107,8 +107,8 @@ public class PercentileExpander implements EntityExpander {
                 if (entity.has(attrName)) {
                     val = entity.get(attrName).asDouble();
                 } else {
-                    Logger.warn("The attribute {} to compute percentile is not present: {}",
-                            attrName, entity.toString());
+                    //Logger.warn("The attribute {} to compute percentile is not present: {}",
+                    //        attrName, entity.toString());
                 }
                 entity.put(attrName + "Percentile", percentileModel.getPercentile(attrName, val));
             }
