@@ -84,7 +84,12 @@ public class ArrayItemId2InfoExpander implements EntityExpander {
         for (ObjectNode entity : initialResult) {
             if (entity.has(idField)) {
                 int idx = entity.get(idField).asInt();
-                IOUtilities.parseEntityFromJsonNode(infoFields, model.get(idx), entity);
+                if (model.size() <= idx) {
+                    Logger.error("No such item id {} in the item info model with size {}", idx,
+                            model.size());
+                } else {
+                    IOUtilities.parseEntityFromJsonNode(infoFields, model.get(idx), entity);
+                }
             } else {
                 Logger.error("{} is not present in {}", idField, entity);
             }
