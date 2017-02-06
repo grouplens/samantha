@@ -10,6 +10,7 @@ import org.grouplens.samantha.server.evaluator.Evaluator;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
+import play.Logger;
 import play.inject.Injector;
 import play.libs.Json;
 
@@ -64,14 +65,16 @@ abstract public class AbstractModelManager implements ModelManager {
 
     public Object buildModel(RequestContext requestContext) {
         Object model = createModel(requestContext, SpaceMode.BUILDING);
+        String engineName = requestContext.getEngineName();
+        ModelService modelService = injector.instanceOf(ModelService.class);
+        modelService.setModel(engineName, ConfigKey.MODEL_EVALUATING_PREFIX.get() + modelName, model);
         buildModel(model, requestContext);
         if (passModel(model, requestContext)) {
             if (model instanceof SpaceModel) {
                 ((SpaceModel) model).publishModel();
             }
-            ModelService modelService = injector.instanceOf(ModelService.class);
-            String engineName = requestContext.getEngineName();
             modelService.setModel(engineName, modelName, model);
+            modelService.removeModel(engineName, ConfigKey.MODEL_EVALUATING_PREFIX.get() + modelName);
         } else {
             throw new BadRequestException("Building model " + modelName + " did not pass evaluation.");
         }
@@ -81,16 +84,18 @@ abstract public class AbstractModelManager implements ModelManager {
     public Object evaluateModel(RequestContext requestContext) {
         ModelService modelService = injector.instanceOf(ModelService.class);
         String engineName = requestContext.getEngineName();
-        return modelService.getModel(engineName, ConfigKey.MODEL_EVALUATING_PREFIX.get() + modelName);
+        if (modelService.hasModel(engineName, ConfigKey.MODEL_EVALUATING_PREFIX.get() + modelName)) {
+            return modelService.getModel(engineName, ConfigKey.MODEL_EVALUATING_PREFIX.get() + modelName);
+        } else {
+            return modelService.getModel(engineName, modelName);
+        }
     }
 
     public boolean passModel(Object model, RequestContext requestContext) {
         if (evaluatorNames == null || evaluatorNames.size() == 0) {
             return true;
         }
-        ModelService modelService = injector.instanceOf(ModelService.class);
         String engineName = requestContext.getEngineName();
-        modelService.setModel(engineName, ConfigKey.MODEL_EVALUATING_PREFIX.get() + modelName, model);
         boolean pass = true;
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         ObjectNode pseudoReqBody = Json.newObject();
@@ -103,7 +108,6 @@ abstract public class AbstractModelManager implements ModelManager {
                 pass = false;
             }
         }
-        modelService.removeModel(engineName, ConfigKey.MODEL_EVALUATING_PREFIX.get() + modelName);
         return pass;
     }
 
