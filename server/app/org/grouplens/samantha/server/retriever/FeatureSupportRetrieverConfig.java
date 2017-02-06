@@ -72,14 +72,22 @@ public class FeatureSupportRetrieverConfig extends AbstractComponentConfig imple
         }
 
         public Object createModel(RequestContext requestContext, SpaceMode spaceMode) {
-            return buildModel(null, requestContext);
+            SpaceProducer spaceProducer = injector.instanceOf(SpaceProducer.class);
+            if (SpaceMode.BUILDING.equals(spaceMode)) {
+                IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName, SpaceMode.BUILDING);
+                return indexSpace;
+            } else {
+                IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName, SpaceMode.DEFAULT);
+                return buildModel(indexSpace, requestContext);
+            }
         }
 
         public Object buildModel(Object model, RequestContext requestContext) {
             SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
             configService.getPredictor(svdfeaPredictorName, requestContext);
             ModelService modelService = injector.instanceOf(ModelService.class);
-            SVDFeature svdfeaModel = (SVDFeature) modelService.getModel(requestContext.getEngineName(), svdfeaModelName);
+            SVDFeature svdfeaModel = (SVDFeature) modelService.getModel(requestContext.getEngineName(),
+                    svdfeaModelName);
             Object2DoubleMap<String> fea2sup = svdfeaModel.getFactorFeatures(10);
             List<ObjectNode> all = new ArrayList<>(fea2sup.size());
             for (Object2DoubleMap.Entry<String> entry : fea2sup.object2DoubleEntrySet()) {
@@ -105,8 +113,7 @@ public class FeatureSupportRetrieverConfig extends AbstractComponentConfig imple
             }
             List<ObjectNode> results = ordering.greatestOf(all, limit);
             results = ExpanderUtilities.expand(results, expanders, requestContext);
-            SpaceProducer spaceProducer = injector.instanceOf(SpaceProducer.class);
-            IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName, SpaceMode.BUILDING);
+            IndexSpace indexSpace = (IndexSpace) model;
             for (ObjectNode entry : results) {
                 indexSpace.setKey(modelName, entry.toString());
             }
