@@ -41,16 +41,18 @@ public class IndexedVectorModel implements SpaceModel {
         this.variableSpace.requestVectorVar(modelName, initialSize, dim, 0.0, false, false);
     }
 
-    public void ensureKey(String key) {
-        if (!indexSpace.containsKey(modelName, key)) {
-            indexSpace.setKey(modelName, key);
-        }
-        int index = indexSpace.getIndexForKey(modelName, key);
+    public int ensureKey(String key) {
+        int index = indexSpace.setKey(modelName, key);
         variableSpace.ensureVectorVar(modelName, index + 1, dim, 0.0, false, false);
+        return index;
     }
 
     public int getIndexByKey(String key) {
         return indexSpace.getIndexForKey(modelName, key);
+    }
+
+    public int getIndexSize() {
+        return indexSpace.getKeyMapSize(modelName);
     }
 
     public boolean hasKey(String key) {

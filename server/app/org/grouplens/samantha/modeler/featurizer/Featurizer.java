@@ -25,6 +25,8 @@ package org.grouplens.samantha.modeler.featurizer;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 
+//TODO: warn if feature is not present
+//TODO: warn or error if label is not present when update is true
 /**
  * The interface representing the process of transforming a raw data point in JSON to be a numerical {@link LearningInstance}.
  */

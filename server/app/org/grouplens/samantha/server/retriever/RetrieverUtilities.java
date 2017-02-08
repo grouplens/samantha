@@ -24,7 +24,9 @@ package org.grouplens.samantha.server.retriever;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 
+import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
 
@@ -46,6 +48,15 @@ public class RetrieverUtilities {
                 } else {
                     return 0;
                 }
+            }
+        };
+    }
+
+    static public Ordering<Object2DoubleMap.Entry<String>> object2DoubleEntryOrdering() {
+        return new Ordering<Object2DoubleMap.Entry<String>>() {
+            @Override
+            public int compare(Object2DoubleMap.Entry<String> left, Object2DoubleMap.Entry<String> right) {
+                return compareValues(left.getDoubleValue(), right.getDoubleValue());
             }
         };
     }

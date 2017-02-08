@@ -192,6 +192,7 @@ public class SimpleAverageUserState implements Transitioner, EntityExpander {
                     }
                 }
             }
+            entityDAO.close();
             return model;
         }
 
