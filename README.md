@@ -22,6 +22,7 @@
 * generic oracle-based optimization framework/solver with classic solvers
 * flexible model dependency, e.g. model ensemble, stacking, boosting
 * schedulers for regular model rebuilding or backup
+* integration with other state-of-the-art systems, e.g. xgboost, wikibrain (for text modeling) etc.
 * control and customize all these components through one centralized configuration file
 
 #### why do I develop Samantha
