@@ -51,13 +51,14 @@ public class UserReturnIndexerConfig implements IndexerConfig {
     private final String daoConfigKey;
     private final Injector injector;
     private final int reinforceThreshold;
+    private final String usedGroupsFilePath;
 
     private UserReturnIndexerConfig(Configuration config, Injector injector, Configuration daoConfigs,
                                     String daoConfigKey, String timestampField, List<String> dataFields,
                                     String daoNameKey, String daoName, String filesKey, String filePathKey,
                                     String separatorKey, String indexerName, String rewardKey,
                                     List<String> groupKeys, String sessionIdKey, String filePath, String separator,
-                                    int reinforceThreshold) {
+                                    int reinforceThreshold, String usedGroupsFilePath) {
         this.rewardKey = rewardKey;
         this.groupKeys = groupKeys;
         this.filePathKey = filePathKey;
@@ -76,6 +77,7 @@ public class UserReturnIndexerConfig implements IndexerConfig {
         this.daoConfigKey = daoConfigKey;
         this.injector = injector;
         this.reinforceThreshold = reinforceThreshold;
+        this.usedGroupsFilePath = usedGroupsFilePath;
     }
 
     public static IndexerConfig getIndexerConfig(Configuration indexerConfig,
@@ -96,7 +98,8 @@ public class UserReturnIndexerConfig implements IndexerConfig {
                 indexerConfig.getString("sessionIdKey"),
                 indexerConfig.getString("filePath"),
                 indexerConfig.getString("separator"),
-                indexerConfig.getInt("reinforceThreshold"));
+                indexerConfig.getInt("reinforceThreshold"),
+                indexerConfig.getString("usedGroupsFilePath"));
     }
 
     public Indexer getIndexer(RequestContext requestContext) {
@@ -106,6 +109,7 @@ public class UserReturnIndexerConfig implements IndexerConfig {
                 (int) (System.currentTimeMillis() / 1000));
         return new UserReturnIndexer(configService, config, injector, daoConfigs, daoConfigKey,
                 filePathKey, timestampField, dataFields, separator, daoNameKey, daoName, filesKey, rewardKey,
-                groupKeys, sessionIdKey, filePath, separatorKey, indexer, maxTime, reinforceThreshold);
+                groupKeys, sessionIdKey, filePath, separatorKey, indexer, maxTime, reinforceThreshold,
+                usedGroupsFilePath);
     }
 }
