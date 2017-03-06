@@ -88,6 +88,8 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
         return weightName;
     }
 
+    public int getFactDim() { return factDim; }
+
     public List<String> getAllScalarVarNames() {
         List<String> names = new ArrayList<>();
         names.add(SVDFeatureKey.BIASES.get());
