@@ -84,7 +84,10 @@ public class CSVFileIndexer extends AbstractIndexer {
             data = documents;
         }
         for (JsonNode document : data) {
-            int tstamp = document.get(timestampField).asInt();
+            int tstamp = 0;
+            if (document.has(timestampField)) {
+                tstamp = document.get(timestampField).asInt();
+            }
             dataService.write(indexType, document, dataFields, tstamp);
         }
     }
