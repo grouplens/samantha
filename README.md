@@ -1,9 +1,9 @@
 
-###Note
+### Note
 
 * Samantha is a project developed by <a href="http://www-users.cs.umn.edu/~qian/">Qian Zhao</a>, a Ph.D. candiate at GroupLens lab and originated from his research projects. Currently, Samantha is in the process of integrating with <a href="http://lenskit.org/" target="_blank">Lenskit</a>. Feel free to give a try if you're intersted though. 
 
-###Introduction
+### Introduction
 
 #### what is Samantha
 
