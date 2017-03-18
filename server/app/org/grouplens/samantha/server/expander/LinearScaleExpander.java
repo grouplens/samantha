@@ -32,7 +32,7 @@ import play.inject.Injector;
 import java.util.List;
 
 public class LinearScaleExpander implements EntityExpander {
-    private static Logger logger = LoggerFactory.getLogger(ColumnToRowExpander.class);
+    private static Logger logger = LoggerFactory.getLogger(LinearScaleExpander.class);
     private final List<String> fieldNames;
     private final double minValue;
     private final double maxValue;
@@ -79,7 +79,7 @@ public class LinearScaleExpander implements EntityExpander {
                         entity.put(fieldName, value);
                     }
                 } else {
-                    logger.warn("The column {} is not present: {}", fieldName, entity.toString());
+                    logger.warn("The field {} is not present: {}", fieldName, entity.toString());
                 }
             }
         }

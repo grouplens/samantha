@@ -23,12 +23,49 @@
 package org.grouplens.samantha.server.expander;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.modeler.featurizer.SelfPlusOneRatioFunction;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import play.Configuration;
+import play.inject.Injector;
 
 import java.util.List;
 
 public class SelfPlusOneRatioExpander implements EntityExpander {
-    public List<ObjectNode> expand(List<ObjectNode> initialResult, RequestContext requestContext) {
-        return null;
+    private static Logger logger = LoggerFactory.getLogger(SelfPlusOneRatioExpander.class);
+    private final List<String> fieldNames;
+    private final Boolean appendix;
+
+    private SelfPlusOneRatioExpander(List<String> fieldNames, Boolean appendix) {
+        this.fieldNames = fieldNames;
+        this.appendix = appendix;
+    }
+
+    public static EntityExpander getExpander(Configuration expanderConfig,
+                                             Injector injector, RequestContext requestContext) {
+        return new SelfPlusOneRatioExpander(expanderConfig.getStringList("fieldNames"),
+                expanderConfig.getBoolean("appendix"));
+    }
+
+    public List<ObjectNode> expand(List<ObjectNode> initialResult,
+                                   RequestContext requestContext) {
+        for (ObjectNode entity : initialResult) {
+            for (String fieldName : fieldNames) {
+                if (entity.has(fieldName)) {
+                    double value = entity.get(fieldName).asDouble();
+                    SelfPlusOneRatioFunction func = new SelfPlusOneRatioFunction();
+                    value = func.value(value);
+                    if (appendix) {
+                        entity.put(fieldName + appendix, value);
+                    } else {
+                        entity.put(fieldName, value);
+                    }
+                } else {
+                    logger.warn("The field {} is not present: {}", fieldName, entity.toString());
+                }
+            }
+        }
+        return initialResult;
     }
 }
