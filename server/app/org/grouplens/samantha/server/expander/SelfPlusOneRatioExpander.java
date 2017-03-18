@@ -20,23 +20,15 @@
  * SOFTWARE.
  */
 
-import org.junit.*;
+package org.grouplens.samantha.server.expander;
 
-import static org.junit.Assert.*;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.server.io.RequestContext;
 
+import java.util.List;
 
-/**
-*
-* Simple (JUnit) tests that can call all parts of a play app.
-* If you are interested in mocking a whole application, see the wiki for more details.
-*
-*/
-public class ApplicationTest {
-
-    @Test
-    public void simpleCheck() {
-        int a = 1 + 1;
-        assertEquals(2, a);
+public class SelfPlusOneRatioExpander implements EntityExpander {
+    public List<ObjectNode> expand(List<ObjectNode> initialResult, RequestContext requestContext) {
+        return null;
     }
-
 }

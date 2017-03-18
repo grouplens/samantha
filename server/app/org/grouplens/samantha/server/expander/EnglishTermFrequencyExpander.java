@@ -23,15 +23,14 @@
 package org.grouplens.samantha.server.expander;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.modeler.featurizer.SelfPlusOneRatioFunction;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.Configuration;
-import play.Logger;
 import play.inject.Injector;
 import play.libs.Json;
 
@@ -39,25 +38,24 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class TextTermFrequencyExpander implements EntityExpander {
+public class EnglishTermFrequencyExpander implements EntityExpander {
+    private static Logger logger = LoggerFactory.getLogger(EnglishTermFrequencyExpander.class);
+    final private List<String> textFields;
     final private String termField;
-    final private String textField;
     final private String normTermFreqField;
     final private Analyzer analyzer;
-    final private UnivariateFunction function;
 
-    public TextTermFrequencyExpander(String termField, String textField, String normTermFreqField) {
+    public EnglishTermFrequencyExpander(String termField, List<String> textFields, String normTermFreqField) {
         this.normTermFreqField = normTermFreqField;
-        this.textField = textField;
+        this.textFields = textFields;
         this.termField = termField;
         this.analyzer = new EnglishAnalyzer();
-        this.function = new SelfPlusOneRatioFunction();
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
-        return new TextTermFrequencyExpander(expanderConfig.getString("termField"),
-                expanderConfig.getString("textField"),
+        return new EnglishTermFrequencyExpander(expanderConfig.getString("termField"),
+                expanderConfig.getStringList("textField"),
                 expanderConfig.getString("normTermFreqField"));
     }
 
@@ -65,18 +63,23 @@ public class TextTermFrequencyExpander implements EntityExpander {
                                   RequestContext requestContext) {
         List<ObjectNode> expandedList = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
-            if (entity.has(textField)) {
-                String text = entity.get(textField).asText();
+            String text = "";
+            for (String textField : textFields) {
+                if (entity.has(textField)) {
+                    text += entity.get(textField).asText();
+                } else {
+                    logger.warn("The text field {} is not present: {}", textField, entity.toString());
+                }
+            }
+            if (!"".equals(text)) {
                 Map<String, Integer> termFreq = FeatureExtractorUtilities.getTermFreq(analyzer, text, termField);
                 for (Map.Entry<String, Integer> entry : termFreq.entrySet()) {
                     ObjectNode newEntity = Json.newObject();
                     IOUtilities.parseEntityFromJsonNode(entity, newEntity);
                     newEntity.put(termField, entry.getKey());
-                    newEntity.put(normTermFreqField, function.value(entry.getValue()));
+                    newEntity.put(normTermFreqField, entry.getValue());
                     expandedList.add(newEntity);
                 }
-            } else {
-                Logger.warn("The text field is not present: {}", entity.toString());
             }
         }
         return expandedList;

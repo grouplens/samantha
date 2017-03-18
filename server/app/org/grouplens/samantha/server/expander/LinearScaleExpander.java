@@ -29,49 +29,60 @@ import org.slf4j.LoggerFactory;
 import play.Configuration;
 import play.inject.Injector;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class ColumnToRowExpander implements EntityExpander {
+public class LinearScaleExpander implements EntityExpander {
     private static Logger logger = LoggerFactory.getLogger(ColumnToRowExpander.class);
-    final private List<String> colNames;
-    final private String nameAttr;
-    final private String valueAttr;
+    private final List<String> fieldNames;
+    private final double minValue;
+    private final double maxValue;
+    private final double targetMinValue;
+    private final double targetMaxValue;
+    private final Boolean appendix;
 
-    private ColumnToRowExpander(String nameAttr, String valueAttr, List<String> colNames) {
-        this.colNames = colNames;
-        this.nameAttr = nameAttr;
-        this.valueAttr = valueAttr;
+    private LinearScaleExpander(List<String> fieldNames, double minValue, double maxValue, Boolean appendix,
+                                double targetMinValue, double targetMaxValue) {
+        this.fieldNames = fieldNames;
+        this.maxValue = maxValue;
+        this.minValue = minValue;
+        this.appendix = appendix;
+        this.targetMaxValue = targetMaxValue;
+        this.targetMinValue = targetMinValue;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
-        return new ColumnToRowExpander(expanderConfig.getString("nameAttr"),
-            expanderConfig.getString("valueAttr"), 
-            expanderConfig.getStringList("colNames"));
+        return new LinearScaleExpander(expanderConfig.getStringList("fieldNames"),
+                expanderConfig.getDouble("minValue"),
+                expanderConfig.getDouble("maxValue"),
+                expanderConfig.getBoolean("appendix"),
+                expanderConfig.getDouble("targetMinValue"),
+                expanderConfig.getDouble("targetMaxValue"));
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                    RequestContext requestContext) {
-        List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
-            List<ObjectNode> oneExpanded = new ArrayList<>();
-            for (String colName : colNames) {
-                if (entity.has(colName)) {
-                    ObjectNode newEntity = entity.deepCopy();
-                    newEntity.put(nameAttr, colName);
-                    newEntity.set(valueAttr, entity.get(colName));
-                    oneExpanded.add(newEntity);
+            for (String fieldName : fieldNames) {
+                if (entity.has(fieldName)) {
+                    double value = entity.get(fieldName).asDouble();
+                    if (value >= maxValue) {
+                        value = targetMaxValue;
+                    } else if (value <= minValue) {
+                        value = targetMinValue;
+                    } else {
+                        value = (value - minValue) * (targetMaxValue - targetMinValue) / (maxValue - minValue);
+                    }
+                    if (appendix) {
+                        entity.put(fieldName + appendix, value);
+                    } else {
+                        entity.put(fieldName, value);
+                    }
                 } else {
-                    logger.warn("The column {} is not present: {}", colName, entity.toString());
+                    logger.warn("The column {} is not present: {}", fieldName, entity.toString());
                 }
             }
-            if (oneExpanded.size() > 0) {
-                expanded.addAll(oneExpanded);
-            } else {
-                expanded.add(entity);
-            }
         }
-        return expanded;
+        return initialResult;
     }
 }
