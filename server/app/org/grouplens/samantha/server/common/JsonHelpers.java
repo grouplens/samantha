@@ -339,6 +339,33 @@ public class JsonHelpers {
     }
 
     /**
+     * @return a Map<Integer, Double> from the input JsonNode with the given name, or throw an BadRequestException.
+     *         Must be a flat JsonNode or it will throw an BadRequestException.
+     */
+    public static Map<Integer, Double> getRequiredIntegerToDoubleMap(JsonNode json, String name) throws  BadRequestException {
+        final JsonNode node = json.get(name);
+
+        if (node == null || node.isNull() || !(node.isObject())) {
+            throw new BadRequestException("json is missing required object: " + name);
+        }
+
+        final Map<Integer, Double> map = new HashMap<>();
+        for (Iterator<Map.Entry<String, JsonNode>> iterator = node.fields(); iterator.hasNext(); ) {
+            Map.Entry<String, JsonNode> entry = iterator.next();
+            final String key = entry.getKey();
+            final Double value = getRequiredDouble(node, key);
+
+            try {
+                map.put(Integer.parseInt(key), value);
+            } catch (NumberFormatException e) {
+                throw new BadRequestException("key '" + key + "' is not an integer");
+            }
+        }
+
+        return map;
+    }
+
+    /**
      * @return a Map<String, Integer> from the input JsonNode with the given name, or throw an BadRequestException.
      *         Must be a flat JsonNode or it will throw an BadRequestException.
      */

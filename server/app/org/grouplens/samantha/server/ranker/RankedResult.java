@@ -13,12 +13,22 @@ public class RankedResult {
     final private int offset;
     final private int limit;
     final private long maxHits;
+    final private JsonNode params;
 
     public RankedResult(List<Prediction> ranking, int offset, int limit, long maxHits) {
         this.ranking = ranking;
         this.offset = offset;
         this.limit = limit;
         this.maxHits = maxHits;
+        this.params = null;
+    }
+
+    public RankedResult(List<Prediction> ranking, int offset, int limit, long maxHits, JsonNode params) {
+        this.ranking = ranking;
+        this.offset = offset;
+        this.limit = limit;
+        this.maxHits = maxHits;
+        this.params = params;
     }
 
     public List<Prediction> getRankingList() {
@@ -43,6 +53,9 @@ public class RankedResult {
             arr.add(prediction.toJson());
         }
         obj.set("ranking", arr);
+        if (params != null) {
+            obj.set("params", params);
+        }
         return obj;
     }
 }

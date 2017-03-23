@@ -1,7 +1,10 @@
 package org.grouplens.samantha.ephemeral;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Ordering;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
@@ -15,8 +18,10 @@ import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.ranker.AbstractRanker;
 import org.grouplens.samantha.server.ranker.RankedResult;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
+import org.grouplens.samantha.server.retriever.RetrieverUtilities;
 import play.Configuration;
 import play.Logger;
+import play.libs.Json;
 
 import java.text.DecimalFormat;
 import java.text.Format;
@@ -25,16 +30,21 @@ import java.util.stream.Collectors;
 
 public class EphemeralRanker extends AbstractRanker {
     private final SVDFeature svdFeature;
+    private final double revertToMeanConstant;
+    private final double revertToMeanFraction;
     private final Map<Integer, Double> preferenceWeights;
     private final Map<Integer, List<SelectionCriteria>> selectionCriteriaMap;
     private final Map<Integer, Integer> numRoundsToExclude;
     private final Map<String, Integer> expt;
     private Random random;
     private Format d = new DecimalFormat("#.###");
+    private RealVector averageUserVector = null;
 
     public EphemeralRanker(
             Configuration config,
             SVDFeature svdFeature,
+            double revertToMeanConstant,
+            double revertToMeanFraction,
             Map<Integer, Double> preferenceWeights,
             Map<Integer, List<SelectionCriteria>> selectionCriteriaMap,
             Map<Integer, Integer> numRoundsToExclude,
@@ -42,6 +52,8 @@ public class EphemeralRanker extends AbstractRanker {
             long seed) {
         super(config);
         this.svdFeature = svdFeature;
+        this.revertToMeanConstant = revertToMeanConstant;
+        this.revertToMeanFraction = revertToMeanFraction;
         this.preferenceWeights = preferenceWeights;
         this.selectionCriteriaMap = selectionCriteriaMap;
         this.numRoundsToExclude = numRoundsToExclude;
@@ -49,8 +61,23 @@ public class EphemeralRanker extends AbstractRanker {
         this.random = new Random(seed);
     }
 
+
+    private RealVector getUserVector(int movieId, RealVector defaultValue) {
+        try {
+            return getUserVector(movieId);
+        } catch (BadRequestException e) {
+            return defaultValue;
+        }
+    }
     private RealVector getUserVector(int userId) {
         return getVector("userId", userId);
+    }
+    private RealVector getMovieVector(int movieId, RealVector defaultValue) {
+        try {
+            return getMovieVector(movieId);
+        } catch (BadRequestException e) {
+            return defaultValue;
+        }
     }
     private RealVector getMovieVector(int movieId) {
         return getVector("movieId", movieId);
@@ -268,50 +295,117 @@ public class EphemeralRanker extends AbstractRanker {
 //        return seed;
 //    }
 
-    private RealVector computeDesiredVec(RealVector initialSeed, List<Map<Integer, List<Integer>>> roundsList) {
-        int i = 0;
-        while (initialSeed == null && i < roundsList.size()) {
-            RealVector numerator = new ArrayRealVector(svdFeature.getFactDim(), 0.0);
-            Double denominator = 0.0;
+//    private RealVector computeVecFromPreferenceGroup(Map<Integer, List<Integer>> round) {
+//        RealVector numerator = new ArrayRealVector(svdFeature.getFactDim(), 0.0);
+//        Double denominator = 0.0;
+//
+//        for (Map.Entry<Integer, List<Integer>> entry : round.entrySet()) {
+//            double w = preferenceWeights.getOrDefault(entry.getKey(), 0.0);
+//            double ww = w * Math.sqrt(entry.getValue().size());
+//            if (ww == 0) {
+//                continue;
+//            }
+//
+//            List<RealVector> vecs = entry.getValue().stream()
+//                    .map(x -> getMovieVector(x))
+//                    .collect(Collectors.toList());
+//
+//            RealVector prefVec = vecs.stream()
+//                    .map(v -> v.mapMultiply(ww))
+//                    .reduce((v1, v2) -> v1.add(v2))
+//                    .get();
+//
+//            numerator = numerator.add(prefVec);
+//            denominator += vecs.stream().mapToDouble(v -> v.getNorm() * Math.abs(ww)).sum();
+//        }
+//
+//        if (denominator == 0.0) { return null;}
+//        return numerator.mapDivide(denominator);
+//    }
 
-            for (Map.Entry<Integer, List<Integer>> entry : roundsList.get(i).entrySet()) {
-                double w = preferenceWeights.getOrDefault(entry.getKey(), 0.0);
-                double ww = w * Math.sqrt(entry.getValue().size());
-                if (ww == 0) { continue; }
+    private String realVectorToString(RealVector vec) {
+        String[] arr = new String[vec.getDimension()];
+        for (int i=0; i<vec.getDimension(); i++) {
+            arr[i] = d.format(Double.valueOf(vec.getEntry(i)));
+        }
+        return StringUtils.join(arr, ",");
+    }
 
-                List<RealVector> vecs = entry.getValue().stream()
-                        .map(x -> getMovieVector(x))
-                        .collect(Collectors.toList());
+    private RealVector getAverageUserVector() {
+        if (averageUserVector == null) {
+            List<Integer> indices = new ArrayList<>();
 
-                RealVector prefVec = vecs.stream()
-                        .map(v -> v.mapMultiply(ww))
-                        .reduce((v1, v2) -> v1.add(v2))
-                        .get();
-
-                numerator = numerator.add(prefVec);
-                denominator += vecs.stream().mapToDouble(v -> v.getNorm() * Math.abs(ww)).sum();
+            int size = svdFeature.getKeyMapSize(SVDFeatureKey.FACTORS.get());
+            for (int i = 0; i < size; i++) {
+                String key = (String) svdFeature.getKeyForIndex(SVDFeatureKey.FACTORS.get(), i);
+                if (key.startsWith("userId")) {
+                    indices.add(i);
+                } else if (!key.startsWith("movieId")) {
+                    throw new ConfigurationException("encountered vector variable that didn't start with userId or movieId");
+                }
             }
-            i++;
 
-            if (numerator == null || denominator == 0.0) {
-                Logger.info("Using a neutral starting point. Unable to construct intialSeed from round {}.", i);
-                continue;
+            if (indices.isEmpty()) {
+                throw new ConfigurationException("No userId vectors found");
             }
 
-            initialSeed = numerator.mapDivide(denominator);
-            Logger.info("Using neutral starting point. Constructed initialSeed with magnitude {} after {} rounds.", d.format(initialSeed.getNorm()), i);
+            averageUserVector = indices.stream()
+                    .map(index -> svdFeature.getVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), index))
+                    .reduce((v1, v2) -> v1.add(v2))
+                    .get().mapDivide(indices.size());
 
         }
+        return averageUserVector;
+    }
 
-        if (initialSeed == null) {
-            Logger.info("Using a neutral starting point. Unable to construct intialSeed after {} rounds.", i);
-            return null;
-        }
+    private RealVector computeDesiredVec(RealVector initialVec, List<Map<Integer, List<Integer>>> roundsList) {
+//        // For neutral starting points...
+//        int i = 0;
+//        while (initialVec == null && i < roundsList.size()) {
+//            RealVector numerator = new ArrayRealVector(svdFeature.getFactDim(), 0.0);
+//            Double denominator = 0.0;
+//
+//            for (Map.Entry<Integer, List<Integer>> entry : roundsList.get(i).entrySet()) {
+//                double w = preferenceWeights.getOrDefault(entry.getKey(), 0.0);
+//                double ww = w * Math.sqrt(entry.getValue().size());
+//                if (ww == 0) { continue; }
+//
+//                List<RealVector> vecs = entry.getValue().stream()
+//                        .map(x -> getMovieVector(x))
+//                        .collect(Collectors.toList());
+//
+//                RealVector prefVec = vecs.stream()
+//                        .map(v -> v.mapMultiply(ww))
+//                        .reduce((v1, v2) -> v1.add(v2))
+//                        .get();
+//
+//                numerator = numerator.add(prefVec);
+//                denominator += vecs.stream().mapToDouble(v -> v.getNorm() * Math.abs(ww)).sum();
+//            }
+//            i++;
+//
+//            if (numerator == null || denominator == 0.0) {
+//                Logger.info("Using a neutral starting point. Unable to construct intialSeed from round {}.", i);
+//                continue;
+//            }
+//
+//            initialVec = numerator.mapDivide(denominator);
+//            Logger.info("Using neutral starting point. Constructed initialVec with magnitude {} after {} rounds.", d.format(initialVec.getNorm()), i);
+//
+//        }
+//
+//        if (initialVec == null) {
+//            Logger.info("Using a neutral starting point. Unable to construct intialSeed after {} rounds.", i);
+//            return null;
+//        }
 
-        RealVector currentVec = initialSeed.mapDivide(initialSeed.getNorm());
+        RealVector currentVec = initialVec.mapDivide(initialVec.getNorm());
+        RealVector defaultVec = getAverageUserVector();
+        defaultVec = defaultVec.mapDivide(defaultVec.getNorm());
 
         // Iterate over each round, adding the user's preferences to the
         // "desired" vector and more heavily weighting more recent rounds.
+        int i = 0;
         for (Map<Integer, List<Integer>> round : roundsList.subList(i, roundsList.size())) {
             i++;
             final RealVector roundSeed = currentVec;
@@ -336,7 +430,8 @@ public class EphemeralRanker extends AbstractRanker {
             double minNorm = vectorNorms.stream().mapToDouble(x -> x).min().orElse(-1.0);
             if (maxNorm < 0.0 || minNorm < 0.0) { throw new BadRequestException(); }
 
-
+            double distanceNumerator = 0.0;
+            double distanceDenominator = 0.0;
             double movementNumerator = 0.0;
             double movementDenominator = 0.0;
             RealVector vNumerator = new ArrayRealVector(currentVec.getDimension(), 0.0);
@@ -364,11 +459,15 @@ public class EphemeralRanker extends AbstractRanker {
                 // Add the absolute value of the preferenceWeights to the denominator
                 vDenominator += dNorms.stream().mapToDouble(n -> n * Math.abs(ww)).sum();
 
+
                 // Calculate the movement pressure.
                 if (ww > 0.0) {
                     // All positive vectors are given an equal weight of 1.
                     movementNumerator += Math.abs(w) * dNorms.stream().mapToDouble(x -> x).sum();
                     movementDenominator += Math.abs(w) * dVecs.size();
+
+                    distanceNumerator += Math.abs(ww) * dNorms.stream().mapToDouble(x -> x).sum();
+                    distanceDenominator += Math.abs(ww) * dVecs.size();
                 } else { // ww < 0.0
                     // When minNorm is close to maxNorm, the weight of negative
                     // vectors will be close to 1, but all vectors will have
@@ -379,19 +478,48 @@ public class EphemeralRanker extends AbstractRanker {
                     double totalNegWeight = dNorms.stream().mapToDouble(n -> Math.pow(0.1, (n - minNorm) / (2 * minNorm))).sum();
                     movementNumerator += Math.abs(w) * maxNorm * totalNegWeight;
                     movementDenominator += Math.abs(w) * totalNegWeight;
+
+                    distanceNumerator += Math.abs(ww) * dNorms.stream().mapToDouble(x -> maxNorm + minNorm - x).sum();
+                    distanceDenominator += Math.abs(ww) * dVecs.size();
                 }
 
                 // Add up the selected vector norms, so we can calculate a percentage...
                 selectedNorm += dNorms.stream().mapToDouble(x -> x).sum();
             }
 
-            RealVector direction = vNumerator.mapDivide(vDenominator);
-            double movement = movementNumerator / movementDenominator;
-            double confidence = Math.pow(selectedNorm / totalNorm, 0.25);
+            if (vDenominator !=0) {
+                RealVector direction = vNumerator.mapDivide(vDenominator);
 
-            RealVector delta = direction.mapMultiply(movement * confidence);
-            currentVec = currentVec.add(delta);
-            currentVec = currentVec.mapDivide(currentVec.getNorm());
+                // TODO: Move more for earlier rounds?
+                double movement = movementNumerator / movementDenominator;
+                double confidence = Math.pow(selectedNorm / totalNorm, 0.25);
+                double distance = distanceNumerator / distanceDenominator;
+
+
+//                RealVector delta = direction.mapMultiply(movement * confidence);
+//                RealVector delta = direction.mapMultiply(distance);
+                RealVector delta = direction.mapMultiply(distance * confidence);
+
+                currentVec = currentVec.add(delta);
+                currentVec = currentVec.mapDivide(currentVec.getNorm());
+            }
+
+            double revertToMeanMultiplier = revertToMeanConstant;
+            if (revertToMeanFraction != 0) {
+                // getDistanceMetric("cosine", ...) will return a value between 0 and 1, where:
+                // >>> 0 indicates the vectors are in the same direction;
+                // >>> 0.5 indicates orthogonal vectors; and
+                // >>> 1 indicates vectors in the opposite direction.
+                revertToMeanMultiplier += getDistanceMetricScore("cosine", currentVec, defaultVec) * revertToMeanFraction;
+            }
+
+            // Add in a little bit of the average user vector and renormalize.
+            if (revertToMeanMultiplier != 0) {
+                Logger.info("before: Cosine of {} from avg user vec to current vec", d.format(currentVec.cosine(defaultVec)));
+                currentVec = currentVec.mapMultiply(1.0 - revertToMeanMultiplier).add(defaultVec.mapMultiply(revertToMeanMultiplier));
+                currentVec = currentVec.mapDivide(currentVec.getNorm());
+                Logger.info("after: Cosine of {} from avg user vec to current vec", d.format(currentVec.cosine(defaultVec)));
+            }
 
             if (i == 1) {
                 Logger.info("Cosine of {} from user seed to round 1", d.format(currentVec.cosine(roundSeed)));
@@ -401,7 +529,7 @@ public class EphemeralRanker extends AbstractRanker {
         }
 
         if (i > 1) {
-            Logger.info("Cosine of {} from user seed to round {}", d.format(currentVec.cosine(initialSeed)), i);
+            Logger.info("Cosine of {} from user seed to round {}", d.format(currentVec.cosine(initialVec)), i);
         }
 
         return currentVec;
@@ -471,9 +599,23 @@ public class EphemeralRanker extends AbstractRanker {
         }
         Logger.info("Considering {} rounds", roundsList.size());
 
+
         List<Integer> ratedMovieIds = new ArrayList<>();
+        List<RealVector> recentlyRated = new ArrayList<>(3);
         try {
-            ratedMovieIds = JsonHelpers.getRequiredListOfInteger(reqBody, "ratedMovieIds");
+            JsonNode ratedMoviesNode = JsonHelpers.getRequiredJson(reqBody, "ratedMovies");
+            if (!ratedMoviesNode.isArray()) { throw new BadRequestException("ratedMovies must be an array"); }
+            for (JsonNode node : (ArrayNode) ratedMoviesNode) {
+                try {
+                    int movieId = JsonHelpers.getRequiredInt(node, "movieId");
+                    ratedMovieIds.add(movieId);
+
+                    double rating = JsonHelpers.getRequiredDouble(node, "rating");
+                    if (recentlyRated.size() < 5 && rating > 3.0) {
+                        recentlyRated.add(getMovieVector(movieId));
+                    }
+                } catch (BadRequestException e) { continue; }
+            }
         } catch (BadRequestException e) {
             Logger.info("request does not contain any rated movies");
         }
@@ -498,152 +640,280 @@ public class EphemeralRanker extends AbstractRanker {
 
         // Ensure that each round uses a different, but reproducible seed.
 
+        // TODO: Support different algorithm conditions
+        if (expt.get("algorithm") == 2) {
+            // random
+        } else if (expt.get("algorithm") == 1) {
+            // top-n
+        } else if (expt.get("algorithm") == 0) {
+            // real algorithm
+        } else {
+            throw new BadRequestException("algorithm must be 0, 1, or 2");
+        }
+
+
         /*
          * STEP 2: Compute a "desired" vector based on the user's chosen
          * starting point and their subsequent elicited preferences.
          */
-        RealVector initialSeed = null;
-        if (expt.get("origin") == 0){ initialSeed = getUserVector(userId); }
-        final RealVector desiredVec = computeDesiredVec(initialSeed, roundsList);
+        RealVector initialVec = null;
+        if (expt.get("origin") == 1){
+            try {
+                initialVec = getUserVector(userId);
+                Logger.info("Using a starting point personalized to long-term preference");
+            } catch (BadRequestException e) {
+                Logger.error("User had no user vector to use for initial vector");
+                initialVec = null; // Go with condition 0
+            }
+        } else if (expt.get("origin") == 2) {
+            if (!recentlyRated.isEmpty()) {
+                initialVec = recentlyRated.stream()
+                        .reduce((v1, v2) -> v1.add(v2))
+                        .get()
+                        .mapDivide(recentlyRated.size());
+                Logger.info("Using a starting point personalized to short-term preference with {} movies", recentlyRated.size());
+            } else {
+                Logger.error("User had no positively rated movies to construct initial vector from");
+                initialVec = null; // Go with condition 0
+            }
+        } else {
+            initialVec = getAverageUserVector();
+        }
+        final RealVector desiredVec = computeDesiredVec(initialVec, roundsList);
 
         /*
          * STEP 3: Filter the candidate movies and select movies from the resulting set.
          */
 
-        // Get the selection criteria for the current round, defaulting to -1.
-        List<SelectionCriteria> selectionCriteria = selectionCriteriaMap.getOrDefault(
-                roundsList.size() + 1,
-                selectionCriteriaMap.get(-1)
-        );
+        // Get the selection criteria for the current round, defaulting to
+        // previous rounds as necessary.
+        final int currentRoundNum = roundsList.size() + 1;
+        int selectionCriteriaNum = selectionCriteriaMap.keySet().stream()
+                .filter(x -> x <= currentRoundNum)
+                .mapToInt(x -> x)
+                .max().orElse(1);
+        if (selectionCriteriaNum <= 0) {
+            throw new ConfigurationException("selectionCriteriaByRound must contain key 1");
+        }
+        List<SelectionCriteria> selectionCriteria = selectionCriteriaMap.get(selectionCriteriaNum);
+
 
         // Get the set of movies to exclude...
         Set<Integer> exclusions = getExclusions(roundsList);
         Logger.info("Excluding {} movies shown in previous rounds", exclusions.size());
         exclusions.addAll(ignoredMovieIds); // add any exclusions specified in the request
 
-        int limit = getLimit(selectionCriteria, ratedMovieIds);
-        List<ObjectNode> candidates;
-        if (desiredVec == null) {
-            // No starting point yet, so we use a more general approach to movie selection.
-            candidates = filterItems(limit, retrievedResult.getEntityList(), selectionCriteria, exclusions);
-        } else {
-            candidates = filterItems(desiredVec, limit, retrievedResult.getEntityList(), selectionCriteria, exclusions);
-        }
 
-
-        // Prepare the data structures needed for item selection.
-        List<Integer> candidateIds = candidates.stream()
-                .map(o -> o.get("movieId").asInt())
+        // Get all items (excluding those in previous rounds) and score them
+        List<ObjectNode> universe = retrievedResult.getEntityList().stream()
+                .filter(obj -> !exclusions.contains(obj.get("movieId").asInt()))
                 .collect(Collectors.toList());
-        Map<Integer, RealVector> movieVectorMap = candidateIds.stream()
-                .collect(Collectors.toMap(x -> x, x -> getMovieVector(x)));
+        scoreItems(desiredVec, universe);
 
-        // Select items according to the specified criteria
-        List<Integer> selected = new ArrayList<>();
+
+        List<ObjectNode> selected = new ArrayList<>();
         for (SelectionCriteria criteria : selectionCriteria) {
-            Logger.info("*** Selecting {} of top {} movies, dropout={}, ratedDropout={} ***",
-                    criteria.n, criteria.limit, criteria.dropout, criteria.ratedDropout);
-
-            selectItems(selected, movieVectorMap, candidateIds, ratedMovieIds, criteria);
+            selectItems(selected, universe, ratedMovieIds, criteria);
         }
 
-        /*
-         * STEP 4: Return selected movies in the correct format.
-         */
-
-
-        List<ObjectNode> entityList = candidates.stream()
-                .filter(o -> selected.contains(o.get("movieId").asInt()))
-                .collect(Collectors.toList());
-        Collections.shuffle(entityList, random);
-
-//        // TODO: Use the code above to randomize
-//        Map<Integer, ObjectNode> objectMapper = topEntities.stream().collect(Collectors.toMap(
-//                o -> o.get("movieId").asInt(),
-//                o -> o
-//        ));
-//        List<ObjectNode> entityList = selected.stream()
-//                .map(x -> objectMapper.get(x))
+//        // Get the list of candidate movies to select among.
+//        List<ObjectNode> candidates = new ArrayList<>();
+//        Map<Integer, RealVector> movieVectorMap = new HashMap<>();
+//        for (ObjectNode entity : retrievedResult.getEntityList()) {
+//            int movieId = entity.get("movieId").asInt();
+//            try {
+//                movieVectorMap.put(movieId, getMovieVector(movieId));
+//                candidates.add(entity);
+//            } catch (BadRequestException e) {
+//                Logger.warn("movieId {} not in model", movieId);
+//                continue;
+//            }
+//        }
+//
+//        Logger.info("universe contains {} movies", candidates.size());
+//        Logger.info("vector element range [{}, {}, {}]",
+//                movieVectorMap.values().stream().mapToDouble(x -> x.getMinValue()).min().getAsDouble(),
+//                movieVectorMap.values().stream().mapToDouble(x -> x.getL1Norm() / x.getDimension()).average().getAsDouble(),
+//                movieVectorMap.values().stream().mapToDouble(x -> x.getMaxValue()).max().getAsDouble());
+//
+////        if (desiredVec == null) {
+////            selectionCriteria = selectionCriteriaMap.get(0); // TODO: is this a good approach?
+////            // No starting point yet, so we use a more general approach to movie selection.
+////            int limit = getLimit(selectionCriteria, ratedMovieIds);
+////            candidates = filterItems(limit, candidates, selectionCriteria, exclusions);
+////        } else {
+////            int limit = getLimit(selectionCriteria, ratedMovieIds);
+////            candidates = filterItems(desiredVec, limit, candidates, selectionCriteria, exclusions);
+////        }
+//
+//        // Prepare the data structures needed for item selection.
+//        List<Integer> candidateIds = candidates.stream()
+//                .map(o -> o.get("movieId").asInt())
 //                .collect(Collectors.toList());
+//
+//        List<Integer> selected = new ArrayList<>();
+//        for (SelectionCriteria criteria : selectionCriteria) {
+//            // TODO: Fix logging to use new criteria parameters...
+//            Logger.info("*** Selecting {} of top ??{}?? movies, dropout={}, ratedDropout={} ***",
+//                    criteria.n, criteria.limit, criteria.dropout, criteria.ratedDropout);
+//
+//            Ordering<ObjectNode> ordering = RetrieverUtilities.jsonFieldOrdering("");
+//            ordering.sortedCopy()
+//
+//            selectItems(selected, movieVectorMap, candidateIds, ratedMovieIds, criteria, "manhattanDistance");
+//        }
+//
+////        if (desiredVec == null) {
+////            Collections.shuffle(candidateIds);
+////            selected = candidateIds.subList(0, 10);
+////        }
+//        /*
+//         * STEP 4: Return selected movies in the correct format.
+//         */
+//
+//        final List<Integer> selectedCopy = selected;
+//        List<ObjectNode> entityList = candidates.stream()
+//                .filter(o -> selectedCopy.contains(o.get("movieId").asInt()))
+//                .collect(Collectors.toList());
+//        //Collections.shuffle(entityList, random);
 
         if (desiredVec != null) {
-            Logger.info("Final selected cosine scores: {}", entityList.stream()
+            Logger.info("Final selected cosine scores: {}", selected.stream()
                     .map(o -> d.format(o.get("cosine").asDouble()))
                     .collect(Collectors.toList())
                     .toString());
         }
 
         // Return the chosen set of movies in the correct format.
-        List<Prediction> ranking = entityList.stream()
+        List<Prediction> ranking = selected.stream()
                 .map((entity) -> new Prediction(entity, null, 0.0))
                 .collect(Collectors.toList());
-        return new RankedResult(ranking, 0, ranking.size(), ranking.size());
+
+        ObjectNode params = null;
+
+        // Change this user's experimental condition...
+        if (initialVec == null) {
+            params = Json.newObject();
+            params.put("origin", 0);
+        }
+
+        return new RankedResult(ranking, 0, ranking.size(), ranking.size(), params);
     }
 
-    private int getLimit(List<SelectionCriteria> selectionCriteria, Collection<Integer> ratedMovieIds) {
-        // Figure out a good maximum number of items to consider, given the specified dropout parameters
-        final int numRated = ratedMovieIds.size();
-        int maxLimit = (int) selectionCriteria.stream()
-                .mapToDouble(x -> 1.25 * x.limit * (1 / (1 - x.dropout)) + 0.25 * x.ratedDropout * numRated)
-                .max().getAsDouble();
-        return maxLimit;
-    }
+//    private int getLimit(List<SelectionCriteria> selectionCriteria, Collection<Integer> ratedMovieIds) {
+//        // Figure out a good maximum number of items to consider, given the specified dropout parameters
+//        final int numRated = ratedMovieIds.size();
+//        int maxLimit = (int) selectionCriteria.stream()
+//                .mapToDouble(x -> 1.25 * x.limit * (1 / (1 - x.dropout)) + 0.25 * x.ratedDropout * numRated)
+//                .max().getAsDouble();
+//        return maxLimit;
+//    }
 
-    // TODO: Filter this by all time pop, pop last year, and pop last month, release date, etc.
-    // TODO: The goal is to make this list change reasonably often, while still displaying well known items...
-    private List<ObjectNode> filterItems(int limit, List<ObjectNode> universe, List<SelectionCriteria> selectionCriteria, Collection<Integer> exclusions) {
-        return universe.stream()
-                .filter(x -> !exclusions.contains(x.get("movieId").asInt()))
-                .limit(limit)
-                .collect(Collectors.toList());
-    }
+//    // TODO: Use reddis integration to filter these items...
+//    // TODO: Filter this by all time pop, pop last year, and pop last month, release date, etc.
+//    // TODO: The goal is to make this list change reasonably often, while still displaying well known items...
+//    private List<ObjectNode> filterItems(int limit, List<ObjectNode> universe, List<SelectionCriteria> selectionCriteria, Collection<Integer> exclusions) {
+//        return universe.stream()
+//                .filter(x -> !exclusions.contains(x.get("movieId").asInt()))
+//                .limit(limit)
+//                .collect(Collectors.toList());
+//    }
 
-    private List<ObjectNode> filterItems(RealVector desiredVec, int limit, List<ObjectNode> universe, List<SelectionCriteria> selectionCriteria, Collection<Integer> exclusions) {
-        // Get the topN movies that have the largest dot product with the
-        // "desired" vector that we constructed above, ignoring exclusions.
-        TopNAccumulator<ObjectNode> accum = new TopNAccumulator<>(limit);
-        List<ObjectNode> allEntities = new ArrayList<>();
+    /////////////////
+    // SCORE ITEMS //
+    /////////////////
 
+    private void scoreItems(RealVector desiredVec, List<ObjectNode> universe) {
         for (ObjectNode entity : universe) {
-            int movieId = entity.get("movieId").asInt();
-            if (exclusions.contains(movieId)) { continue; }
+            RealVector movieVec = getMovieVector(entity.get("movieId").asInt());
 
             // Score the entity
-            double cosine = getSimilarityMetricScore("cosine", desiredVec, getMovieVector(movieId));
-            double dotProduct = getSimilarityMetricScore("dotProduct", desiredVec, getMovieVector(movieId));
-            double score = dotProduct * Math.pow(Math.abs(cosine), 2);
+            double cosine = getSimilarityMetricScore("cosine", desiredVec, movieVec);
+            double dotProduct = getSimilarityMetricScore("dotProduct", desiredVec, movieVec);
+            double magnitude = movieVec.getNorm();
+            double score1 = dotProduct * Math.pow(Math.abs(cosine), 1);
+            double score2 = dotProduct * Math.pow(Math.abs(cosine), 2);
+            double score3 = dotProduct * Math.pow(Math.abs(cosine), 3);
+            double score4 = dotProduct * Math.pow(Math.abs(cosine), 3);
+            double score5 = dotProduct * Math.pow(Math.abs(cosine), 3);
+
             entity.put("cosine", cosine);
             entity.put("dotProduct", dotProduct);
-            entity.put("score", score);
-
-            // Save a list of all entities considered for logging purposes
-            allEntities.add(entity);
-
-            if (score < 0.0) { continue; } // must have a positive score
-            accum.put(entity, score);
+            entity.put("magnitude", magnitude);
+            entity.put("score1", score1);
+            entity.put("score2", score2);
+            entity.put("score3", score3);
+            entity.put("score4", score4);
+            entity.put("score5", score5);
         }
 
-        List<ObjectNode> topEntities = accum.finishList();
-
-        // Log the cosine, dot product, and score of both the entities
-        // considered and the entities selected.
-        Logger.info("Chose top {} movies ({} requested)", topEntities.size(), limit);
-        for (String key : Arrays.asList("score", "cosine", "dotProduct")) {
-            double min = allEntities.stream().mapToDouble(x -> x.get(key).asDouble()).min().orElse(1.0 / 0.0);
-            double minSelected = topEntities.stream().mapToDouble(x -> x.get(key).asDouble()).min().orElse(1.0 / 0.0);
-            double max = allEntities.stream().mapToDouble(x -> x.get(key).asDouble()).max().orElse(-1.0 / 0.0);
-            double maxSelected = topEntities.stream().mapToDouble(x -> x.get(key).asDouble()).max().orElse(-1.0 / 0.0);
-
-            Logger.info("{}: min {}, min selected {}, max selected {}, max {}", key,
-                    d.format(min), d.format(minSelected), d.format(maxSelected), d.format(max));
+        for (String key : Arrays.asList("score1", "score2", "score3", "cosine", "dotProduct", "magnitude")) {
+            double min = universe.stream().mapToDouble(x -> x.get(key).asDouble()).min().orElse(1.0 / 0.0);
+            double max = universe.stream().mapToDouble(x -> x.get(key).asDouble()).max().orElse(-1.0 / 0.0);
+            Logger.info("{}: min{}, max {}", key, d.format(min), d.format(max));
         }
-
-        return topEntities;
     }
+
+    //////////////////
+    // FILTER ITEMS //
+    //////////////////
+
+
+//    private List<ObjectNode> filterItems(RealVector desiredVec, int limit, List<ObjectNode> universe, List<SelectionCriteria> selectionCriteria, Collection<Integer> exclusions) {
+//        // Get the topN movies that have the largest dot product with the
+//        // "desired" vector that we constructed above, ignoring exclusions.
+//        TopNAccumulator<ObjectNode> accum = new TopNAccumulator<>(limit);
+//        List<ObjectNode> allEntities = new ArrayList<>();
+//
+//        int cnt = 0;
+//        for (ObjectNode entity : universe) {
+//            int movieId = entity.get("movieId").asInt();
+//            if (exclusions.contains(movieId)) { continue; }
+//
+//            // Score the entity
+//            double cosine = getSimilarityMetricScore("cosine", desiredVec, getMovieVector(movieId));
+//            double dotProduct = getSimilarityMetricScore("dotProduct", desiredVec, getMovieVector(movieId));
+//            double magnitude = getMovieVector(movieId).getNorm();
+//            double score1 = dotProduct * Math.pow(Math.abs(cosine), 1);
+//            double score2 = dotProduct * Math.pow(Math.abs(cosine), 2);
+//            double score3 = dotProduct * Math.pow(Math.abs(cosine), 3);
+//            entity.put("cosine", cosine);
+//            entity.put("dotProduct", dotProduct);
+//            entity.put("magnitude", magnitude);
+//
+//            double score = score3;
+//            entity.put("score", score);
+//
+//            // Save a list of all entities considered for logging purposes
+//            allEntities.add(entity);
+//
+//            //if (cosine < 0.80) { continue; }
+//            if (score < 0.0) { continue; } // must have a positive score
+//            accum.put(entity, score);
+//            cnt++;
+//        }
+//
+//        List<ObjectNode> topEntities = accum.finishList();
+//
+//        // Log the cosine, dot product, and score of both the entities
+//        // considered and the entities selected.
+//        Logger.info("Chose top {} movies ({} requested, {} available)", topEntities.size(), limit, cnt);
+//        for (String key : Arrays.asList("score", "cosine", "dotProduct", "magnitude")) {
+//            double min = allEntities.stream().mapToDouble(x -> x.get(key).asDouble()).min().orElse(1.0 / 0.0);
+//            double minSelected = topEntities.stream().mapToDouble(x -> x.get(key).asDouble()).min().orElse(1.0 / 0.0);
+//            double max = allEntities.stream().mapToDouble(x -> x.get(key).asDouble()).max().orElse(-1.0 / 0.0);
+//            double maxSelected = topEntities.stream().mapToDouble(x -> x.get(key).asDouble()).max().orElse(-1.0 / 0.0);
+//
+//            Logger.info("{}: min {}, min selected {}, max selected {}, max {}", key,
+//                    d.format(min), d.format(minSelected), d.format(maxSelected), d.format(max));
+//        }
+//
+//        return topEntities;
+//    }
 
 //    private double weightedGeometricMean(List<WeightedDouble> values) {
 //        if (values.isEmpty()) { return -1.0; }
-//        if (values.stream().filter(x -> x.value < 0.0 || x.weight <= 0.0).count() > 0) {
+//        if (values.stream().filter(x -> x.value < 0.0 || x.weight <= 0.0).limit() > 0) {
 //            throw new IllegalArgumentException("values must be nonnegative and their preferenceWeights must be positive");
 //        }
 //
@@ -657,7 +927,7 @@ public class EphemeralRanker extends AbstractRanker {
 //    }
 //    private double geometricMean(List<Double> values) {
 //        if (values.isEmpty()) { return -1.0; }
-//        if (values.stream().filter(x -> x < 0.0).count() > 0) {
+//        if (values.stream().filter(x -> x < 0.0).limit() > 0) {
 //            throw new IllegalArgumentException("values must be nonnegative");
 //        }
 //
@@ -688,107 +958,124 @@ public class EphemeralRanker extends AbstractRanker {
 //        else { return -1.0; }
 //    }
 
-    private void selectItems(List<Integer> candidates,
-                             Map<Integer, RealVector> movieVectorMap,
-                             List<Integer> topMovieIds,
-                             Collection<Integer> ratedMovieIds,
+    private void selectItems(List<ObjectNode> selected,
+                             List<ObjectNode> universe,
+                             List<Integer> ratedMovieIds,
                              SelectionCriteria criteria) {
 
-        int i = 0;
-        while (i < criteria.n) {
-            TopNAccumulator<Integer> top = new TopNAccumulator<>(1);
+        Logger.info("Selecting {} of {} movies: ratedDropout={}, dropout={}",
+                criteria.n, criteria.limit, criteria.ratedDropout, criteria.dropout);
 
-            List<RealVector> candidateVectors = candidates.stream()
-                    .map(x -> movieVectorMap.get(x))
+        Ordering<ObjectNode> ordering = RetrieverUtilities.jsonFieldOrdering(criteria.similarityMetric);
+        List<ObjectNode> sortedEntities = ordering.reverse().immutableSortedCopy(universe);
+        List<ObjectNode> candidates = sortedEntities.stream()
+                .filter(obj -> obj.get(criteria.similarityMetric).asDouble() > criteria.excludeBelow)
+                .collect(Collectors.toList());
+
+        int startingSize = selected.size();
+        while (selected.size() < startingSize + criteria.n) {
+            TopNAccumulator<ObjectNode> top = new TopNAccumulator<>(1);
+            List<RealVector> selectedVectors = selected.stream()
+                    .map(obj -> getMovieVector(obj.get("movieId").asInt()))
                     .collect(Collectors.toList());
+            Set<Integer> selectedIds = selected.stream()
+                    .map(obj -> obj.get("movieId").asInt())
+                    .collect(Collectors.toSet());
 
+
+            double minValue = - 1.0 / 0.0;
+            double maxValue = 1.0 / 0.0;
             int numIterated = 0;
-            int numCompared = 0;
-            for (Integer movieId : topMovieIds) {
-                if (candidates.contains(movieId)) { continue; } // exclude selected movies...
+            for (ObjectNode obj : candidates) {
+                int id = obj.get("movieId").asInt();
+                if (selectedIds.contains(id)) { continue; }
 
                 numIterated++;
+                if (random.nextDouble() < criteria.dropout) { continue; }
+                if (ratedMovieIds.contains(id) && random.nextDouble() < criteria.ratedDropout) { continue; }
 
-                if (random.nextDouble() < criteria.dropout) { continue; } // dropout some proportion of movies...
-                if (random.nextDouble() < criteria.ratedDropout && ratedMovieIds.contains(movieId)) { continue; } // dropout some proportion of rated movies...
+                double distance = getMinDistanceToVectors(criteria.diversityMetric, selectedVectors, getMovieVector(id));
+                if (distance < 0) { distance = distance * random.nextDouble(); } // Randomize first choice
+                top.put(obj, distance);
 
-//                List<WeightedDouble> values = new ArrayList<>();
-//
-//                if (!candidates.isEmpty()) {
-//                    double distance = getMinDistanceToVectors(candidateVectors, movieVectorMap.get(movieId));
-//                    if (diversityMetric.equals("cosine")) { // TODO: Remove, or put in diversity metric code?
-//                        distance += 1; // cosine is between -1 and 0, so we can increment it by one to get a nonnegative value
-//                    }
-//                    values.add(new WeightedDouble(distance, 1.0));
-//                }
-//
-//                if (criteria.itemBiasWeighting > 0.0) { // quality
-//                    double sigmoidMovieBias = sigmoid.value(getMovieBias(movieId));
-//                    values.add(new WeightedDouble(sigmoidMovieBias, criteria.itemBiasWeighting));
-//                }
-//
-//                if (criteria.logSupportWeighting > 0.0) { // popularity
-//                    double logSupport = Math.log10(getMovieSupport(movieId));
-//                    values.add(new WeightedDouble(logSupport, criteria.logSupportWeighting));
-//                }
-//
-//                if (criteria.avgRatingWeighting > 0.0) { // quality
-//                    double avgRating = movieDetails.get(movieId).get("avgRating").asDouble();
-//                    values.add(new WeightedDouble(avgRating, criteria.avgRatingWeighting));
-//                }
-//
-//                if (criteria.logNumRatingsWeighting > 0.0) { // popularity
-//                    double logNumRatings = Math.log(movieDetails.get(movieId).get("numRatings").asInt());
-//                    values.add(new WeightedDouble(logNumRatings, criteria.logNumRatingsWeighting));
-//                } else if (criteria.logNumRatingsWeighting < 0.0) {
-//                    double logNumRatings = 1.0 / Math.log(movieDetails.get(movieId).get("numRatings").asInt());
-//                    values.add(new WeightedDouble(logNumRatings, Math.abs(criteria.logNumRatingsWeighting)));
-//                }
-//
-//                if (criteria.halflife15YearsWeighting > 0.0) { // recency
-//                    double halflife15Years;
-//                    try {
-//                        halflife15Years = Math.pow(0.5, movieDetails.get(movieId).get("daysOld").asInt() / (365.0 * 15.0));
-//                    } catch (Throwable e) {
-//                        // Assume movies with no release date are 50 years old.
-//                        halflife15Years = Math.pow(0.5, 50.0 / 15.0);
-//                    }
-//                    values.add(new WeightedDouble(halflife15Years, criteria.halflife15YearsWeighting));
-//                }
-
-
-                // Calculate distance between the current movie's vector and
-                // those we've already selected. Returns -1, when no vectors.
-
-                double score = getMinDistanceToVectors("euclideanDistance", candidateVectors, movieVectorMap.get(movieId));
-                if (score < 0) { score = score * random.nextDouble(); } // Randomize first choice
-                top.put(movieId, score);
-                numCompared++;
-
-                // Only compare up to criteria.limit number of candidates.
-                if (numCompared >= criteria.limit) { break; }
-
+                if (top.count() == 1) {
+                    maxValue = obj.get(criteria.similarityMetric).asDouble();
+                }
+                if (top.count() >= criteria.limit) {
+                    minValue = obj.get(criteria.similarityMetric).asDouble();
+                    break;
+                }
             }
 
-            // Get the top choice movie.
-            int chosenMovieId = top.max();
-
-            // Log the top choice movie's distance and the maximum possible distance.
-            double chosenMinD = getMinDistanceToVectors("euclideanDistance", candidateVectors, movieVectorMap.get(chosenMovieId));
-            double maxMinD = topMovieIds.stream()
-                    .filter(x -> !candidates.contains(x))
-                    .limit(numIterated)
-                    .mapToDouble(v -> getMinDistanceToVectors("euclideanDistance", candidateVectors, movieVectorMap.get(v)))
-                    .max().orElse(-1.0);
-            Logger.info("Iterated over {} (of {}) movies to select movieId={} with min dist {} (max {}).",
-                    numIterated, topMovieIds.size(), chosenMovieId, d.format(chosenMinD), d.format(maxMinD));
-
-            candidates.add(chosenMovieId);
-            i++;
+            ObjectNode chosen = top.max();
+            double distance = getMinDistanceToVectors(
+                    criteria.diversityMetric,
+                    selectedVectors,
+                    getMovieVector(chosen.get("movieId").asInt())
+            );
+            Logger.info("Selected item with {}={} after comparing {} of {} items with {}=[{}, {}]",
+                    criteria.diversityMetric, d.format(distance),
+                    top.count(), numIterated,
+                    criteria.similarityMetric, d.format(minValue), d.format(maxValue));
+            selected.add(chosen);
         }
 
-    }
 
+
+
+//        // Consider the given number of limit items
+//        int limit = 0;
+//        for (ObjectNode obj : sortedEntities.subList(primary.size(), sortedEntities.size())) {
+//            if (obj.get(criteria.similarityMetric).asDouble() < criteria.excludeBelow) { break; }
+//            if (limit >= criteria.limit) { break; }
+//            candidates.add(obj);
+//        }
+//
+//
+//        int ratedBound = (int) Math.round(criteria.ratedDropout * ratedMovieIds.size());
+//        int candidateBound = (int) Math.round(criteria.dropout * candidates.size());
+//
+//
+//        int startingSize = selected.size();
+//        while (selected.size() < startingSize + criteria.n) {
+//            TopNAccumulator<ObjectNode> top = new TopNAccumulator<>(1);
+//            List<RealVector> selectedVectors = selected.stream()
+//                    .map(x -> movieVectorMap.get(x))
+//                    .collect(Collectors.toList());
+//
+//            // Randomize the candidates and rated movies we'll be dropping
+//            Collections.shuffle(candidates, random);
+//            Collections.shuffle(ratedMovieIds, random);
+//
+//            Set<Integer> exclusions = selected.stream()
+//                    .map(obj -> obj.get("movieId").asInt())
+//                    .collect(Collectors.toSet());
+//            exclusions.addAll(ratedMovieIds.subList(0, ratedBound));
+//
+//            List<ObjectNode> subCandidates = candidates.stream()
+//                    .filter(obj -> !exclusions.contains(obj.get("movieId").asInt()))
+//                    .collect(Collectors.toList());
+//            int subCandidateBound = (int) Math.round(criteria.dropout * subCandidates.size());
+//
+//
+//
+//            for (ObjectNode obj : subCandidates.subList(subCandidateBound, subCandidates.size())) {
+//                double distance = getMinDistanceToVectors(
+//                        criteria.diversityMetric,
+//                        selectedVectors,
+//                        movieVectorMap.get(obj.get("movieId").asInt())
+//                );
+//                if (distance < 0) { // Randomize first choice
+//                    distance = distance * random.nextDouble();
+//                }
+//                top.put(obj, distance);
+//            }
+//
+//            // Select the top choice
+//            selected.add(top.max());
+//        }
+
+    }
 
     /*
      * Calculates the specified distance metric for two vectors. Return values
@@ -796,6 +1083,8 @@ public class EphemeralRanker extends AbstractRanker {
      */
     private double getDistanceMetricScore(String metric, RealVector vec1, RealVector vec2) {
         switch (metric) {
+            case "euclideanCosine": return (0.5 - (vec1.cosine(vec2) / 2)) * vec1.getDistance(vec2);
+            case "manhattanCosine": return (0.5 - (vec1.cosine(vec2) / 2)) * vec1.getL1Distance(vec2);
             case "cosine": return 0.5 - (vec1.cosine(vec2) / 2); // angular distance
             case "euclideanDistance": return vec1.getDistance(vec2);
             case "manhattanDistance": return vec1.getL1Distance(vec2);

@@ -20,6 +20,8 @@ public class EphemeralRankerConfig implements RankerConfig {
     private final Injector injector;
     private final String svdfeaturePredictor;
     private final String svdfeatureModel;
+    private final double revertToMeanConstant;
+    private final double revertToMeanFraction;
     private final Map<Integer, Double> preferenceWeights;
     private final Map<Integer, List<SelectionCriteria>> selectionCriteriaMap;
     private final Map<Integer, Integer> numRoundsToExclude;
@@ -37,6 +39,8 @@ public class EphemeralRankerConfig implements RankerConfig {
 
         return new EphemeralRanker(config,
                 svdFeature,
+                revertToMeanConstant,
+                revertToMeanFraction,
                 preferenceWeights,
                 selectionCriteriaMap,
                 numRoundsToExclude,
@@ -48,6 +52,8 @@ public class EphemeralRankerConfig implements RankerConfig {
                                   Injector injector,
                                   String svdfeaturePredictor,
                                   String svdfeatureModel,
+                                  Double revertToMeanConstant,
+                                  Double revertToMeanFraction,
                                   Map<Integer, Double> preferenceWeights,
                                   Map<Integer, List<SelectionCriteria>> selectionCriteriaMap,
                                   Map<Integer, Integer> numRoundsToExclude) {
@@ -55,6 +61,8 @@ public class EphemeralRankerConfig implements RankerConfig {
         this.config = config;
         this.svdfeatureModel = svdfeatureModel;
         this.svdfeaturePredictor = svdfeaturePredictor;
+        this.revertToMeanConstant = revertToMeanConstant;
+        this.revertToMeanFraction = revertToMeanFraction;
         this.preferenceWeights = preferenceWeights;
         this.selectionCriteriaMap = selectionCriteriaMap;
         this.numRoundsToExclude = numRoundsToExclude;
@@ -71,6 +79,8 @@ public class EphemeralRankerConfig implements RankerConfig {
          */
         // TODO: Check ranker round parsing...
         List<Integer> preferences = rankerConfig.getIntList("preferences");
+        Double revertToMeanConstant = rankerConfig.getDouble("revertToMeanConstant", 0.0);
+        Double revertToMeanFraction = rankerConfig.getDouble("revertToMeanFraction", 0.0);
 
         Configuration preferenceWeightsConfig = rankerConfig.getConfig("preferenceWeights");
         Map<Integer, Double> preferenceWeights = preferences.stream().collect(Collectors.toMap(
@@ -95,39 +105,35 @@ public class EphemeralRankerConfig implements RankerConfig {
             List<Configuration> selectionCriteriaListConfig = selectionCriteriaMapConfig.getConfigList(key);
 
             for (Configuration selectionCriteriaConfig : selectionCriteriaListConfig) {
-                int limit = selectionCriteriaConfig.getInt("limit");
                 int n = selectionCriteriaConfig.getInt("n");
+                String diversityMetric = selectionCriteriaConfig.getString("diversityMetric");
+                String similarityMetric = selectionCriteriaConfig.getString("similarityMetric");
+                double excludeBelow = selectionCriteriaConfig.getDouble("excludeBelow", 0.0);
+                int limit = selectionCriteriaConfig.getInt("limit", 0);
                 double ratedDropout = selectionCriteriaConfig.getDouble("ratedDropout", 0.0);
                 double dropout = selectionCriteriaConfig.getDouble("dropout", 0.0);
 
-//                // TODO: These could be a Map<String, Double> that we don't have to manually specify
-//                double itemBiasWeighting = selectionCriteriaConfig.getDouble("itemBiasWeighting", 0.0);
-//                double logSupportWeighting = selectionCriteriaConfig.getDouble("logSupportWeighting", 0.0);
-//                double avgRatingWeighting = selectionCriteriaConfig.getDouble("avgRatingWeighting", 0.0);
-//                double logNumRatingsWeighting = selectionCriteriaConfig.getDouble("logNumRatingsWeighting", 0.0);
-//                double halflife15YearsWeighting = selectionCriteriaConfig.getDouble("halflife15YearsWeighting", 0.0);
-
-                selectionCriteriaList.add(new SelectionCriteria(limit, n, ratedDropout, dropout));
+                selectionCriteriaList.add(new SelectionCriteria(n, similarityMetric, diversityMetric, excludeBelow, limit, ratedDropout, dropout));
             }
 
-            if (key.equals("default")) {
-                selectionCriteriaMap.put(-1, selectionCriteriaList);
-            } else {
-                try {
-                    int intKey = Integer.parseInt(key);
-                    if (intKey < 1) { throw new NumberFormatException(); }
-                    selectionCriteriaMap.put(intKey, selectionCriteriaList);
-                } catch (NumberFormatException e) {
-                    throw new ConfigurationException("selectionCriteriaByRound keys must be positive integers or \"default\"");
-                }
-
+            try {
+                int intKey = Integer.parseInt(key);
+                if (intKey < 0) { throw new NumberFormatException(); }
+                selectionCriteriaMap.put(intKey, selectionCriteriaList);
+            } catch (NumberFormatException e) {
+                throw new ConfigurationException("selectionCriteriaByRound keys must be positive integers");
             }
+        }
+        if (!selectionCriteriaMap.containsKey(1)) {
+            throw new ConfigurationException("selectionCriteriaByRound must contain key 1");
         }
 
         return new EphemeralRankerConfig(rankerConfig,
                 injector,
                 svdfeaturePredictor,
                 svdfeatureModel,
+                revertToMeanConstant,
+                revertToMeanFraction,
                 preferenceWeights,
                 selectionCriteriaMap,
                 numRoundsToExclude);

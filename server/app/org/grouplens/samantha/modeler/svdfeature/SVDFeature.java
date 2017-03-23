@@ -137,11 +137,15 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
         }
     }
 
-    private void ensureVectorVarSpace(List<Feature> features) {
+    private void ensureVectorVarSpace(List<Feature> features, boolean nonnegative) {
         for (Feature fea : features) {
             variableSpace.ensureVectorVar(SVDFeatureKey.FACTORS.get(),
                                           fea.getIndex() + 1, factDim,
                                           0, true, false);
+            if (nonnegative) {
+                RealVector vec = getVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), fea.getIndex());
+                setVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), fea.getIndex(), vec.mapToSelf(x -> Math.abs(x)));
+            }
         }
     }
 
@@ -198,8 +202,8 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
         if (update) {
             ensureScalarVarSpace(gfeas);
             updateFeatureSupport(gfeas);
-            ensureVectorVarSpace(ufeas);
-            ensureVectorVarSpace(ifeas);
+            ensureVectorVarSpace(ufeas, true);
+            ensureVectorVarSpace(ifeas, true);
         }
         double weight = SVDFeatureInstance.defaultWeight;
         double label = SVDFeatureInstance.defaultLabel;
@@ -300,9 +304,9 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
 
     public double predict(LearningInstance ins) {
         SVDFeatureInstance svdIns = (SVDFeatureInstance) ins;
-        svdIns.gfeas = ensureMinSupport(svdIns.gfeas, true);
-        svdIns.ufeas = ensureMinSupport(svdIns.ufeas, false);
-        svdIns.ifeas = ensureMinSupport(svdIns.ifeas, false);
+//        svdIns.gfeas = ensureMinSupport(svdIns.gfeas, true);
+//        svdIns.ufeas = ensureMinSupport(svdIns.ufeas, false);
+//        svdIns.ifeas = ensureMinSupport(svdIns.ifeas, false);
         RealVector ufactSum = MatrixUtils.createRealVector(new double[factDim]);
         RealVector ifactSum = MatrixUtils.createRealVector(new double[factDim]);
         double output = predict(svdIns, null, ufactSum, ifactSum);

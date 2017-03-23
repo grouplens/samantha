@@ -20,7 +20,7 @@ public class L2Regularizer implements Regularizer {
     }
 
     public RealVector addGradient(RealVector grad, RealVector var, double l2coef) {
-        return grad.combineToSelf(1.0, 2 * l2coef, var);
+        return grad.combine(1.0, 2 * l2coef, var);
     }
 
     public double getObjective(double l2coef, RealVector var) {

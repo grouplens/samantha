@@ -9,7 +9,7 @@ import it.unimi.dsi.fastutil.ints.IntHeapPriorityQueue;
 import java.util.*;
 
 public final class TopNAccumulator<R> {
-    private final int count;
+    private final int n;
     private DoubleArrayList scores;
     private ArrayList<R> items;
 
@@ -18,6 +18,8 @@ public final class TopNAccumulator<R> {
     private int slot;
     // The current size of the accumulator.
     private int size;
+    // The number of items added to the accumulator.
+    private int count;
     private IntHeapPriorityQueue heap;
 
     /**
@@ -26,10 +28,11 @@ public final class TopNAccumulator<R> {
      * @param n The number of IDs to retain.
      */
     public TopNAccumulator(int n) {
-        this.count = n;
+        this.n = n;
 
         slot = 0;
         size = 0;
+        count = 0;
 
         // heap must have n+1 slots to hold extra item before removing smallest
         heap = new IntHeapPriorityQueue(n + 1, new SlotComparator());
@@ -71,11 +74,11 @@ public final class TopNAccumulator<R> {
     }
 
     public void put(R item, double score) {
-        assert slot <= count;
+        assert slot <= n;
         assert heap.size() == size;
 
         if (items == null) {
-            int isize = findInitialSize(count + 1);
+            int isize = findInitialSize(n + 1);
 
             scores = new DoubleArrayList(isize);
             items = new ArrayList<R>(isize);
@@ -96,7 +99,7 @@ public final class TopNAccumulator<R> {
         }
         heap.enqueue(slot);
 
-        if (size == count) {
+        if (size == n) {
             // already at capacity, so remove and reuse smallest item
             slot = heap.dequeue();
         } else {
@@ -104,6 +107,8 @@ public final class TopNAccumulator<R> {
             slot += 1;
             size += 1;
         }
+
+        count++;
     }
 
     public R max() {
@@ -113,7 +118,7 @@ public final class TopNAccumulator<R> {
     public List<R> finishList() {
         assert size == heap.size();
 
-        List<R> result = new ArrayList<>(count);
+        List<R> result = new ArrayList<>(n);
         while (!heap.isEmpty()) {
             result.add(items.get(heap.dequeueInt()));
         }
@@ -133,9 +138,14 @@ public final class TopNAccumulator<R> {
         return result;
     }
 
+    public int count() {
+        return this.count;
+    }
+
     private void clear() {
         size = 0;
         slot = 0;
+        count = 0;
         items = null;
         scores = null;
     }
