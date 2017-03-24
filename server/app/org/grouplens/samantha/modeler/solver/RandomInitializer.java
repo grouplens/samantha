@@ -47,14 +47,11 @@ public class RandomInitializer {
         this.rand = new Random(seed);
     }
 
-<<<<<<< HEAD
-    // TODO: Normalize should generate positive and negative values divided by norm.
-=======
     public double randInitValue() {
         return (rand.nextDouble() - subtract) * multi;
     }
 
->>>>>>> master
+    // TODO: Normalize should generate positive and negative values divided by a supplied norm (L1 or L2).
     public void randInitVector(RealVector vec, boolean normalize) {
         int len = vec.getDimension();
         double sum = 0.0;
@@ -75,7 +72,7 @@ public class RandomInitializer {
         }
     }
 
-    // TODO: Normalize should generate positive and negative values divided by norm.
+    // TODO: Normalize should generate positive and negative values divided by a supplied norm (L1 or L2).
     public void randInitDoubleList(DoubleList doubleList, boolean normalize) {
         int size = doubleList.size();
         double sum = 0.0;
