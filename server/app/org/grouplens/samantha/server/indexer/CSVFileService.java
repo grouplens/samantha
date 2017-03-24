@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) [2016-2017] [University of Minnesota]
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,6 +42,8 @@ public class CSVFileService {
     private final String separator;
     private final List<String> dataDirs;
     private final String dirPattern;
+    private final ReentrantReadWriteLock serviceLock = new ReentrantReadWriteLock();
+    private Lock writeLock = serviceLock.writeLock();
     private final Map<String, TreeMap<String, BufferedWriter>> activeFiles = new HashMap<>();
     private final Map<String, Map<String, List<String>>> activeSchemas = new HashMap<>();
     private final Map<String, Map<String, Lock>> activeLocks = new HashMap<>();
@@ -53,22 +77,23 @@ public class CSVFileService {
         if (activeFiles.containsKey(type) && activeFiles.get(type).size() > remain) {
             Object[] keys = activeFiles.get(type).keySet().toArray();
             for (int i=0; i<keys.length - remain; i++) {
-                try {
-                    activeLocks.get(type).get(keys[i]).lock();
-                    activeFiles.get(type).get(keys[i]).close();
-                    activeFiles.get(type).remove(keys[i]);
-                    activeSchemas.get(type).remove(keys[i]);
-                } catch (IOException e) {
-                    Logger.error(e.getMessage());
-                } finally {
-                    activeLocks.get(type).get(keys[i]).unlock();
-                    activeLocks.get(type).remove(keys[i]);
+                if (activeLocks.get(type).get(keys[i]).tryLock()) {
+                    try {
+                        activeFiles.get(type).get(keys[i]).close();
+                        activeFiles.get(type).remove(keys[i]);
+                        activeSchemas.get(type).remove(keys[i]);
+                    } catch (IOException e) {
+                        Logger.error(e.getMessage());
+                    } finally {
+                        activeLocks.get(type).get(keys[i]).unlock();
+                        activeLocks.get(type).remove(keys[i]);
+                    }
                 }
             }
         }
     }
 
-    synchronized private String lockFile(String type, String directory, List<String> dataFields)
+    private String lockFile(String type, String directory, List<String> dataFields)
             throws IOException {
         if (!activeFiles.containsKey(type)) {
             activeFiles.put(type, new TreeMap<>());
@@ -114,51 +139,55 @@ public class CSVFileService {
         throw new IOException("Can not find a good file to write in the directory.");
     }
 
-    synchronized private void unlockFile(String type, String file) {
-        if (activeLocks.get(type).containsKey(file)) {
+    private void unlockFile(String type, String file) {
+        if (activeLocks.containsKey(type) && activeLocks.get(type).containsKey(file)) {
             activeLocks.get(type).get(file).unlock();
         }
     }
 
-    synchronized private List<String> getSchema(String type, String file) {
+    private List<String> getSchema(String type, String file) {
         return activeSchemas.get(type).get(file);
     }
 
-    synchronized private BufferedWriter getWriter(String type, String file) {
+    private BufferedWriter getWriter(String type, String file) {
         return activeFiles.get(type).get(file);
     }
 
     public void write(String type, JsonNode entity, List<String> dataFields, int tstamp) {
         for (int idx=curDirIdx; idx<dataDirs.size(); idx++) {
+            String directory = pickDirectory(idx, type, tstamp);
             String file = null;
+            BufferedWriter writer;
+            List<String> curFields;
+            writeLock.lock();
             try {
-                String directory = pickDirectory(idx, type, tstamp);
                 file = lockFile(type, directory, dataFields);
-                BufferedWriter writer = getWriter(type, file);
-                List<String> curFields = getSchema(type, file);
+                writer = getWriter(type, file);
+                curFields = getSchema(type, file);
+            } catch (Exception e) {
+                Logger.error(e.getMessage());
+                curDirIdx = (idx + 1) % dataDirs.size();
+                unlockFile(type, file);
+                continue;
+            } finally {
+                writeLock.unlock();
+            }
+            try {
                 IndexerUtilities.writeOutJson(entity, curFields, writer, separator);
                 break;
-            } catch (IOException e) {
-                curDirIdx = idx + 1;
+            } catch (Exception e) {
+                Logger.error(e.getMessage());
             } finally {
                 unlockFile(type, file);
             }
-            freeResources(type, 0);
-        }
-    }
-
-    synchronized private String getLastFileAndFreeResources(String type) {
-        freeResources(type, 1);
-        if (activeFiles.containsKey(type) && activeFiles.get(type).size() > 0) {
-            return activeFiles.get(type).lastKey();
-        } else {
-            return null;
+            writeLock.lock();
+            curDirIdx = (idx + 1) % dataDirs.size();
+            writeLock.unlock();
         }
     }
 
     public List<String> getFiles(String type, int beginTime, int endTime) {
         Set<String> files = new HashSet<>();
-        //String last = getLastFileAndFreeResources(type);
         for (int idx=0; idx<dataDirs.size(); idx ++) {
             for (int i = beginTime; i <= endTime; i+=3600) {
                 String dir = pickDirectory(idx, type, i);
@@ -168,11 +197,6 @@ public class CSVFileService {
                     for (File file : list) {
                         String path = file.getAbsolutePath();
                         files.add(path);
-                        /*
-                        if (!last.equals(path)) {
-                            files.put(path);
-                        }
-                        */
                     }
                 }
             }

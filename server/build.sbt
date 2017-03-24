@@ -4,6 +4,8 @@ version := "1.0-SNAPSHOT"
 
 lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
+sources in (Compile, doc) <<= sources in (Compile, doc) map { _.filterNot(_.getName endsWith ".scala") }
+
 scalaVersion := "2.11.6"
 
 resolvers += Resolver.mavenLocal
@@ -26,12 +28,12 @@ libraryDependencies ++= Seq(
   "org.quartz-scheduler" % "quartz-jobs" % "2.2.1"
 )
 
-// For xgboost extension; Optional; uncomment if cloned submodule
+//For xgboost extension; Optional; uncomment if cloned submodule
 // unmanagedSourceDirectories in Compile += baseDirectory.value / "extension/xgboost"
 // libraryDependencies ++= Seq(
 //  "org.scala-lang" % "scala-compiler" % scalaVersion.value,
 //  "ml.dmlc" % "xgboost4j" % "0.7"
-//)
+// )
 
 unmanagedSourceDirectories in Compile += baseDirectory.value / "extension/ephemeral"
 

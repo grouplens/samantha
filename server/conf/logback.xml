@@ -4,14 +4,21 @@
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%date - %coloredLevel - %logger - %message%n%xException</pattern>
+      <pattern>%date - %coloredLevel - %logger{15} - %message%n%xException</pattern>
     </encoder>
   </appender>
 
-  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+  <!-- application.log (30 day rollover) -->
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${application.home:-.}/logs/application.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <!-- daily rollover -->
+      <fileNamePattern>${application.home:-.}/logs/application.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <!-- keep 30 days' worth of history -->
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
     <encoder>
-      <pattern>%date %coloredLevel - %logger - %message%n%xException</pattern>
+      <pattern>%date - %coloredLevel - %logger{15} - %message%n%xException</pattern>
     </encoder>
   </appender>
 

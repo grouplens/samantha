@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) [2016-2017] [University of Minnesota]
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.grouplens.samantha.server.reinforce;
 
 import org.grouplens.samantha.server.common.JsonHelpers;
@@ -29,13 +51,14 @@ public class UserReturnIndexerConfig implements IndexerConfig {
     private final String daoConfigKey;
     private final Injector injector;
     private final int reinforceThreshold;
+    private final String usedGroupsFilePath;
 
     private UserReturnIndexerConfig(Configuration config, Injector injector, Configuration daoConfigs,
                                     String daoConfigKey, String timestampField, List<String> dataFields,
                                     String daoNameKey, String daoName, String filesKey, String filePathKey,
                                     String separatorKey, String indexerName, String rewardKey,
                                     List<String> groupKeys, String sessionIdKey, String filePath, String separator,
-                                    int reinforceThreshold) {
+                                    int reinforceThreshold, String usedGroupsFilePath) {
         this.rewardKey = rewardKey;
         this.groupKeys = groupKeys;
         this.filePathKey = filePathKey;
@@ -54,6 +77,7 @@ public class UserReturnIndexerConfig implements IndexerConfig {
         this.daoConfigKey = daoConfigKey;
         this.injector = injector;
         this.reinforceThreshold = reinforceThreshold;
+        this.usedGroupsFilePath = usedGroupsFilePath;
     }
 
     public static IndexerConfig getIndexerConfig(Configuration indexerConfig,
@@ -74,7 +98,8 @@ public class UserReturnIndexerConfig implements IndexerConfig {
                 indexerConfig.getString("sessionIdKey"),
                 indexerConfig.getString("filePath"),
                 indexerConfig.getString("separator"),
-                indexerConfig.getInt("reinforceThreshold"));
+                indexerConfig.getInt("reinforceThreshold"),
+                indexerConfig.getString("usedGroupsFilePath"));
     }
 
     public Indexer getIndexer(RequestContext requestContext) {
@@ -84,6 +109,7 @@ public class UserReturnIndexerConfig implements IndexerConfig {
                 (int) (System.currentTimeMillis() / 1000));
         return new UserReturnIndexer(configService, config, injector, daoConfigs, daoConfigKey,
                 filePathKey, timestampField, dataFields, separator, daoNameKey, daoName, filesKey, rewardKey,
-                groupKeys, sessionIdKey, filePath, separatorKey, indexer, maxTime, reinforceThreshold);
+                groupKeys, sessionIdKey, filePath, separatorKey, indexer, maxTime, reinforceThreshold,
+                usedGroupsFilePath);
     }
 }

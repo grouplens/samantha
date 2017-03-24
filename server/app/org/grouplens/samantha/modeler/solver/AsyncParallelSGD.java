@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) [2016-2017] [University of Minnesota]
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.grouplens.samantha.modeler.solver;
 
 import org.grouplens.samantha.modeler.common.LearningData;
@@ -14,15 +36,15 @@ public class AsyncParallelSGD extends AbstractOptimizationMethod  implements Onl
     final private int numThreads;
 
     public AsyncParallelSGD() {
-        super(5.0, 50);
+        super(5.0, 50, 2);
         l2coef = 0.0;
         lr = 0.001;
         numThreads = Runtime.getRuntime().availableProcessors();
     }
 
-    public AsyncParallelSGD(int maxIter, double l2coef, double learningRate, double tol,
-                            int numThreads) {
-        super(tol, maxIter);
+    public AsyncParallelSGD(int maxIter, int minIter, double l2coef,
+                            double learningRate, double tol, int numThreads) {
+        super(tol, maxIter, minIter);
         this.l2coef = l2coef;
         this.lr = learningRate;
         this.numThreads = numThreads;
@@ -32,7 +54,6 @@ public class AsyncParallelSGD extends AbstractOptimizationMethod  implements Onl
      * @param learningData must be synchronized.
      */
     public double update(LearningModel model, LearningData learningData) {
-        L2Regularizer l2term = new L2Regularizer();
         learningData.startNewIteration();
         logger.info("Using numThreads={}", numThreads);
         List<Thread> threads = new ArrayList<>(numThreads);

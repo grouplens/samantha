@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) [2016-2017] [University of Minnesota]
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.grouplens.samantha.modeler.solver;
 
 import org.grouplens.samantha.modeler.common.LearningData;
@@ -17,22 +39,21 @@ public class InstanceCachedAsyncParallelSGD extends AbstractOptimizationMethod i
     final private double lr;
 
     public InstanceCachedAsyncParallelSGD(String cachePath) {
-        super(5.0, 50);
+        super(5.0, 50, 2);
         this.cachePath = cachePath;
         this.numThreads = Runtime.getRuntime().availableProcessors();
         this.lr = 0.001;
         this.l2coef = 0.0;
     }
 
-    public InstanceCachedAsyncParallelSGD(int maxIter, double l2coef, double learningRate, double tol,
+    public InstanceCachedAsyncParallelSGD(int maxIter, int minIter, double l2coef,
+                                          double learningRate, double tol,
                                           int numThreads, String cachePath) {
-        super(tol, maxIter);
+        super(tol, maxIter, minIter);
         this.cachePath = cachePath;
         this.numThreads = numThreads;
         this.l2coef = l2coef;
         this.lr = learningRate;
-        this.tol = tol;
-        this.maxIter = maxIter;
     }
 
     private void cacheLearningData(LearningData data, String prefix) {
@@ -67,10 +88,10 @@ public class InstanceCachedAsyncParallelSGD extends AbstractOptimizationMethod i
         if (validData != null) {
             cacheLearningData(validData, "valid");
         }
-        TerminationCriterion learnCrit = new TerminationCriterion(tol, maxIter);
+        TerminationCriterion learnCrit = new TerminationCriterion(tol, maxIter, minIter);
         TerminationCriterion validCrit = null;
         if (validData != null) {
-            validCrit = new TerminationCriterion(tol, maxIter);
+            validCrit = new TerminationCriterion(tol, maxIter, minIter);
         }
         logger.info("Using numThreads={}", numThreads);
         List<Thread> threads = new ArrayList<>(numThreads);
