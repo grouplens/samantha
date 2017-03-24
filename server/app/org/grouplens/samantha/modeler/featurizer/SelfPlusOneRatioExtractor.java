@@ -25,6 +25,8 @@ package org.grouplens.samantha.modeler.featurizer;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.math3.analysis.function.Log10;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,6 +37,7 @@ import static java.lang.Math.abs;
 
 public class SelfPlusOneRatioExtractor implements FeatureExtractor {
     private static final long serialVersionUID = 1L;
+    private static Logger logger = LoggerFactory.getLogger(SelfPlusOneRatioExtractor.class);
     private final String indexName;
     private final String attrName;
     private final String feaName;
@@ -66,6 +69,8 @@ public class SelfPlusOneRatioExtractor implements FeatureExtractor {
                         indexSpace, indexName, attrName, ratio.value(val));
                 feaMap.put(feaName, feaList);
             }
+        } else {
+            logger.warn("{} is not present in {}", attrName, entity);
         }
         return feaMap;
     }

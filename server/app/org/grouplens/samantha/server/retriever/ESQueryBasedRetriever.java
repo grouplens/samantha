@@ -76,7 +76,7 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
         JsonNode elasticSearchRequest;
         if (requestBody.has(elasticSearchReqKey)) {
             elasticSearchRequest = JsonHelpers.getRequiredJson(requestBody, elasticSearchReqKey);
-        } else if (defaultMatchFields.length > 0) {
+        } else if (defaultMatchFields.length > 0 && requestBody.has(queryKey)) {
             String query = JsonHelpers.getRequiredString(requestBody, queryKey);
             elasticSearchRequest = Json.parse(QueryBuilders.multiMatchQuery(query, defaultMatchFields).toString());
         } else {

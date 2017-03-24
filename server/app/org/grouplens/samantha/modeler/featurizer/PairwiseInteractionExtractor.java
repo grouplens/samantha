@@ -25,6 +25,8 @@ package org.grouplens.samantha.modeler.featurizer;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +35,7 @@ import java.util.Map;
 
 public class PairwiseInteractionExtractor implements FeatureExtractor {
     private static final long serialVersionUID = 1L;
+    private static Logger logger = LoggerFactory.getLogger(PairwiseInteractionExtractor.class);
     private final String indexName;
     private final List<String> attrNames;
     private final boolean sigmoid;
@@ -45,6 +48,11 @@ public class PairwiseInteractionExtractor implements FeatureExtractor {
 
     public Map<String, List<Feature>> extract(JsonNode entity, boolean update,
                                               IndexSpace indexSpace) {
+        for (String attrName : attrNames) {
+            if (!entity.has(attrName)) {
+                logger.warn("{} is not present in {}", attrName, entity);
+            }
+        }
         Map<String, List<Feature>> feaMap = new HashMap<>();
         UnivariateFunction sig = new SelfPlusOneRatioFunction();
         for (int i=0; i<attrNames.size(); i++) {

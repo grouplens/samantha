@@ -23,6 +23,7 @@
 package org.grouplens.samantha.server.expander;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
@@ -42,11 +43,11 @@ public class EnglishTermFrequencyExpander implements EntityExpander {
     private static Logger logger = LoggerFactory.getLogger(EnglishTermFrequencyExpander.class);
     final private List<String> textFields;
     final private String termField;
-    final private String normTermFreqField;
+    final private String termFreqField;
     final private Analyzer analyzer;
 
-    public EnglishTermFrequencyExpander(String termField, List<String> textFields, String normTermFreqField) {
-        this.normTermFreqField = normTermFreqField;
+    public EnglishTermFrequencyExpander(String termField, List<String> textFields, String termFreqField) {
+        this.termFreqField = termFreqField;
         this.textFields = textFields;
         this.termField = termField;
         this.analyzer = new EnglishAnalyzer();
@@ -55,29 +56,30 @@ public class EnglishTermFrequencyExpander implements EntityExpander {
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
         return new EnglishTermFrequencyExpander(expanderConfig.getString("termField"),
-                expanderConfig.getStringList("textField"),
-                expanderConfig.getString("normTermFreqField"));
+                expanderConfig.getStringList("textFields"),
+                expanderConfig.getString("termFreqField"));
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                   RequestContext requestContext) {
         List<ObjectNode> expandedList = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
-            String text = "";
+            List<String> textList = new ArrayList<>();
             for (String textField : textFields) {
                 if (entity.has(textField)) {
-                    text += entity.get(textField).asText();
+                    textList.add(entity.get(textField).asText());
                 } else {
                     logger.warn("The text field {} is not present: {}", textField, entity.toString());
                 }
             }
+            String text = StringUtils.join(textList, ". ");
             if (!"".equals(text)) {
                 Map<String, Integer> termFreq = FeatureExtractorUtilities.getTermFreq(analyzer, text, termField);
                 for (Map.Entry<String, Integer> entry : termFreq.entrySet()) {
                     ObjectNode newEntity = Json.newObject();
                     IOUtilities.parseEntityFromJsonNode(entity, newEntity);
                     newEntity.put(termField, entry.getKey());
-                    newEntity.put(normTermFreqField, entry.getValue());
+                    newEntity.put(termFreqField, entry.getValue());
                     expandedList.add(newEntity);
                 }
             }

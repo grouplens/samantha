@@ -108,10 +108,6 @@ abstract public class AbstractIndexer implements Indexer {
         }
     }
 
-    public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
-        throw new BadRequestException("Reading data from this indexer is not supported.");
-    }
-
     public EntityDAO getEntityDAO(RequestContext requestContext) {
         return EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 getIndexedDataDAOConfig(requestContext), injector);

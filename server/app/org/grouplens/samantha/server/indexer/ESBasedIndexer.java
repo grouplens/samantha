@@ -24,6 +24,7 @@ package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.grouplens.samantha.server.common.ElasticSearchService;
 import org.grouplens.samantha.server.common.JsonHelpers;
@@ -77,4 +78,7 @@ public class ESBasedIndexer extends AbstractIndexer {
         }
     }
 
+    public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
+        throw new BadRequestException("Reading data from this indexer is not supported.");
+    }
 }
