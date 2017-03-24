@@ -170,7 +170,7 @@ public class CSVFileService {
                         files.add(path);
                         /*
                         if (!last.equals(path)) {
-                            files.add(path);
+                            files.put(path);
                         }
                         */
                     }

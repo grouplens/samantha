@@ -10,10 +10,12 @@ public class SelectionCriteria {
     public final int limit;
     public final double ratedDropout;
     public final double dropout;
+    public final int nthMostDistant;
 
     public SelectionCriteria(int n, String similarityMetric, String diversityMetric,
                              double excludeBelow, int limit,
-                             double ratedDropout, double dropout) {
+                             double ratedDropout, double dropout,
+                             int nthMostDistant) {
         this.n = n;
         this.similarityMetric = similarityMetric;
         this.diversityMetric = diversityMetric;
@@ -21,5 +23,6 @@ public class SelectionCriteria {
         this.limit = limit;
         this.ratedDropout = ratedDropout;
         this.dropout = dropout;
+        this.nthMostDistant = nthMostDistant;
     }
 }

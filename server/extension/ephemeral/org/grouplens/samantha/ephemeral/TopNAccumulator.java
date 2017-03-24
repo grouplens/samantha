@@ -19,7 +19,6 @@ public final class TopNAccumulator<R> {
     // The current size of the accumulator.
     private int size;
     // The number of items added to the accumulator.
-    private int count;
     private IntHeapPriorityQueue heap;
 
     /**
@@ -32,7 +31,6 @@ public final class TopNAccumulator<R> {
 
         slot = 0;
         size = 0;
-        count = 0;
 
         // heap must have n+1 slots to hold extra item before removing smallest
         heap = new IntHeapPriorityQueue(n + 1, new SlotComparator());
@@ -107,12 +105,14 @@ public final class TopNAccumulator<R> {
             slot += 1;
             size += 1;
         }
-
-        count++;
     }
 
     public R max() {
         return finishList().get(0);
+    }
+    public R min() {
+        List<R> result = finishList();
+        return result.get(result.size() - 1);
     }
 
     public List<R> finishList() {
@@ -138,14 +138,10 @@ public final class TopNAccumulator<R> {
         return result;
     }
 
-    public int count() {
-        return this.count;
-    }
 
     private void clear() {
         size = 0;
         slot = 0;
-        count = 0;
         items = null;
         scores = null;
     }
