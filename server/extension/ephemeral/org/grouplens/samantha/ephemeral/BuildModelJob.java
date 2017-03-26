@@ -50,10 +50,10 @@ public class BuildModelJob implements Job {
         // The body of the RequestContext isn't get used by any currently written EntityDAOs, so it can be empty
         RequestContext daoPseudoRequest = new RequestContext(Json.newObject(), indexerData.getString("indexerEngineName", engineName));
         JsonNode reqDao = indexer.getIndexedDataDAOConfig(indexerPseudoRequest);
-        EntityDAO entityDAO = EntityDAOUtilities.getEntityDAO(indexerData.getConfig(indexerData.getString("daoConfigKey")), daoPseudoRequest, reqDao, injector);
+        EntityDAO entityDAO = EntityDAOUtilities.getEntityDAO(indexerData.getConfig("entityDaoConfigs"), daoPseudoRequest, reqDao, injector);
 
         // Get the entityDaoConfigs for this engine (not necessarily the indexer's)
-        Configuration entityDaoConfigs = jobConfig.getConfig(jobConfig.getString("daoConfigKey"));
+        Configuration entityDaoConfigs = jobConfig.getConfig("entityDaoConfigs");
         String entityDaoKey = entityDaoConfigs.getString("entityDaoKey");
         String entityDaoConfigName =  jobConfig.getString(entityDaoKey);
 
