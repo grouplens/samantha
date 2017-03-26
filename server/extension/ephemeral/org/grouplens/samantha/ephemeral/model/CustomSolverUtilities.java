@@ -54,19 +54,19 @@ public class CustomSolverUtilities {
                     logger.error("Objective value becomes NaN at {}th instance.", cnt);
                     throw new BadRequestException("Got NaN error.");
                 }
-                for (int i = 0; i < orc.scalarNames.size(); i++) {
-                    String name = orc.scalarNames.get(i);
-                    int idx = orc.scalarIndexes.getInt(i);
-                    double grad = orc.scalarGrads.getDouble(i);
+                for (int i = 0; i < orc.getScalarNames().size(); i++) {
+                    String name = orc.getScalarNames().get(i);
+                    int idx = orc.getScalarIndexes().getInt(i);
+                    double grad = orc.getScalarGrads().getDouble(i);
                     double var = model.getScalarVarByNameIndex(name, idx);
                     var = var - lr * (grad + l2coef * l2term.getGradient(var));
                     if (nonnegative) { var = Math.max(0.0, var); }
                     model.setScalarVarByNameIndex(name, idx, var);
                 }
-                for (int i = 0; i < orc.vectorNames.size(); i++) {
-                    String name = orc.vectorNames.get(i);
-                    int idx = orc.vectorIndexes.getInt(i);
-                    RealVector grad = orc.vectorGrads.get(i);
+                for (int i = 0; i < orc.getVectorNames().size(); i++) {
+                    String name = orc.getVectorNames().get(i);
+                    int idx = orc.getVectorIndexes().getInt(i);
+                    RealVector grad = orc.getVectorGrads().get(i);
                     RealVector var = model.getVectorVarByNameIndex(name, idx); // returns a copy
                     var = var.combineToSelf(1.0, -lr, l2term.addGradient(grad, var, l2coef));
                     if (nonnegative) { var = var.mapToSelf(x -> Math.max(0.0, x)); }
