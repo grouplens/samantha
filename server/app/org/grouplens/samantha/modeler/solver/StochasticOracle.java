@@ -33,12 +33,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class StochasticOracle { 
-    final List<String> scalarNames = new ArrayList<>();
-    final IntList scalarIndexes = new IntArrayList();
-    final DoubleList scalarGrads = new DoubleArrayList();
-    final List<String> vectorNames = new ArrayList<>();
-    final IntList vectorIndexes = new IntArrayList();
-    final List<RealVector> vectorGrads = new ArrayList<>();
+    public final List<String> scalarNames = new ArrayList<>();
+    public final IntList scalarIndexes = new IntArrayList();
+    public final DoubleList scalarGrads = new DoubleArrayList();
+    public final List<String> vectorNames = new ArrayList<>();
+    public final IntList vectorIndexes = new IntArrayList();
+    public final List<RealVector> vectorGrads = new ArrayList<>();
 
     private double objVal = 0.0;
     private double gradient = 0.0;

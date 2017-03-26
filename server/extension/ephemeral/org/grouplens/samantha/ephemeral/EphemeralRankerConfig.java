@@ -1,6 +1,7 @@
 package org.grouplens.samantha.ephemeral;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.grouplens.samantha.ephemeral.model.CustomSVDFeature;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.common.ModelService;
@@ -34,7 +35,7 @@ public class EphemeralRankerConfig implements RankerConfig {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         ModelService modelService = injector.instanceOf(ModelService.class);
         Predictor predictor = configService.getPredictor(svdfeaturePredictor, requestContext);
-        SVDFeature svdFeature = (SVDFeature) modelService.getModel(requestContext.getEngineName(), svdfeatureModel);
+        CustomSVDFeature svdFeature = (CustomSVDFeature) modelService.getModel(requestContext.getEngineName(), svdfeatureModel);
 
         // Get the experimental conditions and seed value from the request
         JsonNode reqBody = requestContext.getRequestBody();

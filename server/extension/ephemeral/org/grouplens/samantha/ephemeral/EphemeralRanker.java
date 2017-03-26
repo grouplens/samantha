@@ -7,6 +7,7 @@ import com.google.common.collect.Ordering;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
+import org.grouplens.samantha.ephemeral.model.CustomSVDFeature;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureKey;
@@ -32,7 +33,7 @@ import java.util.stream.Collectors;
 
 public class EphemeralRanker extends AbstractRanker {
     private final Predictor predictor;
-    private final SVDFeature svdFeature;
+    private final CustomSVDFeature svdFeature;
     private final double revertToMeanConstant;
     private final double revertToMeanFraction;
     private final int minRecentRatings;
@@ -49,7 +50,7 @@ public class EphemeralRanker extends AbstractRanker {
     public EphemeralRanker(
             Configuration config,
             Predictor predictor,
-            SVDFeature svdFeature,
+            CustomSVDFeature svdFeature,
             double revertToMeanConstant,
             double revertToMeanFraction,
             int minRecentRatings,
@@ -449,9 +450,13 @@ public class EphemeralRanker extends AbstractRanker {
         exclusions.addAll(ignoredMovieIds); // put any exclusions specified in the request
 
         // Get the universe of items, excluding previously shown items
-        List<ObjectNode> universe = retrievedResult.getEntityList().stream()
+        List<ObjectNode> universe = svdFeature.getEntities(10000).stream()
                 .filter(obj -> !exclusions.contains(obj.get("movieId").asInt()))
                 .collect(Collectors.toList());
+//        List<ObjectNode> universe = retrievedResult.getEntityList().stream()
+//                .filter(obj -> !exclusions.contains(obj.get("movieId").asInt()))
+//                .collect(Collectors.toList());
+
 
         /*
          * STEP 3: Pick which algorithm to use based on experimental condition.

@@ -1,52 +1,35 @@
-/*
- * Copyright (c) [2016-2017] [University of Minnesota]
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
-package org.grouplens.samantha.server.predictor;
+package org.grouplens.samantha.ephemeral.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
-import org.grouplens.samantha.modeler.solver.*;
+import org.grouplens.samantha.modeler.common.LearningData;
+import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
+import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
+import org.grouplens.samantha.modeler.solver.OnlineOptimizationMethod;
+import org.grouplens.samantha.modeler.solver.OptimizationMethod;
 import org.grouplens.samantha.modeler.space.SpaceMode;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeatureProducer;
 import org.grouplens.samantha.server.common.AbstractModelManager;
 import org.grouplens.samantha.server.common.ModelManager;
 import org.grouplens.samantha.server.common.ModelService;
-import org.grouplens.samantha.server.config.*;
+import org.grouplens.samantha.server.config.ConfigKey;
+import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.exception.ConfigurationException;
+import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.featurizer.FeatureExtractorConfig;
 import org.grouplens.samantha.server.featurizer.FeatureExtractorListConfigParser;
 import org.grouplens.samantha.server.featurizer.FeaturizerConfigParser;
-import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.io.RequestContext;
-import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
-import org.grouplens.samantha.modeler.common.LearningData;
+import org.grouplens.samantha.server.predictor.PredictiveModelBasedPredictor;
+import org.grouplens.samantha.server.predictor.Predictor;
+import org.grouplens.samantha.server.predictor.PredictorConfig;
+import org.grouplens.samantha.server.predictor.PredictorUtilities;
 import play.Configuration;
 import play.inject.Injector;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-public class SVDFeaturePredictorConfig implements PredictorConfig {
+public class CustomSVDFeaturePredictorConfig implements PredictorConfig {
     private final List<String> biasFeas;
     private final List<String> ufactFeas;
     private final List<String> ifactFeas;
@@ -71,16 +54,16 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
     private final String insName;
     private final Configuration config;
 
-    private SVDFeaturePredictorConfig(List<String> biasFeas, List<String> ufactFeas, List<String> ifactFeas,
-                                      List<String> groupKeys, List<String> evaluatorNames,
-                                      String modelFile, String modelName, String labelName, String weightName,
-                                      int factDim, Configuration onlineMethodConfig,
-                                      Configuration methodConfig, Configuration objectiveConfig,
-                                      List<FeatureExtractorConfig> feaExtConfigs,
-                                      Configuration entityDaoConfigs, String dependPredictorName,
-                                      String dependPredictorModelName, Injector injector,
-                                      List<Configuration> expandersConfig, String daoConfigKey, String insName,
-                                      String serializedKey, Configuration config) {
+    private CustomSVDFeaturePredictorConfig(List<String> biasFeas, List<String> ufactFeas, List<String> ifactFeas,
+                                            List<String> groupKeys, List<String> evaluatorNames,
+                                            String modelFile, String modelName, String labelName, String weightName,
+                                            int factDim, Configuration onlineMethodConfig,
+                                            Configuration methodConfig, Configuration objectiveConfig,
+                                            List<FeatureExtractorConfig> feaExtConfigs,
+                                            Configuration entityDaoConfigs, String dependPredictorName,
+                                            String dependPredictorModelName, Injector injector,
+                                            List<Configuration> expandersConfig, String daoConfigKey, String insName,
+                                            String serializedKey, Configuration config) {
         this.biasFeas = biasFeas;
         this.ufactFeas = ufactFeas;
         this.ifactFeas = ifactFeas;
@@ -124,7 +107,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
         if (predictorConfig.asMap().containsKey("evaluatorNames")) {
             evaluatorNames = predictorConfig.getStringList("evaluatorNames");
         }
-        return new SVDFeaturePredictorConfig(
+        return new CustomSVDFeaturePredictorConfig(
                 predictorConfig.getStringList("biasFeas"),
                 predictorConfig.getStringList("ufactFeas"),
                 predictorConfig.getStringList("ifactFeas"),
@@ -161,18 +144,18 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
             }
             ObjectiveFunction loss = PredictorUtilities.getObjectiveFunction(objectiveConfig,
                     injector, requestContext);
-            SVDFeature ownModel;
+            CustomSVDFeature ownModel;
             if (dependPredictorName != null) {
                 SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
                 configService.getPredictor(dependPredictorName, requestContext);
                 String engineName = requestContext.getEngineName();
                 ModelService modelService = injector.instanceOf(ModelService.class);
-                SVDFeature dependModel = (SVDFeature) modelService
+                CustomSVDFeature dependModel = (CustomSVDFeature) modelService
                         .getModel(engineName, dependPredictorModelName);
-                ownModel = SVDFeature.createSVDFeatureModelFromOtherModel(dependModel, biasFeas, ufactFeas,
+                ownModel = CustomSVDFeature.createSVDFeatureModelFromOtherModel(dependModel, biasFeas, ufactFeas,
                         ifactFeas, labelName, weightName, groupKeys, featureExtractors, loss);
             } else {
-                SVDFeatureProducer producer = injector.instanceOf(SVDFeatureProducer.class);
+                CustomSVDFeatureProducer producer = injector.instanceOf(CustomSVDFeatureProducer.class);
                 ownModel = producer.createSVDFeatureModel(modelName, spaceMode,
                         biasFeas, ufactFeas, ifactFeas, labelName, weightName,
                         groupKeys, featureExtractors, factDim, loss);
@@ -182,7 +165,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
 
         public Object buildModel(Object model, RequestContext requestContext) {
             JsonNode reqBody = requestContext.getRequestBody();
-            SVDFeature svdFeature = (SVDFeature) model;
+            CustomSVDFeature svdFeature = (CustomSVDFeature) model;
             LearningData data = PredictorUtilities.getLearningData(svdFeature, requestContext,
                     reqBody.get("learningDaoConfig"), entityDaoConfigs, expandersConfig, injector, true,
                     serializedKey, insName, labelName, weightName, groupKeys);
@@ -199,7 +182,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
         }
 
         public Object updateModel(Object model, RequestContext requestContext) {
-            SVDFeature svdFeature = (SVDFeature) model;
+            CustomSVDFeature svdFeature = (CustomSVDFeature) model;
             LearningData data = PredictorUtilities.getLearningData(svdFeature, requestContext,
                     requestContext.getRequestBody().get(daoConfigKey), entityDaoConfigs,
                     expandersConfig, injector, true, serializedKey, insName,
@@ -215,7 +198,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
         ModelManager modelManager = new SVDFeatureModelManager(modelName, modelFile, injector, evaluatorNames);
-        SVDFeature model = (SVDFeature) modelManager.manage(requestContext);
+        CustomSVDFeature model = (CustomSVDFeature) modelManager.manage(requestContext);
         return new PredictiveModelBasedPredictor(config, model, model,
                 entityDaoConfigs, injector, entityExpanders, daoConfigKey);
     }

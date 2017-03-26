@@ -81,14 +81,6 @@ public class SVDFeatureInstance extends AbstractLearningInstance {
         return this.gfeas;
     }
 
-    public List<Feature> getUserFeatures() {
-        return this.ufeas;
-    }
-
-    public List<Feature> getItemFeatures() {
-        return this.ifeas;
-    }
-
     public String toString() {
         ArrayList<String> fields = new ArrayList<>(5 + (gfeas.size() + ufeas.size() + ifeas.size()) * 2);
         fields.add(Double.toString(weight));

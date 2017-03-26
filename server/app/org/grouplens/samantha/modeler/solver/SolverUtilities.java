@@ -91,53 +91,6 @@ public class SolverUtilities {
         return objVal;
     }
 
-    public static double nonnegativeStochasticGradientDescentUpdate(LearningModel model, ObjectiveFunction objFunc,
-                                                         LearningData learningData, L2Regularizer l2term,
-                                                         double l2coef, double lr, boolean nonnegative) {
-        int cnt = 0;
-        double objVal = 0.0;
-        List<LearningInstance> instances;
-        while ((instances = learningData.getLearningInstance()).size() > 0) {
-            List<StochasticOracle> oracles = model.getStochasticOracle(instances);
-            objFunc.wrapOracle(oracles);
-            for (StochasticOracle orc : oracles) {
-                objVal += orc.getObjectiveValue();
-                if (Double.isNaN(objVal)) {
-                    logger.error("Objective value becomes NaN at {}th instance.", cnt);
-                    throw new BadRequestException("Got NaN error.");
-                }
-                for (int i = 0; i < orc.scalarNames.size(); i++) {
-                    String name = orc.scalarNames.get(i);
-                    int idx = orc.scalarIndexes.getInt(i);
-                    double grad = orc.scalarGrads.getDouble(i);
-                    double var = model.getScalarVarByNameIndex(name, idx);
-                    var = var - lr * (grad + l2coef * l2term.getGradient(var));
-                    if (nonnegative) {
-                        var = Math.max(0.0, var);
-                    }
-                    model.setScalarVarByNameIndex(name, idx, var);
-                }
-                for (int i = 0; i < orc.vectorNames.size(); i++) {
-                    String name = orc.vectorNames.get(i);
-                    int idx = orc.vectorIndexes.getInt(i);
-                    RealVector grad = orc.vectorGrads.get(i);
-                    RealVector var = model.getVectorVarByNameIndex(name, idx);
-                    var = var.combine(1.0, -lr, l2term.addGradient(grad, var, l2coef));
-                    if (nonnegative) {
-                        var = var.map(x -> Math.max(0.0, x));
-                    }
-                    model.setVectorVarByNameIndex(name, idx, var);
-                }
-                cnt++;
-                if (cnt % 100000 == 0) {
-                    logger.info("Updated the model using {} instances.", cnt);
-                }
-            }
-        }
-        return objVal;
-    }
-
-
     public static double joinObjectiveRunnableThreads(int numThreads, List<ObjectiveRunnable> runnables, List<Thread> threads) {
         double objVal = 0.0;
         for (int i=0; i<numThreads; i++) {

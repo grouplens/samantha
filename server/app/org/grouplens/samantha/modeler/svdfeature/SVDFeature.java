@@ -110,8 +110,6 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
         return weightName;
     }
 
-    public int getFactDim() { return factDim; }
-
     public List<String> getAllScalarVarNames() {
         List<String> names = new ArrayList<>();
         names.add(SVDFeatureKey.BIASES.get());
@@ -159,15 +157,11 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
         }
     }
 
-    private void ensureVectorVarSpace(List<Feature> features, boolean nonnegative) {
+    private void ensureVectorVarSpace(List<Feature> features) {
         for (Feature fea : features) {
             variableSpace.ensureVectorVar(SVDFeatureKey.FACTORS.get(),
                                           fea.getIndex() + 1, factDim,
                                           0, true, false);
-            if (nonnegative) {
-                RealVector vec = getVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), fea.getIndex());
-                setVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), fea.getIndex(), vec.mapToSelf(x -> Math.abs(x)));
-            }
         }
     }
 
@@ -224,8 +218,8 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
         if (update) {
             ensureScalarVarSpace(gfeas);
             updateFeatureSupport(gfeas);
-            ensureVectorVarSpace(ufeas, true);
-            ensureVectorVarSpace(ifeas, true);
+            ensureVectorVarSpace(ufeas);
+            ensureVectorVarSpace(ifeas);
         }
         double weight = SVDFeatureInstance.defaultWeight;
         double label = SVDFeatureInstance.defaultLabel;

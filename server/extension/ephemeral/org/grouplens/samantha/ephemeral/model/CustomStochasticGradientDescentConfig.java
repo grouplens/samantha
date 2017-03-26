@@ -20,18 +20,19 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.solver;
+package org.grouplens.samantha.ephemeral.model;
 
 import org.grouplens.samantha.modeler.common.LearningMethod;
 import org.grouplens.samantha.modeler.solver.OnlineOptimizationMethod;
 import org.grouplens.samantha.modeler.solver.StochasticGradientDescent;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.grouplens.samantha.server.solver.LearningMethodConfig;
 import play.Configuration;
 import play.inject.Injector;
 
-public class StochasticGradientDescentConfig implements LearningMethodConfig {
+public class CustomStochasticGradientDescentConfig implements LearningMethodConfig {
 
-    private StochasticGradientDescentConfig() {}
+    private CustomStochasticGradientDescentConfig() {}
 
     public static LearningMethod getLearningMethod(Configuration methodConfig,
                                                    Injector injector,
@@ -53,7 +54,7 @@ public class StochasticGradientDescentConfig implements LearningMethodConfig {
             nonnegative = methodConfig.getBoolean("nonnegative");
         }
 
-        OnlineOptimizationMethod onlineMethod = new StochasticGradientDescent(
+        OnlineOptimizationMethod onlineMethod = new CustomStochasticGradientDescent(
                 maxIter, minIter, methodConfig.getDouble("l2coef"),
                 methodConfig.getDouble("learningRate"), tol, nonnegative
         );

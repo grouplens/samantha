@@ -1,34 +1,16 @@
-/*
- * Copyright (c) [2016-2017] [University of Minnesota]
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+package org.grouplens.samantha.ephemeral;
 
-package org.grouplens.samantha.server.scheduler;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.typesafe.config.ConfigRenderOptions;
+import org.grouplens.samantha.ephemeral.model.CustomSVDFeature;
+import org.grouplens.samantha.modeler.dao.EntityDAO;
+import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.ConfigKey;
-import org.grouplens.samantha.server.config.EngineComponent;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
+import org.grouplens.samantha.server.dao.EntityDAOUtilities;
 import org.grouplens.samantha.server.indexer.Indexer;
-import org.grouplens.samantha.server.io.IOUtilities;
+import org.grouplens.samantha.server.indexer.IndexerUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.quartz.Job;
 import org.quartz.JobDataMap;
@@ -38,44 +20,120 @@ import play.Logger;
 import play.inject.Injector;
 import play.libs.Json;
 
-public class ComponentGetterQuartzJob implements Job {
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class BuildModelJob implements Job {
 
     public void execute(JobExecutionContext context) {
         JobDataMap dataMap = context.getMergedJobDataMap();
         String engineName = dataMap.getString("engineName");
         Injector injector = (Injector) dataMap.get("injector");
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
+
         Configuration jobConfig = (Configuration) dataMap.get("jobConfig");
-        for (Configuration taskConfig: jobConfig.getConfigList("tasks")) {
-            ObjectNode reqBody = Json.newObject();
-            for (Configuration indexedData : taskConfig.getConfigList("indexerData")) {
-                RequestContext pseudoRequest = new RequestContext(
-                        Json.parse(indexedData.getConfig(ConfigKey.REQUEST_CONTEXT.get())
-                                .underlying().root().render(ConfigRenderOptions.concise())),
-                        engineName);
-                Indexer indexer = configService.getIndexer(indexedData.getString("indexerName"), pseudoRequest);
-                reqBody.set(indexedData.getString("daoConfigKey"),
-                        indexer.getIndexedDataDAOConfig(pseudoRequest));
-            }
-            for (Configuration otherData : taskConfig.getConfigList("otherData")) {
-                reqBody.set(otherData.getString("daoConfigKey"),
-                        Json.parse(otherData.getConfig("daoConfig").underlying().root()
-                        .render(ConfigRenderOptions.concise())));
-            }
-            Configuration runnerConfig = taskConfig.getConfig("runner");
-            IOUtilities.parseEntityFromJsonNode(
-                    Json.parse(runnerConfig.getConfig(ConfigKey.REQUEST_CONTEXT.get())
-                            .underlying().root().render(ConfigRenderOptions.concise())), reqBody);
-            RequestContext pseudoRequest = new RequestContext(reqBody, engineName);
-            String name = runnerConfig.getString(ConfigKey.ENGINE_COMPONENT_NAME.get());
-            String type = runnerConfig.getString(ConfigKey.ENGINE_COMPONENT_TYPE.get());
-            ObjectNode logInfo = Json.newObject();
-            logInfo.put(ConfigKey.ENGINE_NAME.get(), engineName);
-            logInfo.put(ConfigKey.ENGINE_COMPONENT_NAME.get(), name);
-            logInfo.put(ConfigKey.ENGINE_COMPONENT_TYPE.get(), type);
-            logInfo.set(ConfigKey.REQUEST_CONTEXT.get(), reqBody);
-            Logger.info(logInfo.toString());
-            EngineComponent.valueOf(type).getComponent(configService, name, pseudoRequest);
+        String svdfeaturePredictor = jobConfig.getString("svdfeaturePredictor");
+        String svdfeatureModel = jobConfig.getString("svdfeatureModel");
+
+        // Get indexer
+        Configuration indexerData = jobConfig.getConfig("indexerData");
+        RequestContext indexerPseudoRequest = new RequestContext(
+                Json.parse(indexerData.getConfig(ConfigKey.REQUEST_CONTEXT.get())
+                        .underlying().root().render(ConfigRenderOptions.concise())),
+                indexerData.getString("indexerEngineName", engineName));
+        Indexer indexer = configService.getIndexer(indexerData.getString("indexerName"), indexerPseudoRequest);
+
+        // Create a RequestContext with an empty body and the same engine as the indexer
+        // The body of the RequestContext isn't get used by any currently written EntityDAOs, so it can be empty
+        RequestContext daoPseudoRequest = new RequestContext(Json.newObject(), indexerData.getString("indexerEngineName", engineName));
+        JsonNode reqDao = indexer.getIndexedDataDAOConfig(indexerPseudoRequest);
+        EntityDAO entityDAO = EntityDAOUtilities.getEntityDAO(indexerData.getConfig(indexerData.getString("daoConfigKey")), daoPseudoRequest, reqDao, injector);
+
+        // Get the entityDaoConfigs for this engine (not necessarily the indexer's)
+        Configuration entityDaoConfigs = jobConfig.getConfig(jobConfig.getString("daoConfigKey"));
+        String entityDaoKey = entityDaoConfigs.getString("entityDaoKey");
+        String entityDaoConfigName =  jobConfig.getString(entityDaoKey);
+
+        List<String> dataFields = jobConfig.getStringList("dataFields");
+        String separator = jobConfig.getString("separator", "\t");
+        String trainPath = jobConfig.getString("trainPath");
+        String valPath = jobConfig.getString("valPath");
+        Double valFraction = jobConfig.getDouble("valFraction");
+
+        // Create a set that compares ObjectNodes by userId.movieId keys to ensure uniqueness of ratings.
+        // Later ratings will overwrite earlier ratings.
+        // TODO: Will need to sort by tstamp if file is not guaranteed to be in order
+        Set<ObjectNode> uniqueEntities = new TreeSet<>(Comparator.comparing(x -> x.get("userId").asInt() + "." + x.get("movieId").asInt()));
+        while (entityDAO.hasNextEntity()) {
+            uniqueEntities.add(entityDAO.getNextEntity());
         }
+
+        Map<Integer, Integer> pop = new HashMap<>();
+        try {
+            BufferedWriter trainWriter = new BufferedWriter(new FileWriter(trainPath));
+            IndexerUtilities.writeOutHeader(dataFields, trainWriter, separator);
+
+            BufferedWriter valWriter = new BufferedWriter(new FileWriter(valPath));
+            IndexerUtilities.writeOutHeader(dataFields, valWriter, separator);
+
+            for (ObjectNode obj : uniqueEntities) {
+                pop.merge(obj.get("movieId").asInt(), 1, Integer::sum);
+
+                if (Math.random() < valFraction) { // write to validation set
+                    IndexerUtilities.writeOutJson(obj, dataFields, valWriter, separator);
+                } else { // write to training set
+                    IndexerUtilities.writeOutJson(obj, dataFields, valWriter, separator);
+                }
+            }
+
+            trainWriter.close();
+            valWriter.close();
+
+        } catch (IOException e) {
+            Logger.error(e.getMessage(), e);
+            return;
+        }
+
+        // Construct the request body for the build operation
+        // Point learningDaoConfig and validationDaoConfig to our newly written files
+        ObjectNode learningDaoConfig = Json.newObject();
+        learningDaoConfig.put("filePath", trainPath);
+        learningDaoConfig.put("separator", separator);
+        learningDaoConfig.put(entityDaoKey, entityDaoConfigName);
+
+        ObjectNode validationDaoConfig = Json.newObject();
+        validationDaoConfig.put("filePath", valPath);
+        validationDaoConfig.put("separator", separator);
+        validationDaoConfig.put(entityDaoKey, entityDaoConfigName);
+
+        ObjectNode reqBody = Json.newObject();
+        reqBody.put("modelName", svdfeatureModel);
+        reqBody.put("predictor", svdfeaturePredictor);
+        reqBody.put("modelOperation", "BUILD");
+        reqBody.set("learningDaoConfig", learningDaoConfig);
+        reqBody.set("validationDaoConfig", validationDaoConfig);
+
+        // Build the model
+        RequestContext buildPseudoRequest = new RequestContext(reqBody, engineName);
+        configService.getPredictor(svdfeaturePredictor, buildPseudoRequest);
+
+        // Get the model
+        ModelService modelService = injector.instanceOf(ModelService.class);
+        CustomSVDFeature svdFeature = (CustomSVDFeature) modelService.getModel(engineName, svdfeatureModel);
+
+        // Sort item ids by descending popularity and add them to the model
+        List<ObjectNode> entities = pop.entrySet().stream().map(entry -> {
+            ObjectNode obj = Json.newObject();
+            obj.put("movieId", entry.getKey());
+            obj.put("popularity", entry.getValue());
+            return obj;
+        }).collect(Collectors.toList());
+        svdFeature.setEntities(entities);
+
+        // Cache the average user vector
+        svdFeature.getAverageUserVector();
     }
 }

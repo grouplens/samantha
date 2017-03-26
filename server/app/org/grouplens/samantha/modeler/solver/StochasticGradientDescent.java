@@ -27,22 +27,17 @@ import org.grouplens.samantha.modeler.common.LearningData;
 public class StochasticGradientDescent extends AbstractOptimizationMethod implements OnlineOptimizationMethod {
     private double l2coef;
     private double lr;
-    private boolean nonnegative;
 
     public StochasticGradientDescent() {
         super(5.0, 50, 2);
         l2coef = 0.0;
         lr = 0.001;
-        nonnegative = false;
     }
 
-    public StochasticGradientDescent(int maxIter, int minIter, double l2coef,
-                                     double learningRate, double tol,
-                                     boolean nonnegative) {
+    public StochasticGradientDescent(int maxIter, int minIter, double l2coef, double learningRate, double tol) {
         super(tol, maxIter, minIter);
         this.l2coef = l2coef;
         this.lr = learningRate;
-        this.nonnegative = nonnegative;
     }
 
     public double update(LearningModel model, LearningData learningData) {
@@ -50,7 +45,7 @@ public class StochasticGradientDescent extends AbstractOptimizationMethod implem
         ObjectiveFunction objFunc = model.getObjectiveFunction();
         learningData.startNewIteration();
         double objVal = SolverUtilities.stochasticGradientDescentUpdate(model, objFunc,
-                learningData, l2term, l2coef, lr, nonnegative);
+                learningData, l2term, l2coef, lr);
         return objVal;
     }
 }

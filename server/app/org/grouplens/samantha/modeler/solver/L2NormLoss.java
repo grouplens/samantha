@@ -27,8 +27,7 @@ import java.util.List;
 public class L2NormLoss implements ObjectiveFunction {
     private static final long serialVersionUID = 1L;
 
-    public L2NormLoss() {
-    }
+    public L2NormLoss() { }
 
     public List<StochasticOracle> wrapOracle(List<StochasticOracle> oracles) {
         for (StochasticOracle orc : oracles) {
