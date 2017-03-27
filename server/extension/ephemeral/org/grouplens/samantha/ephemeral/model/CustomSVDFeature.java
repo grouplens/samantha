@@ -7,6 +7,7 @@ import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealVector;
 
@@ -30,6 +31,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.Format;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -46,10 +49,59 @@ public class CustomSVDFeature extends AbstractLearningModel implements Featurize
     private final List<FeatureExtractor> featureExtractors = new ArrayList<>();
     private final int factDim;
 
-    // TODO: Change to different format...
-    private List<ObjectNode> entities;
+    // Cache the average user vector so that we only need to calculate it once
+    // after we're done building the model. DUMP should serialize it to disk,
+    // along with the rest of the model.
     private RealVector averageUserVector;
+    public RealVector getAverageUserVector() {
+        if (averageUserVector == null) {
+            throw new IllegalStateException("model not trained");
+        }
+        // Don't allow other classes to (accidentally) modify the vector
+        return RealVector.unmodifiableRealVector(averageUserVector);
+    }
+    public void calculateAverageUserVector() {
+        List<Integer> indices = new ArrayList<>();
 
+        int size = getKeyMapSize(SVDFeatureKey.FACTORS.get());
+        for (int i = 0; i < size; i++) {
+            String key = (String) getKeyForIndex(SVDFeatureKey.FACTORS.get(), i);
+            if (key.startsWith("userId")) {
+                indices.add(i);
+            }
+        }
+
+        // Model hasn't been trained yet...
+        if (indices.isEmpty()) {
+            throw new IllegalStateException("no user vectors found in model");
+        }
+
+        averageUserVector = indices.stream()
+                .map(index -> getVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), index))
+                .reduce((v1, v2) -> v1.add(v2))
+                .get().mapDivide(indices.size());
+
+        Format d = new DecimalFormat("#.###");
+        logger.info("calculated average of {} user vectors, norm={}, elements=[{}]",
+                indices.size(),
+                d.format(averageUserVector.getNorm()),
+                realVectorToString(averageUserVector));
+    }
+
+
+    static public CustomSVDFeature createSVDFeatureModelFromOtherModel(CustomSVDFeature otherModel,
+                                                                 List<String> biasFeas,
+                                                                 List<String> ufactFeas,
+                                                                 List<String> ifactFeas,
+                                                                 String labelName,
+                                                                 String weightName,
+                                                                 List<String> groupKeys,
+                                                                 List<FeatureExtractor> featureExtractors,
+                                                                 ObjectiveFunction objectiveFunction) {
+        return new CustomSVDFeature(biasFeas, ufactFeas, ifactFeas, labelName, weightName, groupKeys,
+                featureExtractors, otherModel.factDim, objectiveFunction, otherModel.indexSpace,
+                otherModel.variableSpace);
+    }
 
     /**
      * Directly calling this is discouraged. Use {@link CustomSVDFeatureProducer} instead.
@@ -132,6 +184,7 @@ public class CustomSVDFeature extends AbstractLearningModel implements Featurize
         }
     }
 
+    // Updated to ensure nonnegative initial conditions.
     private void ensureVectorVarSpace(List<Feature> features) {
         for (Feature fea : features) {
             variableSpace.ensureVectorVar(SVDFeatureKey.FACTORS.get(),
@@ -284,50 +337,4 @@ public class CustomSVDFeature extends AbstractLearningModel implements Featurize
         return objectiveFunction.wrapOutput(output);
     }
 
-
-
-    public RealVector getAverageUserVector() {
-        if (averageUserVector == null) {
-            List<Integer> indices = new ArrayList<>();
-
-            int size = getKeyMapSize(SVDFeatureKey.FACTORS.get());
-            for (int i = 0; i < size; i++) {
-                String key = (String) getKeyForIndex(SVDFeatureKey.FACTORS.get(), i);
-                if (key.startsWith("userId")) {
-                    indices.add(i);
-                } else if (!key.startsWith("movieId")) {
-                    throw new ConfigurationException("encountered vector variable that didn't start with userId or movieId");
-                }
-            }
-
-            if (indices.isEmpty()) {
-                throw new ConfigurationException("No userId vectors found");
-            }
-
-            averageUserVector = indices.stream()
-                    .map(index -> getVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), index))
-                    .reduce((v1, v2) -> v1.add(v2))
-                    .get().mapDivide(indices.size());
-        }
-        return averageUserVector;
-    }
-
-    public void setEntities(List<ObjectNode> entities) {
-        Ordering<ObjectNode> ordering = RetrieverUtilities.jsonFieldOrdering("popularity").reverse();
-        this.entities = ordering.immutableSortedCopy(entities);
-
-        // For logging correctness of results...
-        List<Integer> top10 = this.entities.subList(0, 10).stream().map(obj -> obj.get("movieId").asInt()).collect(Collectors.toList());
-        logger.info("Top 10 most popular items are: {}", top10.toString());
-    }
-    public List<ObjectNode> getEntities() {
-        return entities.stream()
-                .map(x -> x.deepCopy()) //
-                .collect(Collectors.toList());
-    }
-    public List<ObjectNode> getEntities(int limit) {
-        return entities.subList(0, Math.min(limit, entities.size())).stream()
-                .map(x -> x.deepCopy())
-                .collect(Collectors.toList());
-    }
 }

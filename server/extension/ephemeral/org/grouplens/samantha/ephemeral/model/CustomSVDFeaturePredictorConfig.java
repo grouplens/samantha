@@ -1,6 +1,7 @@
 package org.grouplens.samantha.ephemeral.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.elasticsearch.cluster.ClusterState;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
@@ -170,7 +171,7 @@ public class CustomSVDFeaturePredictorConfig implements PredictorConfig {
                     reqBody.get("learningDaoConfig"), entityDaoConfigs, expandersConfig, injector, true,
                     serializedKey, insName, labelName, weightName, groupKeys);
             LearningData valid = null;
-            if (reqBody.has("validationDaoConfig"))  {
+            if (reqBody.has("validationDaoConfig")) {
                 valid = PredictorUtilities.getLearningData(svdFeature, requestContext,
                         reqBody.get("validationDaoConfig"), entityDaoConfigs, expandersConfig,
                         injector, false, serializedKey, insName, labelName, weightName, groupKeys);
@@ -178,6 +179,8 @@ public class CustomSVDFeaturePredictorConfig implements PredictorConfig {
             OptimizationMethod method = (OptimizationMethod) PredictorUtilities
                     .getLearningMethod(methodConfig, injector, requestContext);
             method.minimize(svdFeature, data, valid);
+            // Update the averageUserVector calculation...
+            svdFeature.calculateAverageUserVector();
             return model;
         }
 
@@ -190,8 +193,11 @@ public class CustomSVDFeaturePredictorConfig implements PredictorConfig {
             OnlineOptimizationMethod onlineMethod = (OnlineOptimizationMethod) PredictorUtilities
                     .getLearningMethod(onlineMethodConfig, injector, requestContext);
             onlineMethod.update(svdFeature, data);
+            // Update the averageUserVector calculation...
+            svdFeature.calculateAverageUserVector();
             return model;
         }
+
     }
 
     public Predictor getPredictor(RequestContext requestContext) {

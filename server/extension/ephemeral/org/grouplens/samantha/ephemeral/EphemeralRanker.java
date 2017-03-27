@@ -112,36 +112,6 @@ public class EphemeralRanker extends AbstractRanker {
         return svdFeature.getVectorVarByNameIndex(name, idx);
     }
 
-    private RealVector getAverageUserVector() {
-        if (averageUserVector == null) {
-            List<Integer> indices = new ArrayList<>();
-
-            int size = svdFeature.getKeyMapSize(SVDFeatureKey.FACTORS.get());
-            for (int i = 0; i < size; i++) {
-                String key = (String) svdFeature.getKeyForIndex(SVDFeatureKey.FACTORS.get(), i);
-                if (key.startsWith("userId")) {
-                    indices.add(i);
-                } else if (!key.startsWith("movieId")) {
-                    throw new ConfigurationException("encountered vector variable that didn't start with userId or movieId");
-                }
-            }
-
-            if (indices.isEmpty()) {
-                throw new ConfigurationException("No userId vectors found");
-            }
-
-            averageUserVector = indices.stream()
-                    .map(index -> svdFeature.getVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), index))
-                    .reduce((v1, v2) -> v1.add(v2))
-                    .get().mapDivide(indices.size());
-
-            Logger.info("Averaged {} user vectors", indices.size());
-            Logger.info("Average user vector = [{}]", realVectorToString(averageUserVector));
-
-        }
-        return averageUserVector;
-    }
-
 //    // Positive feedback only version of computing desired vector.
 //    private RealVector computeDesiredVec(RealVector seed, List<Map<Integer, List<Integer>>> roundsList) {
 //
@@ -203,7 +173,7 @@ public class EphemeralRanker extends AbstractRanker {
 
     private RealVector computeDesiredVec(RealVector initialVec, List<Map<Integer, List<Integer>>> roundsList) {
         RealVector currentVec = initialVec.mapDivide(initialVec.getNorm());
-        RealVector defaultVec = getAverageUserVector().mapDivide(getAverageUserVector().getNorm());
+        RealVector defaultVec = svdFeature.getAverageUserVector().mapDivide(svdFeature.getAverageUserVector().getNorm());
 
         // Iterate over each round, adding the user's preferences to the
         // "desired" vector and more heavily weighting more recent rounds.
@@ -450,12 +420,9 @@ public class EphemeralRanker extends AbstractRanker {
         exclusions.addAll(ignoredMovieIds); // put any exclusions specified in the request
 
         // Get the universe of items, excluding previously shown items
-        List<ObjectNode> universe = svdFeature.getEntities(10000).stream()
+        List<ObjectNode> universe = retrievedResult.getEntityList().stream()
                 .filter(obj -> !exclusions.contains(obj.get("movieId").asInt()))
                 .collect(Collectors.toList());
-//        List<ObjectNode> universe = retrievedResult.getEntityList().stream()
-//                .filter(obj -> !exclusions.contains(obj.get("movieId").asInt()))
-//                .collect(Collectors.toList());
 
 
         /*
@@ -467,7 +434,7 @@ public class EphemeralRanker extends AbstractRanker {
             // Pick the initialVec based on the user's experimental condition
             RealVector initialVec = null;
             if (expt.get("origin") == 0 || expt.get("origin") == 3) { // average user vec
-                initialVec = getAverageUserVector();
+                initialVec = svdFeature.getAverageUserVector();
             } else if (expt.get("origin") == 1){ // current user's vec
                 try {
                     initialVec = getUserVector(userId);
@@ -491,7 +458,7 @@ public class EphemeralRanker extends AbstractRanker {
 
             // If the user didn't qualify for their exp. condition, disqualify them
             if (initialVec == null) {
-                initialVec = getAverageUserVector();
+                initialVec = svdFeature.getAverageUserVector();
                 params.put("origin", 3); // Change user's condition
             }
 
@@ -556,8 +523,10 @@ public class EphemeralRanker extends AbstractRanker {
             }
 
         } else if (expt.get("algorithm") == 2 || expt.get("algorithm") == 3) { // random algorithm
+            // Randomly select 10 movies from the universe and return them ordered by popularity
             Collections.shuffle(universe);
-            List<ObjectNode> selected = universe.subList(0, Math.min(10, universe.size()));
+            Ordering<ObjectNode> ordering = RetrieverUtilities.jsonFieldOrdering("support").reverse();
+            List<ObjectNode> selected = ordering.immutableSortedCopy(universe.subList(0, Math.min(10, universe.size())));
             return response(selected, params);
         }
 
