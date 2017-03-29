@@ -273,7 +273,7 @@ public class EphemeralRanker extends AbstractRanker {
 //                RealVector delta = direction.mapMultiply(distance * confidence);
 
                 currentVec = currentVec.add(delta);
-                currentVec = currentVec.mapDivide(currentVec.getNorm());
+                currentVec = currentVec.unitVector();
             }
 
             double revertToMeanMultiplier = revertToMeanConstant;
@@ -289,7 +289,7 @@ public class EphemeralRanker extends AbstractRanker {
             if (revertToMeanMultiplier != 0) {
                 RealVector previous =  currentVec.copy();
                 currentVec = currentVec.mapMultiply(1.0 - revertToMeanMultiplier).add(defaultVec.mapMultiply(revertToMeanMultiplier));
-                currentVec = currentVec.mapDivide(currentVec.getNorm());
+                currentVec = currentVec.unitVector();
 //                Logger.debug("Revert to mean moved vector by cosine of {}", d.format(previous.cosine(currentVec)));
             }
 
