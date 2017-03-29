@@ -46,7 +46,7 @@ public class SVDFeatureInstance extends AbstractLearningInstance {
     static public double defaultWeight = 1.0;
     static public double defaultLabel = 0.0;
 
-    SVDFeatureInstance(List<Feature> gfeas, List<Feature> ufeas, List<Feature> ifeas,
+    public SVDFeatureInstance(List<Feature> gfeas, List<Feature> ufeas, List<Feature> ifeas,
                        double label, double weight, String group) {
         super(group);
         this.gfeas = gfeas;
@@ -79,6 +79,14 @@ public class SVDFeatureInstance extends AbstractLearningInstance {
 
     public List<Feature> getBiasFeatures() {
         return this.gfeas;
+    }
+
+    public List<Feature> getUserFeatures() {
+        return this.ufeas;
+    }
+
+    public List<Feature> getItemFeatures() {
+        return this.ifeas;
     }
 
     public String toString() {
