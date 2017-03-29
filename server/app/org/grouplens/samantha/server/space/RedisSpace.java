@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) [2016-2017] [University of Minnesota]
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.grouplens.samantha.server.space;
 
 import org.grouplens.samantha.modeler.space.SpaceMode;
@@ -7,6 +29,7 @@ abstract public class RedisSpace {
     protected SpaceMode spaceMode;
     protected String spaceVersion;
     protected String spaceName;
+    protected SpaceType spaceType;
     protected String spaceIdentifier;
     protected final RedisService redisService;
 
@@ -14,20 +37,9 @@ abstract public class RedisSpace {
         this.redisService = redisService;
     }
 
-    synchronized public void setSpaceState(String spaceName, SpaceMode spaceMode) {
-        spaceVersion = redisService.get(spaceName, spaceMode.get());
-        if (spaceVersion == null) {
-            spaceVersion = redisService.incre(spaceName, "version").toString();
-            redisService.set(spaceName, spaceMode.get(), spaceVersion);
-        }
-        this.spaceMode = spaceMode;
-        this.spaceName = spaceName;
-        this.spaceIdentifier = RedisService.composeKey(spaceName, spaceVersion);
-    }
-
     synchronized public void publishSpaceVersion() {
-        redisService.set(spaceName, SpaceMode.DEFAULT.get(), spaceVersion);
-        redisService.del(spaceName, SpaceMode.BUILDING.get());
+        redisService.set(spaceName + "_" + spaceType.get(), SpaceMode.DEFAULT.get(), spaceVersion);
+        redisService.del(spaceName + "_" + spaceType.get(), SpaceMode.BUILDING.get());
         spaceMode = SpaceMode.DEFAULT;
     }
 }

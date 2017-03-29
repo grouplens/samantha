@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) [2016-2017] [University of Minnesota]
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.grouplens.samantha.server.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,12 +46,18 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Singleton
 public class RedisLettuceService implements RedisService {
     private final String cfgHost;
     private final Integer cfgPort;
     private final Integer cfgDb;
+
+    private final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
+    private final Lock readLock = rwl.readLock();
+    private final Lock writeLock = rwl.writeLock();
 
     private RedisClient client = null;
     private StatefulRedisConnection<String, String> connection = null;
@@ -87,52 +115,166 @@ public class RedisLettuceService implements RedisService {
         }
     }
 
+    public void watch(String prefix, String key) {
+        writeLock.lock();
+        syncCommands.watch(RedisService.composeKey(prefix, key));
+    }
+
+    public void multi(boolean lock) {
+        if (lock) {
+            writeLock.lock();
+        }
+        syncCommands.multi();
+    }
+
+    public List<Object> exec() {
+        try {
+            return syncCommands.exec();
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
     public Long incre(String prefix, String key) {
+        readLock.lock();
+        try {
+            return syncCommands.incr(RedisService.composeKey(prefix, key));
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    public Long increWithoutLock(String prefix, String key) {
         return syncCommands.incr(RedisService.composeKey(prefix, key));
     }
 
     public String get(String prefix, String key) {
-        return (String) syncCommands.get(RedisService.composeKey(prefix, key));
+        readLock.lock();
+        try {
+            return (String) syncCommands.get(RedisService.composeKey(prefix, key));
+        } finally {
+            readLock.unlock();
+        }
     }
 
-    public void set(String prefix, String key, String value) {
-        syncCommands.set(RedisService.composeKey(prefix, key), value);
+    public JsonNode getValue(String prefix, String key) {
+        String val = null;
+        readLock.lock();
+        try {
+            val = (String) syncCommands.get(RedisService.composeKey(prefix, key));
+        } finally {
+            readLock.unlock();
+        }
+        if (val != null) {
+            return Json.parse(val);
+        } else {
+            return null;
+        }
+    }
+
+    public String set(String prefix, String key, String value) {
+        readLock.lock();
+        try {
+            return syncCommands.set(RedisService.composeKey(prefix, key), value);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    public String setWithoutLock(String prefix, String key, String value) {
+        return syncCommands.set(RedisService.composeKey(prefix, key), value);
+    }
+
+    public void setValue(String prefix, String key, JsonNode value) {
+        readLock.lock();
+        try {
+            syncCommands.set(RedisService.composeKey(prefix, key), value.toString());
+        } finally {
+            readLock.unlock();
+        }
     }
 
     public void del(String prefix, String key) {
-        syncCommands.del(RedisService.composeKey(prefix, key));
+        readLock.lock();
+        try {
+            syncCommands.del(RedisService.composeKey(prefix, key));
+        } finally {
+            readLock.unlock();
+        }
     }
 
-    public List<JsonNode> getFromHashSet(String prefix, List<String> keyAttrs, JsonNode data) {
-        List<JsonNode> results = new ArrayList<>();
-        String key = RedisService.composeKey(prefix, RedisService.composeKey(data, keyAttrs));
-        List<String> vals = syncCommands.hvals(key);
-        for (String val : vals) {
-            results.add(Json.parse(val));
+    public void delWithKey(String key) {
+        readLock.lock();
+        try {
+            syncCommands.del(key);
+        } finally {
+            readLock.unlock();
         }
-        return results;
+    }
+
+    public List<String> keysWithPrefixPattern(String prefix, String key) {
+        String pattern = prefix;
+        if (key != null) {
+            pattern = RedisService.composeKey(prefix, key);
+        }
+        readLock.lock();
+        try {
+            return syncCommands.keys(pattern + "*");
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    public List<JsonNode> bulkGet(List<String> keys) {
+        readLock.lock();
+        try {
+            List<RedisFuture<String>> futures = new ArrayList<>();
+            for (String key : keys) {
+                RedisFuture<String> future = asyncCommands.get(key);
+                futures.add(future);
+            }
+            asyncConnection.flushCommands();
+            LettuceFutures.awaitAll(1, TimeUnit.MINUTES, futures.toArray(new RedisFuture[futures.size()]));
+            List<JsonNode> results = new ArrayList<>(keys.size());
+            for (RedisFuture<String> future : futures) {
+                try {
+                    String ret = future.get(5, TimeUnit.SECONDS);
+                    results.add(Json.parse(ret));
+                } catch (ExecutionException | TimeoutException | InterruptedException e) {
+                    throw new BadRequestException(e);
+                }
+            }
+            return results;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     private List<JsonNode> bulkGetFromHashSetWithKeys(Collection<String> keys) {
-        List<RedisFuture<List>> futures = new ArrayList<>();
-        for (String key : keys) {
-            RedisFuture<List> future = asyncCommands.hvals(key);
-            futures.add(future);
-        }
-        asyncConnection.flushCommands();
-        LettuceFutures.awaitAll(1, TimeUnit.MINUTES, futures.toArray(new RedisFuture[futures.size()]));
-        List<JsonNode> results = new ArrayList<>(keys.size());
-        for (RedisFuture<List> future : futures) {
-            try {
-                List<String> ret = future.get(5, TimeUnit.SECONDS);
-                for (String val : ret) {
-                    results.add(Json.parse(val));
-                }
-            } catch (ExecutionException | TimeoutException | InterruptedException e) {
-                throw new BadRequestException(e);
+        readLock.lock();
+        try {
+            List<RedisFuture<List>> futures = new ArrayList<>();
+            for (String key : keys) {
+                RedisFuture<List> future = asyncCommands.hvals(key);
+                futures.add(future);
             }
+            asyncConnection.flushCommands();
+            LettuceFutures.awaitAll(1, TimeUnit.MINUTES, futures.toArray(new RedisFuture[futures.size()]));
+            List<JsonNode> results = new ArrayList<>(keys.size());
+            for (RedisFuture<List> future : futures) {
+                try {
+                    List<String> ret = future.get(5, TimeUnit.SECONDS);
+                    for (String val : ret) {
+                        results.add(Json.parse(val));
+                    }
+                } catch (ExecutionException | TimeoutException | InterruptedException e) {
+                    throw new BadRequestException(e);
+                }
+            }
+            return results;
+        } finally {
+            readLock.unlock();
         }
-        return results;
     }
 
     public List<JsonNode> bulkUniqueGetFromHashSet(String prefix, List<String> keyAttrs, List<ObjectNode> data) {
@@ -141,7 +283,6 @@ public class RedisLettuceService implements RedisService {
             uniqKeys.add(RedisService.composeKey(prefix, RedisService.composeKey(entity, keyAttrs)));
         }
         return bulkGetFromHashSetWithKeys(uniqKeys);
-
     }
 
     public List<JsonNode> bulkGetFromHashSet(String prefix, List<String> keyAttrs, JsonNode data) {
@@ -156,11 +297,21 @@ public class RedisLettuceService implements RedisService {
 
     public void indexIntoSortedSet(String prefix, String key, String scoreAttr, JsonNode data) {
         double score = data.get(scoreAttr).asDouble();
-        syncCommands.zadd(RedisService.composeKey(prefix, key), score, data.toString());
+        readLock.lock();
+        try {
+            syncCommands.zadd(RedisService.composeKey(prefix, key), score, data.toString());
+        } finally {
+            readLock.unlock();
+        }
     }
 
     public void indexIntoHashSet(String prefix, String key, String hash, JsonNode data) {
-        syncCommands.hset(RedisService.composeKey(prefix, key), hash, data.toString());
+        readLock.lock();
+        try {
+            syncCommands.hset(RedisService.composeKey(prefix, key), hash, data.toString());
+        } finally {
+            readLock.unlock();
+        }
     }
 
     public void bulkIndexIntoHashSet(String prefix, List<String> keyAttrs, List<String> hashAttrs, JsonNode data) {

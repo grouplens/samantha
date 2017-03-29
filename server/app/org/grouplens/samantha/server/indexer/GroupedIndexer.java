@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) [2016-2017] [University of Minnesota]
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -34,6 +56,7 @@ public class GroupedIndexer extends AbstractIndexer {
     private final String daoNameKey;
     private final String daoName;
     private final String separatorKey;
+    private final int usedBuckets;
 
     public GroupedIndexer(SamanthaConfigService configService,
                           Configuration config, Injector injector,
@@ -42,7 +65,8 @@ public class GroupedIndexer extends AbstractIndexer {
                           int numBuckets, List<String> groupKeys,
                           List<String> dataFields, String separator,
                           List<String> orderFields, Boolean descending,
-                          String filesKey, String daoName, String daoNameKey, String separatorKey) {
+                          String filesKey, String daoName, String daoNameKey,
+                          String separatorKey, int usedBuckets) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
         this.indexer = indexer;
         this.dataDir = dataDir;
@@ -56,16 +80,17 @@ public class GroupedIndexer extends AbstractIndexer {
         this.daoName = daoName;
         this.daoNameKey = daoNameKey;
         this.separatorKey = separatorKey;
+        this.usedBuckets = usedBuckets;
     }
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
         EntityDAO entityDAO = indexer.getEntityDAO(requestContext);
         String prefix = dataDir + "/";
         List<BufferedWriter> writers = new ArrayList<>();
-        List<String> files = new ArrayList<>(numBuckets);
+        List<String> files = new ArrayList<>(usedBuckets);
         try {
             new File(prefix).mkdirs();
-            for (int i = 0; i < numBuckets; i++) {
+            for (int i = 0; i < usedBuckets; i++) {
                 BufferedWriter writer = new BufferedWriter(new FileWriter(prefix +
                         Integer.valueOf(i).toString() + ".tmp"));
                 IndexerUtilities.writeOutHeader(dataFields, writer, separator);
@@ -75,13 +100,15 @@ public class GroupedIndexer extends AbstractIndexer {
                 ObjectNode entity = entityDAO.getNextEntity();
                 int idx = FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys)
                         .hashCode() % numBuckets;
-                IndexerUtilities.writeOutJson(entity, dataFields, writers.get(idx), separator);
+                if (idx < usedBuckets) {
+                    IndexerUtilities.writeOutJson(entity, dataFields, writers.get(idx), separator);
+                }
             }
-            for (int i = 0; i < numBuckets; i++) {
+            for (int i = 0; i < usedBuckets; i++) {
                 writers.get(i).close();
             }
             writers.clear();
-            for (int i=0; i<numBuckets; i++) {
+            for (int i=0; i<usedBuckets; i++) {
                 String tmpFilePath = prefix + Integer.valueOf(i).toString() + ".tmp";
                 File tmpFile = new File(tmpFilePath);
                 if (tmpFile.isFile()) {

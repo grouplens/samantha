@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) [2016-2017] [University of Minnesota]
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.grouplens.samantha.server.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -175,6 +197,16 @@ public class JsonHelpers {
     }
 
     /**
+     * @return a Long from the input JsonNode with the given name, or the default value
+     */
+    public static Long getRequiredLong(JsonNode json, String name) throws BadRequestException {
+        JsonNode node = json.get(name);
+        if (node == null || !node.canConvertToLong()) {
+            throw new BadRequestException("json is missing required long: " + name);
+        }
+        return node.asLong();
+    }
+    /**
      * @return an Integer from the input JsonNode with the given name, or the default value
      */
     public static Integer getOptionalInt(JsonNode json, String name, Integer defaultInt) throws BadRequestException {
@@ -186,6 +218,20 @@ public class JsonHelpers {
             throw new BadRequestException("json is not an int: " + name);
         }
         return node.asInt();
+    }
+
+    /**
+     * @return a Long from the input JsonNode with the given name, or the default value
+     */
+    public static Long getOptionalLong(JsonNode json, String name, Long defaultLong) throws BadRequestException {
+        JsonNode node = json.get(name);
+        if (node == null) {
+            return defaultLong;
+        }
+        if (!node.canConvertToLong()) {
+            throw new BadRequestException("json is not a long: " + name);
+        }
+        return node.asLong();
     }
 
     /**
@@ -286,6 +332,83 @@ public class JsonHelpers {
         }
         return list;
     }
+
+    /**
+     * @return a Map<Integer, Integer> from the input JsonNode with the given name, or throw an BadRequestException.
+     *         Must be a flat JsonNode or it will throw an BadRequestException.
+     */
+    public static Map<Integer, Integer> getRequiredIntegerToIntegerMap(JsonNode json, String name) throws  BadRequestException {
+        final JsonNode node = json.get(name);
+
+        if (node == null || node.isNull() || !(node.isObject())) {
+            throw new BadRequestException("json is missing required object: " + name);
+        }
+
+        final Map<Integer, Integer> map = new HashMap<>();
+        for (Iterator<Map.Entry<String, JsonNode>> iterator = node.fields(); iterator.hasNext(); ) {
+            Map.Entry<String, JsonNode> entry = iterator.next();
+            final String key = entry.getKey();
+            final Integer value = getRequiredInt(node, key);
+
+            try {
+                map.put(Integer.parseInt(key), value);
+            } catch (NumberFormatException e) {
+                throw new BadRequestException("key '" + key + "' is not an integer");
+            }
+        }
+
+        return map;
+    }
+
+    /**
+     * @return a Map<Integer, Double> from the input JsonNode with the given name, or throw an BadRequestException.
+     *         Must be a flat JsonNode or it will throw an BadRequestException.
+     */
+    public static Map<Integer, Double> getRequiredIntegerToDoubleMap(JsonNode json, String name) throws  BadRequestException {
+        final JsonNode node = json.get(name);
+
+        if (node == null || node.isNull() || !(node.isObject())) {
+            throw new BadRequestException("json is missing required object: " + name);
+        }
+
+        final Map<Integer, Double> map = new HashMap<>();
+        for (Iterator<Map.Entry<String, JsonNode>> iterator = node.fields(); iterator.hasNext(); ) {
+            Map.Entry<String, JsonNode> entry = iterator.next();
+            final String key = entry.getKey();
+            final Double value = getRequiredDouble(node, key);
+
+            try {
+                map.put(Integer.parseInt(key), value);
+            } catch (NumberFormatException e) {
+                throw new BadRequestException("key '" + key + "' is not an integer");
+            }
+        }
+
+        return map;
+    }
+
+    /**
+     * @return a Map<String, Integer> from the input JsonNode with the given name, or throw an BadRequestException.
+     *         Must be a flat JsonNode or it will throw an BadRequestException.
+     */
+    public static Map<String, Integer> getRequiredStringToIntegerMap(JsonNode json, String name) throws  BadRequestException {
+        final JsonNode node = json.get(name);
+
+        if (node == null || node.isNull() || !(node.isObject())) {
+            throw new BadRequestException("json is missing required object: " + name);
+        }
+
+        final Map<String, Integer> map = new HashMap<>();
+        for (Iterator<Map.Entry<String, JsonNode>> iterator = node.fields(); iterator.hasNext(); ) {
+            Map.Entry<String, JsonNode> entry = iterator.next();
+            final String key = entry.getKey();
+            final Integer value = getRequiredInt(node, key);
+            map.put(key, value);
+        }
+
+        return map;
+    }
+
 
     /**
      * @return a Map<String, String> from the input JsonNode with the given name, or throw an BadRequestException.

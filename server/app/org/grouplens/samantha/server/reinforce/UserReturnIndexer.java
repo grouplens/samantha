@@ -1,10 +1,34 @@
+/*
+ * Copyright (c) [2016-2017] [University of Minnesota]
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.grouplens.samantha.server.reinforce;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
+import org.grouplens.samantha.modeler.dao.CSVFileDAO;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.modeler.dao.EntityListDAO;
+import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.modeler.featurizer.GroupedEntityList;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
@@ -36,6 +60,7 @@ public class UserReturnIndexer extends AbstractIndexer {
     private final String filePathKey;
     private final int maxTime;
     private final int reinforceThreshold;
+    private final String usedGroupsFilePath;
 
     public UserReturnIndexer(SamanthaConfigService configService,
                              Configuration config, Injector injector, Configuration daoConfigs,
@@ -43,7 +68,8 @@ public class UserReturnIndexer extends AbstractIndexer {
                              String timestampField, List<String> dataFields, String separator,
                              String daoNameKey, String daoName, String filesKey,
                              String rewardKey, List<String> groupKeys, String sessionIdKey, String filePath,
-                             String separatorKey, GroupedIndexer indexer, int maxTime, int reinforceThreshold) {
+                             String separatorKey, GroupedIndexer indexer, int maxTime, int reinforceThreshold,
+                             String usedGroupsFilePath) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
         this.indexer = indexer;
         this.filePathKey = filePathKey;
@@ -60,6 +86,7 @@ public class UserReturnIndexer extends AbstractIndexer {
         this.filePath = filePath;
         this.maxTime = maxTime;
         this.reinforceThreshold = reinforceThreshold;
+        this.usedGroupsFilePath = usedGroupsFilePath;
     }
 
     private double rewardFunc(double returnTime) {
@@ -81,6 +108,16 @@ public class UserReturnIndexer extends AbstractIndexer {
     }
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
+        Map<String, Boolean> usedGroups = new HashMap<>();
+        if (usedGroupsFilePath != null) {
+            CSVFileDAO csvFileDAO = new CSVFileDAO(separator, usedGroupsFilePath);
+            while (csvFileDAO.hasNextEntity()) {
+                ObjectNode grp = csvFileDAO.getNextEntity();
+                String grpStr = FeatureExtractorUtilities.composeConcatenatedKey(grp, groupKeys);
+                usedGroups.put(grpStr, true);
+            }
+            csvFileDAO.close();
+        }
         EntityDAO data = indexer.getEntityDAO(requestContext);
         GroupedEntityList userDao = new GroupedEntityList(groupKeys, data);
         try {
@@ -88,6 +125,12 @@ public class UserReturnIndexer extends AbstractIndexer {
             IndexerUtilities.writeOutHeader(dataFields, writer, separator);
             List<ObjectNode> acts;
             while ((acts = userDao.getNextGroup()).size() > 0) {
+                if (usedGroups.size() > 0) {
+                    String grpStr = FeatureExtractorUtilities.composeConcatenatedKey(acts.get(0), groupKeys);
+                    if (!usedGroups.containsKey(grpStr)) {
+                        continue;
+                    }
+                }
                 EntityDAO listDao = new EntityListDAO(acts);
                 GroupedEntityList grouped = new GroupedEntityList(
                         Lists.newArrayList(sessionIdKey), listDao);
