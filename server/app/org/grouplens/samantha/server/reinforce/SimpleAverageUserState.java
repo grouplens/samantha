@@ -24,6 +24,7 @@ package org.grouplens.samantha.server.reinforce;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
@@ -32,13 +33,16 @@ import org.grouplens.samantha.modeler.space.*;
 import org.grouplens.samantha.server.common.*;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.dao.EntityDAOUtilities;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.Logger;
 import play.inject.Injector;
 import play.libs.Json;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -198,6 +202,45 @@ public class SimpleAverageUserState implements Transitioner, EntityExpander {
 
         public Object buildModel(Object model, RequestContext requestContext) {
             return updateModel(model, requestContext);
+        }
+
+        private void dumpModelToText(Object model) {
+            IndexedVectorModel vectorModel = (IndexedVectorModel) model;
+            File outFile = new File("data/learning/userStateValues.tsv");
+            try {
+                BufferedWriter writer = new BufferedWriter(new FileWriter(outFile));
+                writer.write(StringUtils.join(actionAttrs, "\t") + "\n");
+                int size = vectorModel.getIndexSize();
+                for (int i=0; i<size; i++) {
+                    RealVector vector = vectorModel.getIndexVector(i);
+                    List<String> values = new ArrayList<>();
+                    double cnt = vector.getEntry(0);
+                    for (int j=1; j<=actionAttrs.size(); j++) {
+                        values.add(Double.valueOf(vector.getEntry(j) / cnt).toString());
+                    }
+                    writer.write(StringUtils.join(values, "\t") + "\n");
+                }
+                writer.close();
+            } catch (IOException e) {
+                Logger.error(e.getMessage());
+            }
+        }
+
+        public Object loadModel(RequestContext requestContext) {
+            ModelService modelService = injector.instanceOf(ModelService.class);
+            String engineName = requestContext.getEngineName();
+            String toLoadFile = JsonHelpers.getOptionalString(requestContext.getRequestBody(),
+                    ConfigKey.MODEL_FILE.get(), modelFile);
+            try {
+                ObjectInputStream fin = new ObjectInputStream(new FileInputStream(toLoadFile));
+                Object model = fin.readObject();
+                fin.close();
+                modelService.setModel(engineName, modelName, model);
+                dumpModelToText(model);
+                return model;
+            } catch (IOException | ClassNotFoundException e) {
+                throw new BadRequestException(e);
+            }
         }
     }
 
