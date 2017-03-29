@@ -9,7 +9,6 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.ephemeral.model.CustomSVDFeature;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureKey;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.exception.BadRequestException;
@@ -45,7 +44,6 @@ public class EphemeralRanker extends AbstractRanker {
     private final Map<String, Integer> expt;
     private Random random;
     private Format d = new DecimalFormat("#.###");
-    private RealVector averageUserVector = null;
 
     public EphemeralRanker(
             Configuration config,
@@ -77,22 +75,8 @@ public class EphemeralRanker extends AbstractRanker {
     }
 
 
-    private RealVector getUserVector(int movieId, RealVector defaultValue) {
-        try {
-            return getUserVector(movieId);
-        } catch (BadRequestException e) {
-            return defaultValue;
-        }
-    }
     private RealVector getUserVector(int userId) {
         return getVector("userId", userId);
-    }
-    private RealVector getMovieVector(int movieId, RealVector defaultValue) {
-        try {
-            return getMovieVector(movieId);
-        } catch (BadRequestException e) {
-            return defaultValue;
-        }
     }
     private RealVector getMovieVector(int movieId) {
         return getVector("movieId", movieId);
@@ -105,7 +89,7 @@ public class EphemeralRanker extends AbstractRanker {
         );
 
         if (!svdFeature.containsKey(name, key)) {
-            throw new BadRequestException("No vector for " + type + " " + id + " in dataset");
+            throw new NoSuchElementException();
         }
 
         int idx = svdFeature.getIndexForKey(name, key);
@@ -172,8 +156,8 @@ public class EphemeralRanker extends AbstractRanker {
 //    }
 
     private RealVector computeDesiredVec(RealVector initialVec, List<Map<Integer, List<Integer>>> roundsList) {
-        RealVector currentVec = initialVec.mapDivide(initialVec.getNorm());
-        RealVector defaultVec = svdFeature.getAverageUserVector().mapDivide(svdFeature.getAverageUserVector().getNorm());
+        RealVector currentVec = initialVec.unitVector();
+        RealVector defaultVec = svdFeature.getAverageUserVector().unitVector();
 
         // Iterate over each round, adding the user's preferences to the
         // "desired" vector and more heavily weighting more recent rounds.
@@ -186,24 +170,34 @@ public class EphemeralRanker extends AbstractRanker {
                     .flatMap(x -> x.stream())
                     .collect(Collectors.toMap(
                             x -> x,
-                            x -> getMovieVector(x)
-                                    .mapDivide(getMovieVector(x).dotProduct(initialRoundVec))
-                                    .subtract(initialRoundVec)
+                            x -> {
+                                try {
+                                    return getMovieVector(x)
+                                            .mapDivide(getMovieVector(x).dotProduct(initialRoundVec))
+                                            .subtract(initialRoundVec);
+                                } catch (NoSuchElementException e) {
+                                    // If a vector isn't in the model, pretend it doesn't exist!
+                                    return initialVec.mapMultiply(0.0);
+                                }
+                            }
                     ));
 
             // Get minimum and maximum vector magnitudes.
-            List<Double> vectorNorms = dVecMap.values().stream()
-                    .map(v -> v.getNorm())
-                    .collect(Collectors.toList());
+            DoubleSummaryStatistics vectorNorms = dVecMap.values().stream()
+                    .mapToDouble(v -> v.getNorm())
+                    .filter(x -> x > 0)
+                    .summaryStatistics();
+            if (vectorNorms.getCount() == 0) {
+                throw new BadRequestException("No nonzero vectors in round " + i);
+            }
 
             double selectedNorm = 0.0;
-            double totalNorm = vectorNorms.stream().mapToDouble(x -> x).sum();
-            double maxNorm = vectorNorms.stream().mapToDouble(x -> x).max().orElse(-1.0);
-            double minNorm = vectorNorms.stream().mapToDouble(x -> x).min().orElse(-1.0);
-            if (maxNorm < 0.0 || minNorm < 0.0) { throw new BadRequestException(); }
+            double totalNorm = vectorNorms.getSum();
+            double maxNorm = vectorNorms.getMin();
+            double minNorm = vectorNorms.getMax();
 
-            double distanceNumerator = 0.0;
-            double distanceDenominator = 0.0;
+//            double distanceNumerator = 0.0;
+//            double distanceDenominator = 0.0;
             double movementNumerator = 0.0;
             double movementDenominator = 0.0;
             RealVector vNumerator = new ArrayRealVector(currentVec.getDimension(), 0.0);
@@ -219,7 +213,7 @@ public class EphemeralRanker extends AbstractRanker {
                 List<RealVector> dVecs = entry.getValue().stream()
                         .map(x -> dVecMap.get(x))
                         .collect(Collectors.toList());
-                List<Double> dNorms = dVecs.stream().map(v -> v.getNorm()).collect(Collectors.toList());
+                Double dVecsNormSum = dVecs.stream().mapToDouble(v -> v.getNorm()).sum();
 
                 // Weight differential vectors and put them to the numerator
                 RealVector prefVec = dVecs.stream()
@@ -229,17 +223,17 @@ public class EphemeralRanker extends AbstractRanker {
                 vNumerator = vNumerator.add(prefVec);
 
                 // Add the absolute value of the preferenceWeights to the denominator
-                vDenominator += dNorms.stream().mapToDouble(n -> n * Math.abs(ww)).sum();
+                vDenominator += dVecsNormSum * Math.abs(ww);
 
 
                 // Calculate the movement pressure.
                 if (ww > 0.0) {
                     // All positive vectors are given an equal weight of 1.
-                    movementNumerator += Math.abs(w) * dNorms.stream().mapToDouble(x -> x).sum();
+                    movementNumerator += Math.abs(w) * dVecsNormSum;
                     movementDenominator += Math.abs(w) * dVecs.size();
 
-                    distanceNumerator += Math.abs(ww) * dNorms.stream().mapToDouble(x -> x).sum();
-                    distanceDenominator += Math.abs(ww) * dVecs.size();
+//                    distanceNumerator += Math.abs(ww) * dVecsNormSum;
+//                    distanceDenominator += Math.abs(ww) * dVecs.size();
                 } else { // ww < 0.0
                     // When minNorm is close to maxNorm, the weight of negative
                     // vectors will be close to 1, but all vectors will have
@@ -247,28 +241,34 @@ public class EphemeralRanker extends AbstractRanker {
                     // smaller than maxNorm, vectors will have a range of
                     // magnitudes, and the weight of distant negative vectors
                     // will be smaller than that of nearby negative vectors.
-                    double totalNegWeight = dNorms.stream().mapToDouble(n -> Math.pow(0.1, (n - minNorm) / (2 * minNorm))).sum();
+                    double totalNegWeight = dVecs.stream()
+                            .map(v -> v.getNorm())
+                            .mapToDouble(n -> Math.pow(0.1, (n - minNorm) / (2 * minNorm)))
+                            .sum();
                     movementNumerator += Math.abs(w) * maxNorm * totalNegWeight;
                     movementDenominator += Math.abs(w) * totalNegWeight;
 
-                    distanceNumerator += Math.abs(ww) * dNorms.stream().mapToDouble(x -> maxNorm + minNorm - x).sum();
-                    distanceDenominator += Math.abs(ww) * dVecs.size();
+//                    distanceNumerator += Math.abs(ww) * dVecs.stream()
+//                            .map(v -> v.getNorm())
+//                            .mapToDouble(x -> maxNorm + minNorm - x)
+//                            .sum();
+//                    distanceDenominator += Math.abs(ww) * dVecs.size();
                 }
 
                 // Add up the selected vector norms, so we can calculate a percentage...
-                selectedNorm += dNorms.stream().mapToDouble(x -> x).sum();
+                selectedNorm += dVecsNormSum;
             }
 
             if (vDenominator !=0) {
                 RealVector direction = vNumerator.mapDivide(vDenominator);
 
-                // TODO: Move more for earlier rounds?
                 double movement = movementNumerator / movementDenominator;
                 double confidence = Math.pow(selectedNorm / totalNorm, 0.25);
-                double distance = distanceNumerator / distanceDenominator;
+//                // TODO: Move more for earlier rounds?
+//                double distance = distanceNumerator / distanceDenominator;
 
-                // TODO: Which method works best for calculating movement distance?
                 RealVector delta = direction.mapMultiply(movement * confidence);
+//                // TODO: Which method works best for calculating movement distance?
 //                RealVector delta = direction.mapMultiply(distance);
 //                RealVector delta = direction.mapMultiply(distance * confidence);
 
@@ -290,22 +290,23 @@ public class EphemeralRanker extends AbstractRanker {
                 RealVector previous =  currentVec.copy();
                 currentVec = currentVec.mapMultiply(1.0 - revertToMeanMultiplier).add(defaultVec.mapMultiply(revertToMeanMultiplier));
                 currentVec = currentVec.mapDivide(currentVec.getNorm());
-                Logger.debug("Revert to mean moved vector by cosine of {}", d.format(previous.cosine(currentVec)));
+//                Logger.debug("Revert to mean moved vector by cosine of {}", d.format(previous.cosine(currentVec)));
             }
 
-            if (i == 1) {
-                Logger.debug("Cosine of {} from initialVec to round 1", d.format(currentVec.cosine(initialRoundVec)));
-            } else {
-                Logger.debug("Cosine of {} from round {} to {}", d.format(currentVec.cosine(initialRoundVec)), i - 1, i);
-            }
+//            if (i == 1) {
+//                Logger.debug("Cosine of {} from initialVec to round 1", d.format(currentVec.cosine(initialRoundVec)));
+//            } else {
+//                Logger.debug("Cosine of {} from round {} to {}", d.format(currentVec.cosine(initialRoundVec)), i - 1, i);
+//            }
         }
 
-        if (i > 1) {
-            Logger.debug("Cosine of {} from initialVec to round {}", d.format(currentVec.cosine(initialVec)), i);
-        }
+//        if (i > 1) {
+//            Logger.debug("Cosine of {} from initialVec to round {}", d.format(currentVec.cosine(initialVec)), i);
+//        }
 
         return currentVec;
     }
+
     /////////////////////
     // REQUEST PARSING //
     /////////////////////
@@ -356,7 +357,12 @@ public class EphemeralRanker extends AbstractRanker {
 
 
     public RankedResult rank(RetrievedResult retrievedResult, RequestContext requestContext) {
-        Logger.debug("retrieved {} of {} items requested in universe", retrievedResult.getEntityList().size(), retrievedResult.getMaxHits());
+//        Logger.debug("retrieved {} of {} items requested in universe", retrievedResult.getEntityList().size(), retrievedResult.getMaxHits());
+
+        if (retrievedResult.getEntityList().isEmpty()) {
+            Logger.error("retriever model not loaded");
+            throw new ConfigurationException("retriever model not loaded");
+        }
 
         /*
          * STEP 1: Extract parameters from the request and transform them into
@@ -373,14 +379,14 @@ public class EphemeralRanker extends AbstractRanker {
         try {
             JsonNode rawRoundList = JsonHelpers.getRequiredArray(reqBody, "rounds");
             roundsList = parseRoundsList(rawRoundList);
-            Logger.debug("Considering {} rounds", roundsList.size());
+//            Logger.debug("Considering {} rounds", roundsList.size());
         } catch (BadRequestException e) {
-            Logger.debug("request does not contain any rounds");
+//            Logger.debug("request does not contain any rounds");
         }
 
         // Get recent highly rated movies and a list of all rated movies
         List<Integer> ratedMovieIds = new ArrayList<>();
-        List<RealVector> recentlyRated = new ArrayList<>(3);
+        List<RealVector> recentlyRatedVecs = new ArrayList<>(3);
         try {
             JsonNode ratedMoviesNode = JsonHelpers.getRequiredJson(reqBody, "ratedMovies");
             if (!ratedMoviesNode.isArray()) { throw new BadRequestException("ratedMovies must be an array"); }
@@ -390,23 +396,26 @@ public class EphemeralRanker extends AbstractRanker {
                     ratedMovieIds.add(movieId);
 
                     double rating = JsonHelpers.getRequiredDouble(node, "rating");
-                    if (recentlyRated.size() < maxRecentRatings && rating >= excludeRecentRatingsBelow) {
-                        recentlyRated.add(getMovieVector(movieId));
+                    if (recentlyRatedVecs.size() < maxRecentRatings && rating >= excludeRecentRatingsBelow) {
+                        recentlyRatedVecs.add(getMovieVector(movieId));
                     }
-                } catch (BadRequestException e) { continue; }
+                } catch (BadRequestException | NoSuchElementException e) {
+                    // ignore movies not in model
+                    continue;
+                }
             }
-            Logger.debug("User has rated {} movies", ratedMovieIds.size());
+//            Logger.debug("User has rated {} movies", ratedMovieIds.size());
         } catch (BadRequestException e) {
-            Logger.debug("request does not contain any rated movies");
+//            Logger.debug("request does not contain any rated movies");
         }
 
         // Get extra movies to ignore
         List<Integer> ignoredMovieIds = new ArrayList<>();
         try {
             ignoredMovieIds = JsonHelpers.getRequiredListOfInteger(reqBody, "ignoredMovieIds");
-            Logger.debug("Ignoring {} movies", ignoredMovieIds.size());
+//            Logger.debug("Ignoring {} movies", ignoredMovieIds.size());
         } catch (BadRequestException e) {
-            Logger.debug("request does not contain any ignored movies");
+//            Logger.debug("request does not contain any ignored movies");
         }
 
         /*
@@ -418,14 +427,17 @@ public class EphemeralRanker extends AbstractRanker {
 
         // Get the set of movies to exclude
         Set<Integer> exclusions = getExclusions(roundsList);
-        Logger.debug("Excluding {} movies shown in previous rounds", exclusions.size());
+//        Logger.debug("Excluding {} movies shown in previous rounds", exclusions.size());
         exclusions.addAll(ignoredMovieIds); // put any exclusions specified in the request
 
         // Get the universe of items, excluding previously shown items
         List<ObjectNode> universe = retrievedResult.getEntityList().stream()
                 .filter(obj -> !exclusions.contains(obj.get("movieId").asInt()))
                 .collect(Collectors.toList());
-
+        if (universe.isEmpty()) {
+            Logger.error("retriever and ephemeral model mismatch, no movies in both!");
+            throw new ConfigurationException("retriever and ephemeral model mismatch, no movies in both!");
+        }
 
         /*
          * STEP 3: Pick which algorithm to use based on experimental condition.
@@ -440,20 +452,20 @@ public class EphemeralRanker extends AbstractRanker {
             } else if (expt.get("origin") == 1){ // current user's vec
                 try {
                     initialVec = getUserVector(userId);
-                    Logger.debug("Using a starting point personalized to long-term preference");
-                } catch (BadRequestException e) {
-                    Logger.error("User had no user vector to use for initial vector");
+//                    Logger.debug("Using a starting point personalized to long-term preference");
+                } catch (NoSuchElementException e) {
+                    Logger.warn("User {} had no user vector to use for initial vector", userId);
                     initialVec = null; // Go with condition 0
                 }
             } else if (expt.get("origin") == 2) { // average user's recent highly rated items
-                if (recentlyRated.size() >= minRecentRatings) {
-                    initialVec = recentlyRated.stream()
+                if (recentlyRatedVecs.size() >= minRecentRatings) {
+                    initialVec = recentlyRatedVecs.stream()
                             .reduce((v1, v2) -> v1.add(v2))
                             .get()
-                            .mapDivide(recentlyRated.size());
-                    Logger.debug("Using a starting point personalized to short-term preference with {} movies", recentlyRated.size());
+                            .mapDivide(recentlyRatedVecs.size());
+//                    Logger.debug("Using a starting point personalized to short-term preference with {} movies", recentlyRatedVecs.size());
                 } else {
-                    Logger.error("User had no positively rated movies to construct initial vector from");
+                    Logger.warn("User {} had no positively rated movies to construct initial vector from", userId);
                     initialVec = null; // Go with condition 0
                 }
             }
@@ -478,14 +490,16 @@ public class EphemeralRanker extends AbstractRanker {
             }
             List<SelectionCriteria> selectionCriteria = selectionCriteriaMap.get(selectionCriteriaNum);
 
-            // Score all items
-            scoreItems(desiredVec, universe);
+            // This function call scores all items *in place*, and then returns
+            // a filtered list of only the items that were successfully scored.
+            // This filters out any items that are not in our model...
+            universe = scoreAndFilterItems(desiredVec, universe);
 
             // Select items according to the selection criteria
             List<ObjectNode> selected = new ArrayList<>();
             for (SelectionCriteria criteria : selectionCriteria) {
-                Logger.debug("Selecting {} of {} movies: ratedDropout={}, dropout={}",
-                        criteria.n, criteria.limit, criteria.ratedDropout, criteria.dropout);
+//                Logger.debug("Selecting {} of {} movies: ratedDropout={}, dropout={}",
+//                        criteria.n, criteria.limit, criteria.ratedDropout, criteria.dropout);
 
                 // Only re-sort the list when necessary
                 Ordering<ObjectNode> ordering = RetrieverUtilities.jsonFieldOrdering(criteria.similarityMetric).reverse();
@@ -514,9 +528,7 @@ public class EphemeralRanker extends AbstractRanker {
                         .map(p -> p.getEntity())
                         .collect(Collectors.toList());
                 return response(selected, params);
-            } catch (BadRequestException e) {
-                // TODO: If we don't have a user vector, should we change the
-                // TODO: exp. condition to random or real w/avg starting point?
+            } catch (NoSuchElementException e) {
                 params.put("algorithm", 3);
 
                 Collections.shuffle(universe);
@@ -533,7 +545,7 @@ public class EphemeralRanker extends AbstractRanker {
         }
 
         // If none of the conditions matched, error out.
-        throw new BadRequestException("algorithm must be 0, 1, or 2");
+        throw new BadRequestException("algorithm must be 0, 1, 2, or 3");
     }
 
 
@@ -542,9 +554,18 @@ public class EphemeralRanker extends AbstractRanker {
     // SCORE ITEMS //
     /////////////////
 
-    private void scoreItems(RealVector desiredVec, List<ObjectNode> universe) {
+    // Scores items *in place*, and then returns a filtered list containing
+    // only the items that were successfully scored.
+    private List<ObjectNode> scoreAndFilterItems(RealVector desiredVec, List<ObjectNode> universe) {
+        List<ObjectNode> filteredItems = new ArrayList<>();
         for (ObjectNode entity : universe) {
-            RealVector movieVec = getMovieVector(entity.get("movieId").asInt());
+            RealVector movieVec;
+            try {
+                movieVec = getMovieVector(entity.get("movieId").asInt());
+            } catch (NoSuchElementException e) { // movie not in model!
+                Logger.warn("movie {} not in ephemeral model", entity.get("movieId").asInt());
+                continue;
+            }
 
             // Score the entity
             double cosine = getSimilarityMetricScore("cosine", desiredVec, movieVec);
@@ -556,6 +577,8 @@ public class EphemeralRanker extends AbstractRanker {
             double score4 = dotProduct * Math.pow(Math.abs(cosine), 3);
             double score5 = dotProduct * Math.pow(Math.abs(cosine), 3);
 
+            // Work on a copy of the entity, not the original.
+            entity = entity.deepCopy();
             entity.put("cosine", cosine);
             entity.put("dotProduct", dotProduct);
             entity.put("magnitude", magnitude);
@@ -564,13 +587,17 @@ public class EphemeralRanker extends AbstractRanker {
             entity.put("score3", score3);
             entity.put("score4", score4);
             entity.put("score5", score5);
+
+            filteredItems.add(entity);
         }
 
-        for (String key : Arrays.asList("score1", "score2", "score3", "cosine", "dotProduct", "magnitude")) {
-            double min = universe.stream().mapToDouble(x -> x.get(key).asDouble()).min().orElse(1.0 / 0.0);
-            double max = universe.stream().mapToDouble(x -> x.get(key).asDouble()).max().orElse(-1.0 / 0.0);
-            Logger.debug("{}: min{}, max {}", key, d.format(min), d.format(max));
-        }
+//        for (String key : Arrays.asList("score1", "score2", "score3", "cosine", "dotProduct", "magnitude")) {
+//            double min = filteredItems.stream().mapToDouble(x -> x.get(key).asDouble()).min().orElse(1.0 / 0.0);
+//            double max = filteredItems.stream().mapToDouble(x -> x.get(key).asDouble()).max().orElse(-1.0 / 0.0);
+//            Logger.debug("{}: min{}, max {}", key, d.format(min), d.format(max));
+//        }
+
+        return filteredItems;
     }
 
     /*
@@ -619,7 +646,7 @@ public class EphemeralRanker extends AbstractRanker {
             TopNAccumulator<ObjectNode> top = new TopNAccumulator<>(criteria.nthMostDistant);
             Map<Integer, RealVector> selectedMap = selected.stream()
                     .map(obj -> obj.get("movieId").asInt())
-                    .collect(Collectors.toMap(x -> x, x-> getMovieVector(x)));
+                    .collect(Collectors.toMap(x -> x, x -> getMovieVector(x)));
 
             double minValue = - 1.0 / 0.0;
             double maxValue = 1.0 / 0.0;
@@ -652,16 +679,17 @@ public class EphemeralRanker extends AbstractRanker {
             }
 
             ObjectNode chosen = top.min();
-            double distance = getMinDistanceToVectors(
-                    criteria.diversityMetric,
-                    selectedMap.values(),
-                    getMovieVector(chosen.get("movieId").asInt())
-            );
-            Logger.debug("Selected item with {}={} after comparing {} of {} items with {}=[{}, {}]",
-                    criteria.diversityMetric, d.format(distance),
-                    numCompared, numIterated,
-                    criteria.similarityMetric, d.format(minValue), d.format(maxValue));
             selected.add(chosen);
+
+//            double distance = getMinDistanceToVectors(
+//                    criteria.diversityMetric,
+//                    selectedMap.values(),
+//                    getMovieVector(chosen.get("movieId").asInt())
+//            );
+//            Logger.debug("Selected item with {}={} after comparing {} of {} items with {}=[{}, {}]",
+//                    criteria.diversityMetric, d.format(distance),
+//                    numCompared, numIterated,
+//                    criteria.similarityMetric, d.format(minValue), d.format(maxValue));
         }
     }
 
