@@ -290,18 +290,18 @@ public class EphemeralRanker extends AbstractRanker {
                 RealVector previous =  currentVec.copy();
                 currentVec = currentVec.mapMultiply(1.0 - revertToMeanMultiplier).add(defaultVec.mapMultiply(revertToMeanMultiplier));
                 currentVec = currentVec.mapDivide(currentVec.getNorm());
-                Logger.info("Revert to mean moved vector by cosine of {}", d.format(previous.cosine(currentVec)));
+                Logger.debug("Revert to mean moved vector by cosine of {}", d.format(previous.cosine(currentVec)));
             }
 
             if (i == 1) {
-                Logger.info("Cosine of {} from initialVec to round 1", d.format(currentVec.cosine(initialRoundVec)));
+                Logger.debug("Cosine of {} from initialVec to round 1", d.format(currentVec.cosine(initialRoundVec)));
             } else {
-                Logger.info("Cosine of {} from round {} to {}", d.format(currentVec.cosine(initialRoundVec)), i - 1, i);
+                Logger.debug("Cosine of {} from round {} to {}", d.format(currentVec.cosine(initialRoundVec)), i - 1, i);
             }
         }
 
         if (i > 1) {
-            Logger.info("Cosine of {} from initialVec to round {}", d.format(currentVec.cosine(initialVec)), i);
+            Logger.debug("Cosine of {} from initialVec to round {}", d.format(currentVec.cosine(initialVec)), i);
         }
 
         return currentVec;
@@ -356,6 +356,8 @@ public class EphemeralRanker extends AbstractRanker {
 
 
     public RankedResult rank(RetrievedResult retrievedResult, RequestContext requestContext) {
+        Logger.debug("retrieved {} of {} items requested in universe", retrievedResult.getEntityList().size(), retrievedResult.getMaxHits());
+
         /*
          * STEP 1: Extract parameters from the request and transform them into
          * usable data structures.
@@ -371,9 +373,9 @@ public class EphemeralRanker extends AbstractRanker {
         try {
             JsonNode rawRoundList = JsonHelpers.getRequiredArray(reqBody, "rounds");
             roundsList = parseRoundsList(rawRoundList);
-            Logger.info("Considering {} rounds", roundsList.size());
+            Logger.debug("Considering {} rounds", roundsList.size());
         } catch (BadRequestException e) {
-            Logger.info("request does not contain any rounds");
+            Logger.debug("request does not contain any rounds");
         }
 
         // Get recent highly rated movies and a list of all rated movies
@@ -393,18 +395,18 @@ public class EphemeralRanker extends AbstractRanker {
                     }
                 } catch (BadRequestException e) { continue; }
             }
-            Logger.info("User has rated {} movies", ratedMovieIds.size());
+            Logger.debug("User has rated {} movies", ratedMovieIds.size());
         } catch (BadRequestException e) {
-            Logger.info("request does not contain any rated movies");
+            Logger.debug("request does not contain any rated movies");
         }
 
         // Get extra movies to ignore
         List<Integer> ignoredMovieIds = new ArrayList<>();
         try {
             ignoredMovieIds = JsonHelpers.getRequiredListOfInteger(reqBody, "ignoredMovieIds");
-            Logger.info("Ignoring {} movies", ignoredMovieIds.size());
+            Logger.debug("Ignoring {} movies", ignoredMovieIds.size());
         } catch (BadRequestException e) {
-            Logger.info("request does not contain any ignored movies");
+            Logger.debug("request does not contain any ignored movies");
         }
 
         /*
@@ -416,7 +418,7 @@ public class EphemeralRanker extends AbstractRanker {
 
         // Get the set of movies to exclude
         Set<Integer> exclusions = getExclusions(roundsList);
-        Logger.info("Excluding {} movies shown in previous rounds", exclusions.size());
+        Logger.debug("Excluding {} movies shown in previous rounds", exclusions.size());
         exclusions.addAll(ignoredMovieIds); // put any exclusions specified in the request
 
         // Get the universe of items, excluding previously shown items
@@ -438,7 +440,7 @@ public class EphemeralRanker extends AbstractRanker {
             } else if (expt.get("origin") == 1){ // current user's vec
                 try {
                     initialVec = getUserVector(userId);
-                    Logger.info("Using a starting point personalized to long-term preference");
+                    Logger.debug("Using a starting point personalized to long-term preference");
                 } catch (BadRequestException e) {
                     Logger.error("User had no user vector to use for initial vector");
                     initialVec = null; // Go with condition 0
@@ -449,7 +451,7 @@ public class EphemeralRanker extends AbstractRanker {
                             .reduce((v1, v2) -> v1.add(v2))
                             .get()
                             .mapDivide(recentlyRated.size());
-                    Logger.info("Using a starting point personalized to short-term preference with {} movies", recentlyRated.size());
+                    Logger.debug("Using a starting point personalized to short-term preference with {} movies", recentlyRated.size());
                 } else {
                     Logger.error("User had no positively rated movies to construct initial vector from");
                     initialVec = null; // Go with condition 0
@@ -482,7 +484,7 @@ public class EphemeralRanker extends AbstractRanker {
             // Select items according to the selection criteria
             List<ObjectNode> selected = new ArrayList<>();
             for (SelectionCriteria criteria : selectionCriteria) {
-                Logger.info("Selecting {} of {} movies: ratedDropout={}, dropout={}",
+                Logger.debug("Selecting {} of {} movies: ratedDropout={}, dropout={}",
                         criteria.n, criteria.limit, criteria.ratedDropout, criteria.dropout);
 
                 // Only re-sort the list when necessary
@@ -567,7 +569,7 @@ public class EphemeralRanker extends AbstractRanker {
         for (String key : Arrays.asList("score1", "score2", "score3", "cosine", "dotProduct", "magnitude")) {
             double min = universe.stream().mapToDouble(x -> x.get(key).asDouble()).min().orElse(1.0 / 0.0);
             double max = universe.stream().mapToDouble(x -> x.get(key).asDouble()).max().orElse(-1.0 / 0.0);
-            Logger.info("{}: min{}, max {}", key, d.format(min), d.format(max));
+            Logger.debug("{}: min{}, max {}", key, d.format(min), d.format(max));
         }
     }
 
@@ -655,7 +657,7 @@ public class EphemeralRanker extends AbstractRanker {
                     selectedMap.values(),
                     getMovieVector(chosen.get("movieId").asInt())
             );
-            Logger.info("Selected item with {}={} after comparing {} of {} items with {}=[{}, {}]",
+            Logger.debug("Selected item with {}={} after comparing {} of {} items with {}=[{}, {}]",
                     criteria.diversityMetric, d.format(distance),
                     numCompared, numIterated,
                     criteria.similarityMetric, d.format(minValue), d.format(maxValue));
