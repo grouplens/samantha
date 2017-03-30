@@ -44,7 +44,7 @@ def reloadModels(host):
     print("Loading ephemeral retriever model from disk on %s" % host)
     postDataToUrl(retrieverUrl, data)
 
-    print("All done on %s", host)
+    print("All done on %s" % host)
 
 
 arguments = sys.argv[1:]
