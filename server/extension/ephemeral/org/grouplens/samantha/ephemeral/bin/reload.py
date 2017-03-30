@@ -47,7 +47,12 @@ def reloadModels(host):
     print("All done on %s", host)
 
 
-hosts = sys.argv[1:] or ["http://localhost:9100/"]
+arguments = sys.argv[1:]
+if not arguments:    
+    print("reload requires one positional argument: host")
+    exit()
+hosts = arguments
+
 threads = []
 for host in hosts:
     t = threading.Thread(target=reloadModels, args=[host])
