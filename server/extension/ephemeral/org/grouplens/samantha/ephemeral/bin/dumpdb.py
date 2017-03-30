@@ -4,10 +4,20 @@ import os
 import sys
 
 def dump(path, dbhost, dbname):
+    os.makedirs(path, exist_ok=True)
+    
+    ids_path = os.path.join(path, "ids.tsv")
     full_path = os.path.join(path, "full.tsv")
     full_rand_path = os.path.join(path, "full.rand.tsv")
     train_path = os.path.join(path, "train.tsv")
     val_path = os.path.join(path, "val.tsv")
+    
+    # Dump movie ids to a temp file
+    print("Dumping movie ids to disk")
+    subprocess.check_call("""mysql -h %s -u readonly -D %s -B -e "SELECT movieId FROM movie_data WHERE movieStatus = 2 AND rowType = 11" > %s""" % (dbhost, dbname, ids_path), shell=True)
+    
+    with open(ids_path) as fp:
+        ids = set([int(i.strip()) for i in list(fp)[1:]])
     
     # Dump mysql database to temp file
     print("Dumping ratings data to disk")
@@ -16,6 +26,8 @@ def dump(path, dbhost, dbname):
     print("Randomizing data order")
     subprocess.check_call("""{ head -1 %s ; tail -n +2 %s | shuf ; } | cat > %s """ % (full_path, full_path, full_rand_path), shell=True)
     
+    ignored_ids = set([])
+    ignored_count = 0
     
     # Open the temp file, and split it into train and validation files
     print("Partitioning data into train and validation sets")
@@ -33,6 +45,12 @@ def dump(path, dbhost, dbname):
             line = fp.readline()
             if not line: break
             
+            movie_id = int(line.split('\t')[1])
+            if movie_id not in ids:
+                ignored_ids.add(movie_id)
+                ignored_count += 1
+                continue
+            
             # Since the file is already randomized, we can just put every
             # 10th item in the validation set
             i += 1;
@@ -41,9 +59,12 @@ def dump(path, dbhost, dbname):
             else:
                 trainfp.write(line)
     
+    print("Ignored %d ratings for the following %d movie ids: %s" % (ignored_count, len(ignored_ids), ignored_ids))
+
     # Delete the temp file
     print("Deleting temp files")
     os.remove(full_rand_path)
+    #os.remove(ids_path)
 
 arguments = sys.argv[1:]
 if len(arguments) != 3:
