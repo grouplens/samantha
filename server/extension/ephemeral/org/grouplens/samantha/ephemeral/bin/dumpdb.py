@@ -11,7 +11,7 @@ def dump(path, dbhost, dbname):
     
     # Dump mysql database to temp file
     print("Dumping ratings data to disk")
-    subprocess.check_call("""mysql -h %s -u web --password=atth1132 -D %s -B -e "SELECT userId, movieId, rating FROM user_rating_pairs WHERE rating > 0.0" > %s""" % (dbhost, dbname, full_path), shell=True)
+    subprocess.check_call("""mysql -h %s -u readonly -D %s -B -e "SELECT userId, movieId, rating FROM user_rating_pairs WHERE rating > 0.0" > %s""" % (dbhost, dbname, full_path), shell=True)
     
     print("Randomizing data order")
     subprocess.check_call("""{ head -1 %s ; tail -n +2 %s | shuf ; } | cat > %s """ % (full_path, full_path, full_rand_path), shell=True)

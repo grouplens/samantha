@@ -20,5 +20,5 @@ DATAPATH=$1; shift
 DBHOST=$1; shift
 DBNAME=$1; shift
 
-echo $DIR/dumpdb.py $DATAPATH $DBHOST $DBNAME > $DIR/dumpdb.log
-echo $DIR/rebuild.py $DATAPATH "$@" > $DIR/rebuild.log
+python3 $DIR/dumpdb.py $DATAPATH $DBHOST $DBNAME >> $DIR/dumpdb.log 2>&1
+python3 $DIR/rebuild.py $DATAPATH "$@" >> $DIR/rebuild.log 2>&1
