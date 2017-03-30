@@ -27,8 +27,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.common.RedisService;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.Configuration;
-import play.Logger;
 import play.inject.Injector;
 
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 
 public class RedisBasedJoinExpander implements EntityExpander {
+    private static Logger logger = LoggerFactory.getLogger(PercentileExpander.class);
     final private List<Configuration> configList;
     final private RedisService redisService;
 
@@ -77,7 +79,7 @@ public class RedisBasedJoinExpander implements EntityExpander {
                         IOUtilities.parseEntityFromJsonNode(entityFields, val, entity);
                     }
                 } else {
-                    Logger.warn("Can not find the key {} for {} while joining.", key, entity.toString());
+                    logger.warn("Can not find the key {} for {} while joining.", key, entity.toString());
                 }
             }
         }

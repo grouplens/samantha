@@ -52,7 +52,7 @@ public class GroupedIndexerConfig implements IndexerConfig {
     private final Boolean descending;
     private final String separator;
 
-    protected GroupedIndexerConfig(Configuration config, Injector injector, String dataDir,
+    private GroupedIndexerConfig(Configuration config, Injector injector, String dataDir,
                                    String indexerName, String dataDirKey, List<String> dataFields,
                                    String daoNameKey, String daoName, String filesKey,
                                    String separatorKey, int numBuckets, List<String> groupKeys,

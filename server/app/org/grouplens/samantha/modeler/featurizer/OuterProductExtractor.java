@@ -27,6 +27,8 @@ import com.google.common.collect.Lists;
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.function.Log10;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,6 +37,7 @@ import java.util.Map;
 
 public class OuterProductExtractor implements FeatureExtractor {
     private static final long serialVersionUID = 1L;
+    private static Logger logger = LoggerFactory.getLogger(OuterProductExtractor.class);
     private final String indexName;
     private final List<String> attrNames;
     private final String feaName;
@@ -51,6 +54,11 @@ public class OuterProductExtractor implements FeatureExtractor {
                                               IndexSpace indexSpace) {
         Map<String, List<Feature>> feaMap = new HashMap<>();
         List<Feature> feaList = new ArrayList<>();
+        for (String attrName : attrNames) {
+            if (!entity.has(attrName)) {
+                logger.warn("{} is not present in {}", attrName, entity);
+            }
+        }
         for (String leftName : attrNames) {
             for (String rightName : attrNames) {
                 List<String> keyNames = Lists.newArrayList(leftName, rightName);

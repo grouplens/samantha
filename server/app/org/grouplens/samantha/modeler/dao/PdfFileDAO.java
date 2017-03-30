@@ -42,7 +42,6 @@ public class PdfFileDAO implements EntityDAO {
     private final int numPages;
     private String[] lines = null;
     private int idx = 0;
-    private int paraIdx = 0;
 
     private PdfFileDAO(String filePath) {
         try {
@@ -82,7 +81,9 @@ public class PdfFileDAO implements EntityDAO {
 
     public ObjectNode getNextEntity() {
         String paragraph = "";
+        int prevIdx = idx;
         if (lines != null && idx < lines.length) {
+            prevIdx = idx;
             paragraph += getParagraph();
         } else if (curPage < numPages) {
             stripper.setStartPage(curPage);
@@ -91,6 +92,7 @@ public class PdfFileDAO implements EntityDAO {
                 String pageText = stripper.getText(pdfDoc);
                 lines = pageText.split("[\\n\\.!\\?]");
                 idx = 0;
+                prevIdx = idx;
                 paragraph += getParagraph();
             } catch (IOException e) {
                 logger.error("{}", e.getMessage());
@@ -98,8 +100,10 @@ public class PdfFileDAO implements EntityDAO {
             }
         }
         ObjectNode entity = Json.newObject();
-        entity.put("paraIdx", paraIdx++);
-        entity.put("page", curPage + 1);
+        entity.put("start", Integer.valueOf(curPage).toString() + ":" +
+                Integer.valueOf(prevIdx).toString());
+        entity.put("end", Integer.valueOf(curPage).toString() + ":" +
+                Integer.valueOf(idx).toString());
         entity.put("text", paragraph);
         return entity;
     }
@@ -108,7 +112,6 @@ public class PdfFileDAO implements EntityDAO {
         lines = null;
         idx = 0;
         curPage = 0;
-        paraIdx = 0;
     }
 
     public void close() {

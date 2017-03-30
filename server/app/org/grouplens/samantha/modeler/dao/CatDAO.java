@@ -20,23 +20,45 @@
  * SOFTWARE.
  */
 
-import org.junit.*;
+package org.grouplens.samantha.modeler.dao;
 
-import static org.junit.Assert.*;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.util.List;
 
-/**
-*
-* Simple (JUnit) tests that can call all parts of a play app.
-* If you are interested in mocking a whole application, see the wiki for more details.
-*
-*/
-public class ApplicationTest {
+public class CatDAO implements EntityDAO {
+    private final List<EntityDAO> entityDAOList;
+    private int curIdx = 0;
 
-    @Test
-    public void simpleCheck() {
-        int a = 1 + 1;
-        assertEquals(2, a);
+    public CatDAO(List<EntityDAO> entityDAOList) {
+        this.entityDAOList = entityDAOList;
     }
 
+    public boolean hasNextEntity() {
+        if (curIdx >= entityDAOList.size()) {
+            return false;
+        }
+        while (curIdx < entityDAOList.size() && !entityDAOList.get(curIdx).hasNextEntity()) {
+            curIdx++;
+        }
+        return entityDAOList.get(curIdx).hasNextEntity();
+    }
+
+    public ObjectNode getNextEntity() {
+        return entityDAOList.get(curIdx).getNextEntity();
+    }
+
+    public void restart() {
+        for (EntityDAO entityDAO : entityDAOList) {
+            entityDAO.restart();
+        }
+        curIdx = 0;
+    }
+
+    public void close() {
+        for (EntityDAO entityDAO : entityDAOList) {
+            entityDAO.close();
+        }
+        curIdx = entityDAOList.size();
+    }
 }

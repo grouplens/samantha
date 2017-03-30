@@ -43,6 +43,7 @@ public enum ConfigKey {
     ENGINE_COMPONENT_CONFIG("config"),
     ENGINE_COMPONENT_CONFIG_CLASS("configClass"),
     ENGINE_COMPONENT_VERBOSE("verbose"),
+    ENGINE_BEFORE_START_SCHEDULERS("beforeStartSchedulers"),
     PREDICTOR_FEATURIZER_CONFIG("featurizer"),
     BASIC_FEATURE_EXTRACTOR_LIST_CONFIG("featureExtractorList"),
     FEATURE_EXTRACTOR_CONFIG_CLASS("extractorConfigClass"),

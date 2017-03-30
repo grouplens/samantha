@@ -76,4 +76,10 @@ public class QuartzSchedulerConfig implements SchedulerConfig {
             throw new ConfigurationException(e);
         }
     }
+
+    public void runJobs() {
+        String name = config.getString(ConfigKey.ENGINE_COMPONENT_NAME.get());
+        QuartzSchedulerService schedulerService = injector.instanceOf(QuartzSchedulerService.class);
+        schedulerService.triggerJob(new JobKey(name));
+    }
 }
