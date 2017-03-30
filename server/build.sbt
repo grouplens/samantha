@@ -1,10 +1,10 @@
 name := """samantha-server"""
 
-version := "1.0-SNAPSHOT"
+version := "0.2.0-SNAPSHOT"
 
 lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
-sources in (Compile, doc) <<= sources in (Compile, doc) map { _.filterNot(_.getName endsWith ".scala") }
+// sources in (Compile, doc) <<= sources in (Compile, doc) map { _.filterNot(_.getName endsWith ".scala") }
 
 scalaVersion := "2.11.6"
 
@@ -34,6 +34,8 @@ libraryDependencies ++= Seq(
 //  "org.scala-lang" % "scala-compiler" % scalaVersion.value,
 //  "ml.dmlc" % "xgboost4j" % "0.7"
 // )
+
+unmanagedSourceDirectories in Compile += baseDirectory.value / "extension/ephemeral"
 
 // Play provides two styles of routers, one expects its actions to be injected, the
 // other, legacy style, accesses its actions statically.

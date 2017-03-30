@@ -90,4 +90,19 @@ abstract public class AbstractLearningModel implements LearningModel {
     public List<String> getAllVectorVarNames() {
         return variableSpace.getAllVectorVarNames();
     }
+
+    public int getIndexForKey(String name, Object key) {
+        return indexSpace.getIndexForKey(name, key);
+    }
+
+    public int getKeyMapSize(String name) {
+        return indexSpace.getKeyMapSize(name);
+    }
+    public Object getKeyForIndex(String name, int index) {
+        return indexSpace.getKeyForIndex(name, index);
+    }
+
+    public boolean containsKey(String name, Object key) {
+        return indexSpace.containsKey(name, key);
+    }
 }

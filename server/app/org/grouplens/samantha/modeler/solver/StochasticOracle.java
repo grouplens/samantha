@@ -66,6 +66,14 @@ public class StochasticOracle {
         vectorGrads.add(grad);
     }
 
+    public List<String> getScalarNames() { return scalarNames; }
+    public IntList getScalarIndexes() { return scalarIndexes; }
+    public DoubleList getScalarGrads() { return scalarGrads; }
+    public List<String> getVectorNames() { return vectorNames; }
+    public IntList getVectorIndexes() { return vectorIndexes; }
+    public List<RealVector> getVectorGrads() { return vectorGrads; }
+
+
     public double getModelOutput() {
         return this.modelOutput;
     }

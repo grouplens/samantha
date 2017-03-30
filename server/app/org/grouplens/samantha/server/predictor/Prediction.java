@@ -67,7 +67,9 @@ public class Prediction {
         ObjectNode obj = Json.newObject();
         obj.put("score", score);
         obj.set("attributes", entity);
-        obj.put("instance", getInstanceString());
+        if (instance != null) {
+            obj.put("instance", getInstanceString());
+        }
         return obj;
     }
 
