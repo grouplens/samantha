@@ -263,8 +263,7 @@ public class EphemeralRanker extends AbstractRanker {
                 RealVector direction = vNumerator.mapDivide(vDenominator);
 
                 double movement = movementNumerator / movementDenominator;
-                double confidence = Math.pow(selectedNorm / totalNorm, 0.25);
-//                // TODO: Move more for earlier rounds?
+                double confidence = (1.0 / i) + Math.pow(selectedNorm / totalNorm, 1.0 / 3.0) * (i - 1.0) / i;
 //                double distance = distanceNumerator / distanceDenominator;
 
                 RealVector delta = direction.mapMultiply(movement * confidence);
