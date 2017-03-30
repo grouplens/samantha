@@ -30,6 +30,7 @@ import org.grouplens.samantha.modeler.space.VariableSpace;
 import java.util.List;
 
 abstract public class AbstractLearningModel implements LearningModel {
+    private static final long serialVersionUID = -2706402902132430123L;
     final protected VariableSpace variableSpace;
     final protected IndexSpace indexSpace;
 

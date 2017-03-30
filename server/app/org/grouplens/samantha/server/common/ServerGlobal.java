@@ -31,25 +31,19 @@ import play.GlobalSettings;
 import play.inject.Injector;
 import play.libs.Json;
 
-import javax.inject.Inject;
 import java.util.List;
 
 public class ServerGlobal extends GlobalSettings {
-    private final Injector injector;
-    private final Configuration configuration;
-
-    @Inject
-    public ServerGlobal(Injector injector, Configuration configuration) {
-        this.injector = injector;
-        this.configuration = configuration;
-    }
 
     public void beforeStart(Application application) {
+        Injector injector = application.injector();
+        Configuration configuration = application.configuration();
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         List<String> enabledEngines = configuration.getStringList(ConfigKey.ENGINES_ENABLED.get());
+        Configuration samanthaConfig = configuration.getConfig(ConfigKey.SAMANTHA_BASE.get());
         for (String engine : enabledEngines) {
-            List<String> schedulerNames = configuration.getStringList(ConfigKey.SAMANTHA_BASE + "." + engine
-                + "." + ConfigKey.ENGINE_BEFORE_START_SCHEDULERS.get());
+            Configuration engineConfig = samanthaConfig.getConfig(engine);
+            List<String> schedulerNames = engineConfig.getStringList(ConfigKey.ENGINE_BEFORE_START_SCHEDULERS.get());
             if (schedulerNames != null) {
                 for (String scheduler : schedulerNames) {
                     RequestContext peudoReq = new RequestContext(Json.newObject(), engine);
