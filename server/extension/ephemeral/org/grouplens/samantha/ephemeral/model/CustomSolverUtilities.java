@@ -41,7 +41,7 @@ public class CustomSolverUtilities {
 
     public static double stochasticGradientDescentUpdate(LearningModel model, ObjectiveFunction objFunc,
                                                          LearningData learningData, L2Regularizer l2term,
-                                                         double l2coef, double lr, boolean nonnegative) {
+                                                         double l2coef, double lr) {
         int cnt = 0;
         double objVal = 0.0;
         List<LearningInstance> instances;
@@ -59,8 +59,8 @@ public class CustomSolverUtilities {
                     int idx = orc.getVectorIndexes().getInt(i);
                     RealVector grad = orc.getVectorGrads().get(i);
                     RealVector var = model.getVectorVarByNameIndex(name, idx); // returns a copy
-                    var = var.combineToSelf(1.0, -lr, l2term.addGradient(grad, var, l2coef));
-                    if (nonnegative) { var = var.mapToSelf(x -> Math.max(0.0, x)); }
+                    var = var.combineToSelf(1.0, -lr, l2term.addGradient(grad, var, l2coef))
+                             .mapToSelf(x -> Math.max(0.0, x));
                     model.setVectorVarByNameIndex(name, idx, var);
                 }
                 cnt++;

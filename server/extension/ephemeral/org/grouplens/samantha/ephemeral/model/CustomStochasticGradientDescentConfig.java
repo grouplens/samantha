@@ -25,6 +25,7 @@ package org.grouplens.samantha.ephemeral.model;
 import org.grouplens.samantha.modeler.common.LearningMethod;
 import org.grouplens.samantha.modeler.solver.OnlineOptimizationMethod;
 import org.grouplens.samantha.modeler.solver.StochasticGradientDescent;
+import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.solver.LearningMethodConfig;
 import play.Configuration;
@@ -49,14 +50,10 @@ public class CustomStochasticGradientDescentConfig implements LearningMethodConf
         if (methodConfig.asMap().containsKey("maxIter")) {
             maxIter = methodConfig.getInt("maxIter");
         }
-        boolean nonnegative = false;
-        if (methodConfig.asMap().containsKey("nonnegative")) {
-            nonnegative = methodConfig.getBoolean("nonnegative");
-        }
 
         OnlineOptimizationMethod onlineMethod = new CustomStochasticGradientDescent(
                 maxIter, minIter, methodConfig.getDouble("l2coef"),
-                methodConfig.getDouble("learningRate"), tol, nonnegative
+                methodConfig.getDouble("learningRate"), tol
         );
         return onlineMethod;
     }
