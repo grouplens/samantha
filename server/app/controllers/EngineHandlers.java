@@ -37,6 +37,7 @@ import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.io.RequestParser;
 import org.grouplens.samantha.server.io.ResponsePacker;
 import org.grouplens.samantha.server.recommender.Recommender;
+import org.grouplens.samantha.server.scheduler.SchedulerConfig;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
@@ -241,6 +242,22 @@ public class EngineHandlers extends Controller {
         Indexer indexer = samanthaConfigService.getIndexer(indexerName, requestContext);
         indexer.index(requestContext);
         indexer.notifyDataSubscribers(requestContext);
+        ObjectNode resp = JsonHelpers.successJson();
+        return ok(resp);
+    }
+
+    /**
+     * Handler for running a scheduler's jobs.
+     *
+     * @param engine the target engine name of this request.
+     * @return a HTTP response with the key "status" only (mostly with value "success" if the request is successfully processed).
+     * @throws BadRequestException
+     */
+    public Result schedule(String engine) throws BadRequestException {
+        JsonNode body = request().body().asJson();
+        RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
+        String schedulerName = JsonHelpers.getRequiredString(body, "scheduler");
+        samanthaConfigService.getSchedulerConfig(schedulerName, requestContext).runJobs();
         ObjectNode resp = JsonHelpers.successJson();
         return ok(resp);
     }

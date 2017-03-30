@@ -23,55 +23,55 @@
 package org.grouplens.samantha.server.expander;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.modeler.featurizer.SelfPlusOneRatioFunction;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import play.Configuration;
 import play.inject.Injector;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class ColumnToRowExpander implements EntityExpander {
-    private static Logger logger = LoggerFactory.getLogger(ColumnToRowExpander.class);
-    final private List<String> colNames;
-    final private String nameAttr;
-    final private String valueAttr;
+public class SelfPlusOneRatioExpander implements EntityExpander {
+    private static Logger logger = LoggerFactory.getLogger(SelfPlusOneRatioExpander.class);
+    private final List<String> fieldNames;
+    private final List<String> newFieldNames;
+    private final Boolean appendix;
 
-    private ColumnToRowExpander(String nameAttr, String valueAttr, List<String> colNames) {
-        this.colNames = colNames;
-        this.nameAttr = nameAttr;
-        this.valueAttr = valueAttr;
+    private SelfPlusOneRatioExpander(List<String> fieldNames, Boolean appendix,
+                                     List<String> newFieldNames) {
+        this.fieldNames = fieldNames;
+        this.appendix = appendix;
+        this.newFieldNames = newFieldNames;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
-        return new ColumnToRowExpander(expanderConfig.getString("nameAttr"),
-            expanderConfig.getString("valueAttr"), 
-            expanderConfig.getStringList("colNames"));
+        return new SelfPlusOneRatioExpander(expanderConfig.getStringList("fieldNames"),
+                expanderConfig.getBoolean("appendix"), expanderConfig.getStringList("newFieldNames"));
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                    RequestContext requestContext) {
-        List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
-            List<ObjectNode> oneExpanded = new ArrayList<>();
-            for (String colName : colNames) {
-                if (entity.has(colName)) {
-                    ObjectNode newEntity = entity.deepCopy();
-                    newEntity.put(nameAttr, colName);
-                    newEntity.set(valueAttr, entity.get(colName));
-                    oneExpanded.add(newEntity);
+            for (int i=0; i<fieldNames.size(); i++) {
+                String fieldName = fieldNames.get(i);
+                if (entity.has(fieldName)) {
+                    double value = entity.get(fieldName).asDouble();
+                    SelfPlusOneRatioFunction func = new SelfPlusOneRatioFunction();
+                    value = func.value(value);
+                    if (newFieldNames != null && newFieldNames.size() == fieldNames.size()) {
+                        entity.put(newFieldNames.get(i), value);
+                    } else if (appendix) {
+                        entity.put(fieldName + appendix, value);
+                    } else {
+                        entity.put(fieldName, value);
+                    }
                 } else {
-                    logger.warn("The column {} is not present: {}", colName, entity.toString());
+                    logger.warn("The field {} is not present: {}", fieldName, entity.toString());
                 }
             }
-            if (oneExpanded.size() > 0) {
-                expanded.addAll(oneExpanded);
-            } else {
-                expanded.add(entity);
-            }
         }
-        return expanded;
+        return initialResult;
     }
 }

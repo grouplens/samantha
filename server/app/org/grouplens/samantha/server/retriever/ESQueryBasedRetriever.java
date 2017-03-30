@@ -40,28 +40,35 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
     private String scrollId = null;
     private final List<EntityExpander> expanders;
     private final String elasticSearchReqKey;
-    private final String defaultElasticSearchReq;
     private final String setScrollKey;
     private final String elasticSearchIndex;
     private final String retrieveType;
     private final List<String> retrieveFields;
+    private final String[] defaultMatchFields;
+    private final String queryKey;
     private final String elasticSearchScoreName;
 
     public ESQueryBasedRetriever(ElasticSearchService elasticSearchService,
                                  List<EntityExpander> expanders, String elasticSearchScoreName,
-                                 String elasticSearchReqKey, String defaultElasticSearchReq,
+                                 String elasticSearchReqKey,
                                  String setScrollKey, String elasticSearchIndex, String retrieveType,
-                                 List<String> retrieveFields, Configuration config) {
+                                 List<String> retrieveFields, Configuration config,
+                                 List<String> defaultMatchFields, String queryKey) {
         super(config);
         this.elasticSearchService = elasticSearchService;
         this.expanders = expanders;
         this.elasticSearchScoreName= elasticSearchScoreName;
         this.elasticSearchIndex = elasticSearchIndex;
-        this.defaultElasticSearchReq = defaultElasticSearchReq;
         this.elasticSearchReqKey = elasticSearchReqKey;
         this.setScrollKey = setScrollKey;
         this.retrieveFields = retrieveFields;
         this.retrieveType = retrieveType;
+        if (defaultMatchFields != null) {
+            this.defaultMatchFields = defaultMatchFields.toArray(new String[defaultMatchFields.size()]);
+        } else {
+            this.defaultMatchFields = new String[0];
+        }
+        this.queryKey = queryKey;
     }
 
     public RetrievedResult retrieve(RequestContext requestContext) {
@@ -69,9 +76,9 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
         JsonNode elasticSearchRequest;
         if (requestBody.has(elasticSearchReqKey)) {
             elasticSearchRequest = JsonHelpers.getRequiredJson(requestBody, elasticSearchReqKey);
-        } else if (defaultElasticSearchReq != null) {
-            //TODO: provide the capability of parameterize this defaultElasticSearchReq with request body
-            elasticSearchRequest = Json.parse(defaultElasticSearchReq);
+        } else if (defaultMatchFields.length > 0 && requestBody.has(queryKey)) {
+            String query = JsonHelpers.getRequiredString(requestBody, queryKey);
+            elasticSearchRequest = Json.parse(QueryBuilders.multiMatchQuery(query, defaultMatchFields).toString());
         } else {
             elasticSearchRequest = Json.parse(QueryBuilders.matchAllQuery().toString());
         }
@@ -94,10 +101,6 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
         RetrievedResult initialResult = ESRetrieverUtilities.parse(elasticSearchScoreName, requestContext,
                 searchResponse, expanders, retrieveFields);
         return initialResult;
-    }
-
-    public String getScrollId() {
-        return scrollId;
     }
 
     public void resetScroll() {

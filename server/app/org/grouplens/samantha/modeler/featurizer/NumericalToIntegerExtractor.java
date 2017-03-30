@@ -24,6 +24,8 @@ package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +34,7 @@ import java.util.Map;
 
 public class NumericalToIntegerExtractor implements FeatureExtractor {
     private static final long serialVersionUID = 1L;
+    private static Logger logger = LoggerFactory.getLogger(NumericalToIntegerExtractor.class);
     private final String indexName;
     private final String attrName;
     private final String feaName;
@@ -59,6 +62,8 @@ public class NumericalToIntegerExtractor implements FeatureExtractor {
             FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
                     indexSpace, indexName, key, 1.0);
             feaMap.put(feaName, features);
+        } else {
+            logger.warn("{} is not present in {}", attrName, entity);
         }
         return feaMap;
     }

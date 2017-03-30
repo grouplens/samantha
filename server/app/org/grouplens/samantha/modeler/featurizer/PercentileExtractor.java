@@ -24,13 +24,17 @@ package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PercentileExtractor {
+public class PercentileExtractor implements FeatureExtractor {
+    private static final long serialVersionUID = 1L;
+    private static Logger logger = LoggerFactory.getLogger(PercentileExtractor.class);
     final private PercentileModel percentileModel;
     final private String feaName;
     final private String attrName;
@@ -53,6 +57,8 @@ public class PercentileExtractor {
             FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(feaList, update,
                     indexSpace, indexName, attrName, percentileModel.getPercentile(attrName, val));
             feaMap.put(feaName, feaList);
+        } else {
+            logger.warn("{} is not present in {}", attrName, entity);
         }
         return feaMap;
     }

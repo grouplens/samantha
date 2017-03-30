@@ -33,8 +33,9 @@ import org.elasticsearch.search.SearchHits;
 import org.grouplens.samantha.server.common.ElasticSearchService;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.Configuration;
-import play.Logger;
 import play.inject.Injector;
 
 import java.util.*;
@@ -42,6 +43,7 @@ import java.util.*;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
 
 public class ESBasedJoinExpander implements EntityExpander {
+    private static Logger logger = LoggerFactory.getLogger(ESBasedJoinExpander.class);
     final private String elasticSearchIndex;
     final private ElasticSearchService elasticSearchService;
     final private List<Configuration> configList;
@@ -103,7 +105,7 @@ public class ESBasedJoinExpander implements EntityExpander {
                     ExpanderUtilities.parseEntityFromSearchHit(entityFields,
                             null, keyVals.get(keyVal), entity);
                 } else {
-                    Logger.warn("Can not find the key {} while joining: {}", keyVal.toString(),
+                    logger.warn("Can not find the key {} while joining: {}", keyVal.toString(),
                             entity.toString());
                 }
             }
