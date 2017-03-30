@@ -3,7 +3,7 @@ import random
 import os
 import sys
 
-def dump(path, host, dbname):
+def dump(path, dbhost, dbname):
     full_path = os.path.join(path, "full.tsv")
     full_rand_path = os.path.join(path, "full.rand.tsv")
     train_path = os.path.join(path, "train.tsv")
@@ -11,7 +11,7 @@ def dump(path, host, dbname):
     
     # Dump mysql database to temp file
     print("Dumping ratings data to disk")
-    subprocess.check_call("""mysql -h %s -u web --password=atth1132 -D %s -B -e "SELECT userId, movieId, rating FROM user_rating_pairs WHERE rating > 0.0" > %s""" % (host, dbname, full_path), shell=True)
+    subprocess.check_call("""mysql -h %s -u web --password=atth1132 -D %s -B -e "SELECT userId, movieId, rating FROM user_rating_pairs WHERE rating > 0.0" > %s""" % (dbhost, dbname, full_path), shell=True)
     
     print("Randomizing data order")
     subprocess.check_call("""{ head -1 %s ; tail -n +2 %s | shuf ; } | cat > %s """ % (full_path, full_path, full_rand_path), shell=True)
@@ -47,8 +47,8 @@ def dump(path, host, dbname):
 
 arguments = sys.argv[1:]
 if len(arguments) != 3:
-    print("dumpdb requires three positional arguments: path, host, dbname")
+    print("dumpdb requires three positional arguments: path, dbhost, dbname")
     exit()
-path, host, dbname = arguments
+path, dbhost, dbname = arguments
 
-dump(path, host, dbname)
+dump(path, dbhost, dbname)
