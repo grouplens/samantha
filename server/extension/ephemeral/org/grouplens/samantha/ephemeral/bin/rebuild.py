@@ -22,10 +22,9 @@ def postDataToUrl(url, data):
     encoding = response.info().get_content_charset('utf-8')
     return response.info(), response.read().decode(encoding)
 
-def rebuildModels(host):
+def rebuildModels(path, host):
     predictorUrl = host + "ephemeral/predictor/model"
     retrieverUrl = host + "ephemeral/retriever/model"
-    path = '/Users/Taavi/Research/Ephemeral/data/' # TODO: Set data file path
     
     # Build and dump the ephemeral predictor model
     data = {
@@ -84,11 +83,15 @@ def rebuildModels(host):
     print("All done on %s", host)
 
 
-# TODO: Run on both hosts.
-hosts = sys.argv[1:] or ["http://localhost:9100/"]
+arguments = sys.argv[1:]
+if len(arguments) < 2:    
+    print("rebuild requires two positional arguments: path, and host")
+    exit()
+path, hosts = arguments[0], arguments[1:]
+
 threads = []
 for host in hosts:
-    t = threading.Thread(target=rebuildModels, args=[host])
+    t = threading.Thread(target=rebuildModels, args=[path, host])
     t.start()
     threads.append(t)
 
