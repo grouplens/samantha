@@ -10,7 +10,7 @@ import datetime
 
 def tsPrint(*args, **kwargs):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-    print(timestamp, '-', *args, **kwargs)
+    print(timestamp, '-', sys.argv[0], '-', *args, **kwargs)
 
 def postDataToUrl(url, data):
     """Helper function which posts JSON to a URL."""
