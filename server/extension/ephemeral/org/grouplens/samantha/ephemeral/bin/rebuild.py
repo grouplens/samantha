@@ -6,6 +6,11 @@ Send a request to samantha to rebuild the models.
 import threading
 import os
 import sys
+import datetime
+
+def tsPrint(*args, **kwargs):
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+    print(timestamp, '-', *args, **kwargs)
 
 def postDataToUrl(url, data):
     """Helper function which posts JSON to a URL."""
@@ -42,7 +47,7 @@ def rebuildModels(path, host):
            "entityDaoName": "CSVFileEntityDAO"
        }
     }
-    print("Building ephemeral predictor model on %s" % host)
+    tsPrint("Building ephemeral predictor model on %s" % host)
     postDataToUrl(predictorUrl, data)
     data = {
        "predictor": "ephemeral-predictor",
@@ -54,14 +59,14 @@ def rebuildModels(path, host):
            "entityDaoName": "CSVFileEntityDAO"
        }
     }
-    print("Updating ephemeral predictor model with validation data on %s" % host)
+    tsPrint("Updating ephemeral predictor model with validation data on %s" % host)
     postDataToUrl(predictorUrl, data)
     data = {
        "predictor": "ephemeral-predictor",
        "modelName": "ephemeral-predictor-model",
        "modelOperation": "DUMP",
     }
-    print("Dumping ephemeral predictor model to disk on %s"%  host)
+    tsPrint("Dumping ephemeral predictor model to disk on %s"%  host)
     postDataToUrl(predictorUrl, data)
     
     # Build and dump the ephemeral retriever model
@@ -70,22 +75,22 @@ def rebuildModels(path, host):
        "modelName": "ephemeral-retriever-model",
        "modelOperation": "BUILD",
     }
-    print("Building ephemeral retriever model on %s" % host)
+    tsPrint("Building ephemeral retriever model on %s" % host)
     postDataToUrl(retrieverUrl, data)
     data = {
        "retriever": "ephemeral-retriever",
        "modelName": "ephemeral-retriever-model",
        "modelOperation": "DUMP",
     }
-    print("Dumping ephemeral retriever model to disk on %s" % host)
+    tsPrint("Dumping ephemeral retriever model to disk on %s" % host)
     postDataToUrl(retrieverUrl, data)
     
-    print("All done on %s", host)
+    tsPrint("All done on %s" % host)
 
 
 arguments = sys.argv[1:]
 if len(arguments) < 2:    
-    print("rebuild requires two positional arguments: path, and host")
+    tsPrint("rebuild requires two positional arguments: path, and host")
     exit()
 path, hosts = arguments[0], arguments[1:]
 

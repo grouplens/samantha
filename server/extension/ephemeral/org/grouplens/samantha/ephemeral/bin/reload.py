@@ -5,6 +5,11 @@ Send a request to samantha to reload the models.
 import threading
 import os
 import sys
+import datetime
+
+def tsPrint(*args, **kwargs):
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+    print(timestamp, '-', *args, **kwargs)
 
 def postDataToUrl(url, data):
     """Helper function which posts JSON to a URL."""
@@ -32,7 +37,7 @@ def reloadModels(host):
        "modelName": "ephemeral-predictor-model",
        "modelOperation": "LOAD",
     }
-    print("Loading ephemeral predictor model from disk on %s" % host)
+    tsPrint("Loading ephemeral predictor model from disk on %s" % host)
     postDataToUrl(predictorUrl, data)
 
     # Reload the ephemeral retriever model
@@ -41,15 +46,15 @@ def reloadModels(host):
        "modelName": "ephemeral-retriever-model",
        "modelOperation": "LOAD",
     }
-    print("Loading ephemeral retriever model from disk on %s" % host)
+    tsPrint("Loading ephemeral retriever model from disk on %s" % host)
     postDataToUrl(retrieverUrl, data)
 
-    print("All done on %s" % host)
+    tsPrint("All done on %s" % host)
 
 
 arguments = sys.argv[1:]
 if not arguments:    
-    print("reload requires one positional argument: host")
+    tsPrint("reload requires one positional argument: host")
     exit()
 hosts = arguments
 

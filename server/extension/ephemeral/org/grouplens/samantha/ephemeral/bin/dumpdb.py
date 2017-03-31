@@ -2,6 +2,11 @@ import subprocess
 import random
 import os
 import sys
+import datetime
+
+def tsPrint(*args, **kwargs):
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+    print(timestamp, '-', *args, **kwargs)
 
 def dump(path, dbhost, dbname):
     os.makedirs(path, exist_ok=True)
@@ -13,24 +18,24 @@ def dump(path, dbhost, dbname):
     val_path = os.path.join(path, "val.tsv")
     
     # Dump movie ids to a temp file
-    print("Dumping movie ids to disk")
+    tsPrint("Dumping movie ids to disk")
     subprocess.check_call("""mysql -h %s -u readonly -D %s -B -e "SELECT movieId FROM movie_data WHERE movieStatus = 2 AND rowType = 11" > %s""" % (dbhost, dbname, ids_path), shell=True)
     
     with open(ids_path) as fp:
         ids = set([int(i.strip()) for i in list(fp)[1:]])
     
     # Dump mysql database to temp file
-    print("Dumping ratings data to disk")
+    tsPrint("Dumping ratings data to disk")
     subprocess.check_call("""mysql -h %s -u readonly -D %s -B -e "SELECT userId, movieId, rating FROM user_rating_pairs WHERE rating > 0.0" > %s""" % (dbhost, dbname, full_path), shell=True)
     
-    print("Randomizing data order")
+    tsPrint("Randomizing data order")
     subprocess.check_call("""{ head -1 %s ; tail -n +2 %s | shuf ; } | cat > %s """ % (full_path, full_path, full_rand_path), shell=True)
     
     ignored_ids = set([])
     ignored_count = 0
     
     # Open the temp file, and split it into train and validation files
-    print("Partitioning data into train and validation sets")
+    tsPrint("Partitioning data into train and validation sets")
     with open(full_rand_path) as fp:
         trainfp = open(train_path, 'w')
         valfp = open(val_path, 'w')
@@ -59,16 +64,16 @@ def dump(path, dbhost, dbname):
             else:
                 trainfp.write(line)
     
-    print("Ignored %d ratings for the following %d movie ids: %s" % (ignored_count, len(ignored_ids), ignored_ids))
+    tsPrint("Ignored %d ratings for %d movie ids" % (ignored_count, len(ignored_ids)))
 
     # Delete the temp file
-    print("Deleting temp files")
+    tsPrint("Deleting temp files")
     os.remove(full_rand_path)
     #os.remove(ids_path)
 
 arguments = sys.argv[1:]
 if len(arguments) != 3:
-    print("dumpdb requires three positional arguments: path, dbhost, dbname")
+    tsPrint("dumpdb requires three positional arguments: path, dbhost, dbname")
     exit()
 path, dbhost, dbname = arguments
 
