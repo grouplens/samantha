@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.dao;
+package org.grouplens.samantha.server.retriever;
 
-public class RedisBasedDAO {
+public class SQLBasedRetrieverConfig {
 }

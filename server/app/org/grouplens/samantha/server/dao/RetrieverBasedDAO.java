@@ -23,34 +23,23 @@
 package org.grouplens.samantha.server.dao;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.grouplens.samantha.server.io.IOUtilities;
-import org.grouplens.samantha.server.io.RequestContext;
-import org.grouplens.samantha.server.retriever.ESQueryBasedRetriever;
-import org.grouplens.samantha.server.retriever.RetrievedResult;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
-import play.libs.Json;
+import org.grouplens.samantha.server.io.RequestContext;
+import org.grouplens.samantha.server.retriever.RetrievedResult;
+import org.grouplens.samantha.server.retriever.Retriever;
 
 import java.util.List;
 
-public class ESBasedDAO implements EntityDAO {
-
-    private final ESQueryBasedRetriever retriever;
-    private final String engineName;
+public class RetrieverBasedDAO implements EntityDAO {
+    private final Retriever retriever;
     private int idx = 0;
     private List<ObjectNode> entityList = null;
     private final RequestContext requestContext;
 
-    public ESBasedDAO(ESQueryBasedRetriever retriever,
-                      RequestContext requestContext,
-                      ESBasedDAOConfig config) {
+    public RetrieverBasedDAO(Retriever retriever,
+                             RequestContext requestContext) {
         this.retriever = retriever;
-        this.engineName = requestContext.getEngineName();
-        ObjectNode req = Json.newObject();
-        IOUtilities.parseEntityFromJsonNode(requestContext.getRequestBody(), req);
-        req.set(config.elasticSearchReqKey, Json.parse(QueryBuilders.matchAllQuery().toString()));
-        req.put("setScroll", true);
-        this.requestContext = new RequestContext(req, engineName);
+        this.requestContext = requestContext;
     }
 
     public ObjectNode getNextEntity() {
@@ -82,7 +71,6 @@ public class ESBasedDAO implements EntityDAO {
     }
 
     public void restart() {
-        retriever.resetScroll();
         idx = 0;
         entityList = null;
     }

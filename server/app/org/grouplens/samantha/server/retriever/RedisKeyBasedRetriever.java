@@ -54,6 +54,7 @@ public class RedisKeyBasedRetriever extends AbstractRetriever {
     }
 
     private List<ObjectNode> retrieve(JsonNode data) {
+        //TODO: based on different situations in data, different set of results need to be retrieved
         List<JsonNode> results = redisService.bulkGetFromHashSet(indexPrefix, keyFields, data);
         List<ObjectNode> list = new ArrayList<>(results.size());
         for (JsonNode result : results) {

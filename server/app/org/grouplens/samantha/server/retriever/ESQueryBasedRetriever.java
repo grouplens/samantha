@@ -83,9 +83,6 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
             elasticSearchRequest = Json.parse(QueryBuilders.matchAllQuery().toString());
         }
         boolean setScroll = JsonHelpers.getOptionalBoolean(requestBody, setScrollKey, false);
-        if (scrollId != null) {
-            setScroll = false;
-        }
         Integer size = JsonHelpers.getOptionalInt(elasticSearchRequest, "size", null);
         Integer from = JsonHelpers.getOptionalInt(elasticSearchRequest, "from", null);
         SearchResponse searchResponse = elasticSearchService
