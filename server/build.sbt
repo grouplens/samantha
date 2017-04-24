@@ -25,7 +25,8 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-csv" % "2.7.0",
   "biz.paluch.redis" % "lettuce" % "4.2.2.Final",
   "org.quartz-scheduler" % "quartz" % "2.2.1",
-  "org.quartz-scheduler" % "quartz-jobs" % "2.2.1"
+  "org.quartz-scheduler" % "quartz-jobs" % "2.2.1",
+  "org.tensorflow" % "tensorflow" % "1.1.0-rc1"
 )
 
 //For xgboost extension; Optional; uncomment if cloned submodule
