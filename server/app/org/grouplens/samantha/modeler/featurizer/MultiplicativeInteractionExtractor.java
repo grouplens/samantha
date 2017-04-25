@@ -25,6 +25,8 @@ package org.grouplens.samantha.modeler.featurizer;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +35,7 @@ import java.util.Map;
 
 public class MultiplicativeInteractionExtractor implements FeatureExtractor {
     private static final long serialVersionUID = 1L;
+    private static Logger logger = LoggerFactory.getLogger(MultiplicativeInteractionExtractor.class);
     private final String indexName;
     private final List<String> attrNames;
     private final String feaName;
@@ -50,7 +53,6 @@ public class MultiplicativeInteractionExtractor implements FeatureExtractor {
                                               IndexSpace indexSpace) {
         Map<String, List<Feature>> feaMap = new HashMap<>();
         double product = 1.0;
-        boolean complete = true;
         UnivariateFunction sig = new SelfPlusOneRatioFunction();
         for (String attrName : attrNames) {
             if (entity.has(attrName)) {
@@ -60,16 +62,14 @@ public class MultiplicativeInteractionExtractor implements FeatureExtractor {
                 }
                 product *= val;
             } else {
-                complete = false;
+                logger.warn("{} is not present in {}", attrName, entity);
             }
         }
-        if (complete) {
-            List<Feature> feaList = new ArrayList<>();
-            String key = FeatureExtractorUtilities.composeKey(attrNames);
-            FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(feaList, update,
-                    indexSpace, indexName, key, product);
-            feaMap.put(feaName, feaList);
-        }
+        List<Feature> feaList = new ArrayList<>();
+        String key = FeatureExtractorUtilities.composeKey(attrNames);
+        FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(feaList, update,
+                indexSpace, indexName, key, product);
+        feaMap.put(feaName, feaList);
         return feaMap;
     }
 }

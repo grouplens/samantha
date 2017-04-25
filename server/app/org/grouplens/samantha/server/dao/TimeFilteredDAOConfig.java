@@ -24,6 +24,7 @@ package org.grouplens.samantha.server.dao;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
+import org.grouplens.samantha.modeler.dao.TimeFilteredDAO;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.indexer.IndexerUtilities;

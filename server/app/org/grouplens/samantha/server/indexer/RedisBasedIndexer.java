@@ -23,9 +23,11 @@
 package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.common.RedisService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -107,5 +109,9 @@ public class RedisBasedIndexer extends AbstractIndexer {
         JsonNode reqBody = requestContext.getRequestBody();
         String prefix = JsonHelpers.getOptionalString(reqBody, indexPrefixKey, indexPrefix);
         structure.bulkIndex(prefix, data, this, service, requestContext.getRequestBody());
+    }
+
+    public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
+        throw new BadRequestException("Reading data from this indexer is not supported.");
     }
 }

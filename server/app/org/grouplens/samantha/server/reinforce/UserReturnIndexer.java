@@ -171,7 +171,4 @@ public class UserReturnIndexer extends AbstractIndexer {
     public void index(JsonNode documents, RequestContext requestContext) {
         indexer.index(documents, requestContext);
     }
-    public void index(RequestContext requestContext) {
-        indexer.index(requestContext);
-    }
 }

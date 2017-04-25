@@ -28,34 +28,44 @@ import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
 
+import java.util.List;
+
 public class EnglishTokenizeExtractorConfig implements FeatureExtractorConfig {
     private final String indexName;
     private final String feaName;
-    private final String attrName;
+    private final List<String> attrNames;
     private final String vocabularyName;
+    private final boolean sigmoid;
 
     private EnglishTokenizeExtractorConfig(String indexName,
-                                           String attrName,
+                                           List<String> attrNames,
                                            String feaName,
-                                           String vocabularyName) {
+                                           String vocabularyName,
+                                           boolean sigmoid) {
         this.indexName = indexName;
-        this.attrName = attrName;
+        this.attrNames = attrNames;
         this.feaName = feaName;
         this.vocabularyName = vocabularyName;
+        this.sigmoid = sigmoid;
     }
 
     public FeatureExtractor getFeatureExtractor(RequestContext requestContext) {
-        return new EnglishTokenizeExtractor(indexName, attrName, feaName, vocabularyName);
+        return new EnglishTokenizeExtractor(indexName, attrNames, feaName, vocabularyName, sigmoid);
     }
 
     public static FeatureExtractorConfig
             getFeatureExtractorConfig(Configuration extractorConfig,
                                       Injector injector) {
+        Boolean sigmoid = extractorConfig.getBoolean("sigmoid");
+        if (sigmoid == null) {
+            sigmoid = true;
+        }
         return new EnglishTokenizeExtractorConfig(
                 extractorConfig.getString("indexName"),
-                extractorConfig.getString("attrName"),
+                extractorConfig.getStringList("attrNames"),
                 extractorConfig.getString("feaName"),
-                extractorConfig.getString("vocabularyName")
+                extractorConfig.getString("vocabularyName"),
+                sigmoid
         );
     }
 }

@@ -24,6 +24,8 @@ package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +34,7 @@ import java.util.Map;
 
 public class ConcatenateStringExtractor implements FeatureExtractor {
     private static final long serialVersionUID = 1L;
+    private static Logger logger = LoggerFactory.getLogger(ConcatenateStringExtractor.class);
     private final String indexName;
     private final String feaName;
     private final List<String> attrNames;
@@ -47,13 +50,16 @@ public class ConcatenateStringExtractor implements FeatureExtractor {
     public Map<String, List<Feature>> extract(JsonNode entity, boolean update,
                                               IndexSpace indexSpace) {
         Map<String, List<Feature>> feaMap = new HashMap<>();
-        String key = FeatureExtractorUtilities.composeConcatenatedKey(entity, attrNames);
-        if (!"".equals(key)) {
-            List<Feature> features = new ArrayList<>();
-            FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                    indexSpace, indexName, key, 1.0);
-            feaMap.put(feaName, features);
+        for (String attrName : attrNames) {
+            if (!entity.has(attrName)) {
+                logger.warn("{} is not present in {}", attrName, entity);
+            }
         }
+        String key = FeatureExtractorUtilities.composeConcatenatedKey(entity, attrNames);
+        List<Feature> features = new ArrayList<>();
+        FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
+                indexSpace, indexName, key, 1.0);
+        feaMap.put(feaName, features);
         return feaMap;
     }
 }

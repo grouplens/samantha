@@ -23,10 +23,13 @@
 package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,37 +39,51 @@ import java.util.Map;
 
 public class EnglishTokenizeExtractor implements FeatureExtractor {
     private static final long serialVersionUID = 1L;
+    private static Logger logger = LoggerFactory.getLogger(EnglishTokenizeExtractor.class);
     private final String indexName;
-    private final String attrName;
+    private final List<String> attrNames;
     private final String feaName;
     private final String vocabularyName;
     private final Analyzer analyzer;
+    private final boolean sigmoid;
 
     public EnglishTokenizeExtractor(String indexName,
-                                    String attrName,
+                                    List<String> attrNames,
                                     String feaName,
-                                    String vocabularyName) {
+                                    String vocabularyName,
+                                    boolean sigmoid) {
         this.indexName = indexName;
-        this.attrName = attrName;
+        this.attrNames = attrNames;
         this.feaName = feaName;
         this.vocabularyName = vocabularyName;
         this.analyzer = new EnglishAnalyzer();
+        this.sigmoid = sigmoid;
     }
 
     public Map<String, List<Feature>> extract(JsonNode entity, boolean update,
                                               IndexSpace indexSpace) {
-        Map<String, List<Feature>> feaMap = new HashMap<>();
-        if (entity.has(attrName)) {
-            List<Feature> features = new ArrayList<>();
-            String text = entity.get(attrName).asText();
-            Map<String, Integer> termFreq = FeatureExtractorUtilities.getTermFreq(analyzer, text, attrName);
-            for (Map.Entry<String, Integer> entry : termFreq.entrySet()) {
-                String key = FeatureExtractorUtilities.composeKey(vocabularyName, entry.getKey());
-                FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                        indexSpace, indexName, key, entry.getValue());
+        List<String> textList = new ArrayList<>();
+        for (String attrName : attrNames) {
+            if (entity.has(attrName)) {
+                textList.add(entity.get(attrName).asText());
+            } else {
+                logger.warn("{} is not present in {}", attrName, entity);
             }
-            feaMap.put(feaName, features);
         }
+        String text = StringUtils.join(textList, ". ");
+        Map<String, Integer> termFreq = FeatureExtractorUtilities.getTermFreq(analyzer, text, vocabularyName);
+        List<Feature> features = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : termFreq.entrySet()) {
+            String key = FeatureExtractorUtilities.composeKey(vocabularyName, entry.getKey());
+            double value = entry.getValue();
+            if (sigmoid) {
+                value = new SelfPlusOneRatioFunction().value(value);
+            }
+            FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
+                    indexSpace, indexName, key, value / Math.sqrt(termFreq.size()));
+        }
+        Map<String, List<Feature>> feaMap = new HashMap<>();
+        feaMap.put(feaName, features);
         return feaMap;
     }
 }

@@ -102,10 +102,6 @@ public class FeatureExtractorUtilities {
                 multiples.add(FeatureExtractorUtilities.composeKey(attrName, entity.get(attrName).asText()));
             }
         }
-        if (multiples.size() == attrNames.size()) {
-            return composeKey(multiples);
-        } else {
-            return "";
-        }
+        return composeKey(multiples);
     }
 }

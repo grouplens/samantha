@@ -22,8 +22,6 @@
 
 package org.grouplens.samantha.server.retriever;
 
-import com.typesafe.config.ConfigRenderOptions;
-
 import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.ElasticSearchService;
 
@@ -38,7 +36,8 @@ import java.util.List;
 
 public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig implements RetrieverConfig {
     final private Injector injector;
-    final private String defaultElasticSearchReq;
+    final private String queryKey;
+    final private List<String> defaultMatchFields;
     final private String elasticSearchIndex;
     final private String elasticSearchScoreName;
     final private String elasticSearchReqKey;
@@ -52,8 +51,8 @@ public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig impleme
                                         List<String> retrieveFields,
                                         String elasticSearchReqKey,
                                         String setScrollKey,
-                                        String defaultElasticSearchReq,
-                                        Injector injector, Configuration config) {
+                                        Injector injector, Configuration config,
+                                        String queryKey, List<String> defaultMatchFields) {
         super(config);
         this.injector = injector;
         this.retrieveFields = retrieveFields;
@@ -62,7 +61,8 @@ public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig impleme
         this.elasticSearchReqKey = elasticSearchReqKey;
         this.elasticSearchScoreName = elasticSearchScoreName;
         this.setScrollKey = setScrollKey;
-        this.defaultElasticSearchReq = defaultElasticSearchReq;
+        this.queryKey = queryKey;
+        this.defaultMatchFields = defaultMatchFields;
     }
 
     static public RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
@@ -85,16 +85,12 @@ public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig impleme
                         mappingConfig.getConfig(typeName));
             }
         }
-        String defaultReq = null;
-        if (retrieverConfig.asMap().containsKey("defaultElasticSearchReq")) {
-            defaultReq = retrieverConfig.getConfig("defaultElasticSearchReq")
-                    .underlying().root().render(ConfigRenderOptions.concise());
-        }
         return new ESQueryBasedRetrieverConfig(retrieverConfig.getString("elasticSearchIndex"),
                 elasticSearchScoreName, retrieverConfig.getString("retrieveType"),
                 retrieveFields, retrieverConfig.getString("elasticSearchReqKey"),
                 retrieverConfig.getString("setScrollKey"),
-                defaultReq, injector, retrieverConfig);
+                injector, retrieverConfig, retrieverConfig.getString("queryKey"),
+                retrieverConfig.getStringList("defaultMatchFields"));
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
@@ -102,7 +98,7 @@ public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig impleme
                 .instanceOf(ElasticSearchService.class);
         List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
         return new ESQueryBasedRetriever(elasticSearchService, expanders, elasticSearchScoreName,
-                elasticSearchReqKey, defaultElasticSearchReq, setScrollKey, elasticSearchIndex, retrieveType,
-                retrieveFields, config);
+                elasticSearchReqKey, setScrollKey, elasticSearchIndex, retrieveType,
+                retrieveFields, config, defaultMatchFields, queryKey);
     }
 }

@@ -43,6 +43,10 @@ public class L1Regularizer implements Regularizer {
         }
     }
 
+    public RealVector addGradient(RealVector grad, RealVector var, double l1coef) {
+        return grad.combine(1.0, l1coef, var.map(x -> Math.signum(x)));
+    }
+
     public double getObjective(double l1coef, RealVector var) {
         double l1norm = var.getL1Norm();
         return l1coef * l1norm;

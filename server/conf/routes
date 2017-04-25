@@ -14,6 +14,7 @@ POST   /:engine/index/data                 controllers.EngineHandlers.indexData(
 POST   /:engine/predictor/model            controllers.EngineHandlers.predictorModel(engine: String)
 POST   /:engine/retriever/model            controllers.EngineHandlers.retrieverModel(engine: String)
 POST   /:engine/ranker/model               controllers.EngineHandlers.rankerModel(engine: String)
+POST   /:engine/schedule                   controllers.EngineHandlers.schedule(engine: String)
 
 
 # Add your own urls and handlers here

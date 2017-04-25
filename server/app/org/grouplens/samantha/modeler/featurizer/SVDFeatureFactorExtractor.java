@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 public class SVDFeatureFactorExtractor implements FeatureExtractor {
+    private static final long serialVersionUID = 1L;
     final private SVDFeature model;
     final private Map<String, List<String>> fea2svdfeas;
     final private Boolean sparse;

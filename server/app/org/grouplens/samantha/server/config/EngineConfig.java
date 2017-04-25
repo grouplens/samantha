@@ -29,6 +29,7 @@ import org.grouplens.samantha.server.ranker.RankerConfig;
 import org.grouplens.samantha.server.recommender.RecommenderConfig;
 import org.grouplens.samantha.server.retriever.RetrieverConfig;
 import org.grouplens.samantha.server.router.RouterConfig;
+import org.grouplens.samantha.server.scheduler.SchedulerConfig;
 
 import java.util.Map;
 
@@ -39,5 +40,6 @@ interface EngineConfig {
     Map<String, RankerConfig> getRankerConfigs();
     Map<String, EvaluatorConfig> getEvaluatorConfigs();
     Map<String, RecommenderConfig> getRecommenderConfigs();
+    Map<String, SchedulerConfig> getSchedulerConfigs();
     RouterConfig getRouterConfig();
 }

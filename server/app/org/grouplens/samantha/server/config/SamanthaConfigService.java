@@ -37,6 +37,7 @@ import org.grouplens.samantha.server.recommender.Recommender;
 import org.grouplens.samantha.server.recommender.RecommenderConfig;
 import org.grouplens.samantha.server.retriever.Retriever;
 import org.grouplens.samantha.server.router.Router;
+import org.grouplens.samantha.server.scheduler.SchedulerConfig;
 import play.Configuration;
 import play.inject.Injector;
 
@@ -121,6 +122,12 @@ public class SamanthaConfigService {
         return namedEngineConfig.get(engineName)
                 .getRecommenderConfigs().get(recommenderName)
                 .getRecommender(requestContext);
+    }
+
+    public SchedulerConfig getSchedulerConfig(String schedulerName, RequestContext requestContext) {
+        String engineName = requestContext.getEngineName();
+        return namedEngineConfig.get(engineName)
+                .getSchedulerConfigs().get(schedulerName);
     }
 
     public Router getRouter(String engineName, RequestContext requestContext) {
