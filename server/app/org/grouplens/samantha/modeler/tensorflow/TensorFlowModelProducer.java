@@ -22,17 +22,5 @@
 
 package org.grouplens.samantha.modeler.tensorflow;
 
-import org.grouplens.samantha.modeler.common.LearningData;
-import org.grouplens.samantha.modeler.solver.AbstractOptimizationMethod;
-import org.grouplens.samantha.modeler.solver.LearningModel;
-import org.grouplens.samantha.modeler.solver.OnlineOptimizationMethod;
-
-public class TensorFlowMethod extends AbstractOptimizationMethod implements OnlineOptimizationMethod {
-    public TensorFlowMethod(double tol, int maxIter, int minIter) {
-        super(tol, maxIter, minIter);
-    }
-
-    public double update(LearningModel model, LearningData learningData) {
-        return 0.0;
-    }
+public class TensorFlowModelProducer {
 }

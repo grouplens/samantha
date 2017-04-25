@@ -22,5 +22,54 @@
 
 package org.grouplens.samantha.modeler.tensorflow;
 
-public class TensorFlowModel {
+import com.fasterxml.jackson.databind.JsonNode;
+import org.grouplens.samantha.modeler.common.LearningInstance;
+import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
+import org.grouplens.samantha.modeler.featurizer.Featurizer;
+import org.grouplens.samantha.modeler.solver.AbstractLearningModel;
+import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
+import org.grouplens.samantha.modeler.solver.StochasticOracle;
+import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.space.VariableSpace;
+import org.grouplens.samantha.server.exception.BadRequestException;
+import org.tensorflow.Graph;
+
+import java.util.List;
+
+public class TensorFlowModel extends AbstractLearningModel implements Featurizer {
+    protected final Graph graph;
+    protected final IndexSpace indexSpace;
+    protected final VariableSpace variableSpace;
+
+    public TensorFlowModel(Graph graph,
+                           IndexSpace indexSpace, VariableSpace variableSpace,
+                           List<FeatureExtractor> featureExtractors,
+                           List<String> features) {
+        super(indexSpace, variableSpace);
+        this.graph = graph;
+        this.indexSpace = indexSpace;
+        this.variableSpace = variableSpace;
+    }
+
+    public double predict(LearningInstance ins) {
+        return 0.0;
+    }
+
+    public LearningInstance featurize(JsonNode entity, boolean update) {
+        return null;
+    }
+
+    public void publishModel() {}
+
+    public void destroy() {
+        graph.close();
+    }
+
+    public List<StochasticOracle> getStochasticOracle(List<LearningInstance> instances) {
+        throw new BadRequestException("getStochasticOracle is not supported.");
+    }
+
+    public ObjectiveFunction getObjectiveFunction() {
+        throw new BadRequestException("getObjectiveFunction is not supported.");
+    }
 }
