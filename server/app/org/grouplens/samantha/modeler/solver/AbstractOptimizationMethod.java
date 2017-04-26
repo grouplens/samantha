@@ -53,12 +53,10 @@ abstract public class AbstractOptimizationMethod implements OptimizationMethod {
                 break;
             }
             learnObjVal = this.update(learningModel, learningData);
-            learnCrit.addIteration(AbstractOptimizationMethod.class.toString()
-                    + " -- Learning", learnObjVal);
+            learnCrit.addIteration("Learning", learnObjVal);
             if (validData != null) {
                 double validObjVal = SolverUtilities.evaluate(learningModel, validData);
-                validCrit.addIteration(AbstractOptimizationMethod.class.toString()
-                        + " -- Validating", validObjVal);
+                validCrit.addIteration("Validating", validObjVal);
             }
         }
         return learnObjVal;
