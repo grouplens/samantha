@@ -31,10 +31,7 @@ import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealVector;
 
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.modeler.featurizer.Feature;
-import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
-import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.modeler.featurizer.Featurizer;
+import org.grouplens.samantha.modeler.featurizer.*;
 import org.grouplens.samantha.modeler.solver.*;
 import org.grouplens.samantha.modeler.space.IndexSpace;
 import org.grouplens.samantha.modeler.space.VariableSpace;
@@ -202,12 +199,7 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
     }
 
     public Map<String, List<Feature>> getFeatureMap(JsonNode entity, boolean update) {
-        Map<String, List<Feature>> feaMap = new HashMap<>();
-        for (FeatureExtractor extractor : featureExtractors) {
-            feaMap.putAll(extractor.extract(entity, update,
-                    indexSpace));
-        }
-        return feaMap;
+        return FeaturizerUtilities.getFeatureMap(entity, update, featureExtractors, indexSpace);
     }
 
     public LearningInstance featurize(JsonNode entity, boolean update) {

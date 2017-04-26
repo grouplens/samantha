@@ -22,11 +22,15 @@
 
 package org.grouplens.samantha.modeler.featurizer;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.common.LearningInstance;
+import org.grouplens.samantha.modeler.space.IndexSpace;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class FeaturizerUtilities {
     private FeaturizerUtilities() {}
@@ -39,5 +43,16 @@ public class FeaturizerUtilities {
             instances.add(ins);
         }
         return instances;
+    }
+
+    static public Map<String, List<Feature>> getFeatureMap(JsonNode entity, boolean update,
+                                                           List<FeatureExtractor> featureExtractors,
+                                                           IndexSpace indexSpace) {
+        Map<String, List<Feature>> feaMap = new HashMap<>();
+        for (FeatureExtractor extractor : featureExtractors) {
+            feaMap.putAll(extractor.extract(entity, update,
+                    indexSpace));
+        }
+        return feaMap;
     }
 }

@@ -22,6 +22,8 @@
 
 package org.grouplens.samantha.server.common;
 
+import org.grouplens.samantha.modeler.space.UncollectableModel;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.HashMap;
@@ -68,6 +70,12 @@ public class ModelService {
             if (!engineNamedModels.containsKey(engineName)) {
                 engineNamedModels.put(engineName, new HashMap<>());
             }
+            if (engineNamedModels.get(engineName).containsKey(modelName)) {
+                Object model = engineNamedModels.get(engineName).get(modelName);
+                if (model instanceof UncollectableModel) {
+                    ((UncollectableModel) model).destroyModel();
+                }
+            }
             engineNamedModels.get(engineName).put(modelName, object);
         } finally {
             writeLock.unlock();
@@ -79,6 +87,10 @@ public class ModelService {
         try {
             if (engineNamedModels.containsKey(engineName) && engineNamedModels
                     .get(engineName).containsKey(modelName)) {
+                Object model = engineNamedModels.get(engineName).get(modelName);
+                if (model instanceof UncollectableModel) {
+                    ((UncollectableModel) model).destroyModel();
+                }
                 engineNamedModels.get(engineName).remove(modelName);
             }
         } finally {

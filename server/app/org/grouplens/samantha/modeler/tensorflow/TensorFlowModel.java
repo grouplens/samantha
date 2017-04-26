@@ -24,22 +24,30 @@ package org.grouplens.samantha.modeler.tensorflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.common.LearningInstance;
+import org.grouplens.samantha.modeler.featurizer.Feature;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.featurizer.Featurizer;
+import org.grouplens.samantha.modeler.featurizer.FeaturizerUtilities;
 import org.grouplens.samantha.modeler.solver.AbstractLearningModel;
+import org.grouplens.samantha.modeler.solver.IdentityFunction;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
 import org.grouplens.samantha.modeler.solver.StochasticOracle;
 import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.space.UncollectableModel;
 import org.grouplens.samantha.modeler.space.VariableSpace;
-import org.grouplens.samantha.server.exception.BadRequestException;
 import org.tensorflow.Graph;
+import org.tensorflow.Session;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
+import java.util.Map;
 
-public class TensorFlowModel extends AbstractLearningModel implements Featurizer {
-    protected final Graph graph;
-    protected final IndexSpace indexSpace;
-    protected final VariableSpace variableSpace;
+public class TensorFlowModel extends AbstractLearningModel implements Featurizer, UncollectableModel {
+    transient protected Graph graph;
+    transient protected Session session;
+    protected final List<FeatureExtractor> featureExtractors;
 
     public TensorFlowModel(Graph graph,
                            IndexSpace indexSpace, VariableSpace variableSpace,
@@ -47,8 +55,8 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                            List<String> features) {
         super(indexSpace, variableSpace);
         this.graph = graph;
-        this.indexSpace = indexSpace;
-        this.variableSpace = variableSpace;
+        this.session = new Session(graph);
+        this.featureExtractors = featureExtractors;
     }
 
     public double predict(LearningInstance ins) {
@@ -56,20 +64,45 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     }
 
     public LearningInstance featurize(JsonNode entity, boolean update) {
-        return null;
+        Map<String, List<Feature>> feaMap = FeaturizerUtilities.getFeatureMap(entity, update,
+                featureExtractors, indexSpace);
+        TensorFlowInstance instance = new TensorFlowInstance();
+        return instance;
     }
 
     public void publishModel() {}
 
-    public void destroy() {
-        graph.close();
-    }
-
     public List<StochasticOracle> getStochasticOracle(List<LearningInstance> instances) {
-        throw new BadRequestException("getStochasticOracle is not supported.");
+        return null;
     }
 
     public ObjectiveFunction getObjectiveFunction() {
-        throw new BadRequestException("getObjectiveFunction is not supported.");
+        return new IdentityFunction();
+    }
+
+    public void destroyModel() {
+        if (graph != null) {
+            graph.close();
+        }
+        if (session != null) {
+            session.close();
+        }
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject();
+        byte[] graphDef = graph.toGraphDef();
+        stream.write(graphDef.length);
+        stream.write(graph.toGraphDef());
+    }
+
+    private void readObject(ObjectInputStream stream) throws ClassNotFoundException, IOException {
+        stream.defaultReadObject();
+        int len = stream.readInt();
+        byte[] graphDef = new byte[len];
+        stream.readFully(graphDef);
+        graph = new Graph();
+        graph.importGraphDef(graphDef);
+        session = new Session(graph);
     }
 }

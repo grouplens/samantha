@@ -20,40 +20,8 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.tensorflow;
+package org.grouplens.samantha.modeler.space;
 
-import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.modeler.featurizer.AbstractLearningInstance;
-
-public class TensorFlowInstance extends AbstractLearningInstance {
-    private static final long serialVersionUID = 1L;
-
-    double weight;
-    double label;
-
-    public TensorFlowInstance(double label, double weight, String group) {
-        super(group);
-        this.label = label;
-        this.weight = weight;
-    }
-
-    public LearningInstance newInstanceWithLabel(double label) {
-        return new TensorFlowInstance(label, this.weight, this.group);
-    }
-
-    public double getLabel() {
-        return this.label;
-    }
-
-    public double getWeight() {
-        return this.weight;
-    }
-
-    public void setLabel(double label) {
-        this.label = label;
-    }
-
-    public void setWeight(double weight) {
-        this.weight = weight;
-    }
+public interface UncollectableModel {
+    void destroyModel();
 }
