@@ -25,7 +25,10 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-csv" % "2.7.0",
   "biz.paluch.redis" % "lettuce" % "4.2.2.Final",
   "org.quartz-scheduler" % "quartz" % "2.2.1",
-  "org.quartz-scheduler" % "quartz-jobs" % "2.2.1"
+  "org.quartz-scheduler" % "quartz-jobs" % "2.2.1",
+  "org.jooq" % "jooq" % "3.9.1",
+  "mysql" % "mysql-connector-java" % "5.1.18",
+  "commons-dbutils" % "commons-dbutils" % "1.6"
 )
 
 //For xgboost extension; Optional; uncomment if cloned submodule
