@@ -38,11 +38,14 @@ public class TensorFlowMethod extends AbstractOptimizationMethod implements Onli
     }
 
     public double update(LearningModel model, LearningData learningData) {
-        List<LearningInstance> instances;
+        ObjectiveFunction objFunc = model.getObjectiveFunction();
         double objVal = 0.0;
         int cnt = 0;
+        learningData.startNewIteration();
+        List<LearningInstance> instances;
         while ((instances = learningData.getLearningInstance()).size() > 0) {
             List<StochasticOracle> oracles = model.getStochasticOracle(instances);
+            objFunc.wrapOracle(oracles);
             for (StochasticOracle oracle : oracles) {
                 objVal += oracle.getObjectiveValue();
             }

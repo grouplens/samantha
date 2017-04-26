@@ -171,7 +171,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(tensorFlow, requestContext,
                         reqBody.get("validationDaoConfig"), entityDaoConfigs, expandersConfig,
-                        injector, false, "", "", "", "", groupKeys);
+                        injector, true, "", "", "", "", groupKeys);
             }
             OptimizationMethod method = (OptimizationMethod) PredictorUtilities
                     .getLearningMethod(methodConfig, injector, requestContext);

@@ -32,15 +32,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SeparatedStringExtractor implements FeatureExtractor {
+public class SeparatedIdentityExtractor implements FeatureExtractor {
     private static final long serialVersionUID = 1L;
-    private static Logger logger = LoggerFactory.getLogger(SeparatedStringExtractor.class);
+    private static Logger logger = LoggerFactory.getLogger(SeparatedIdentityExtractor.class);
     private final String indexName;
     private final String attrName;
     private final String feaName;
     private final String separator;
 
-    public SeparatedStringExtractor(String indexName,
+    public SeparatedIdentityExtractor(String indexName,
                                     String attrName,
                                     String feaName,
                                     String separator) {
@@ -57,14 +57,10 @@ public class SeparatedStringExtractor implements FeatureExtractor {
             List<Feature> features = new ArrayList<>();
             String attr = entity.get(attrName).asText();
             String[] fields = attr.split(separator);
-            double val = 1.0;
-            if (fields.length > 0) {
-                val = 1.0 / Math.sqrt(fields.length);
-            }
             for (String field : fields) {
-                String key = FeatureExtractorUtilities.composeKey(attrName, field);
+                double value = Double.parseDouble(field);
                 FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                        indexSpace, indexName, key, val);
+                        indexSpace, indexName, attrName, value);
             }
             feaMap.put(feaName, features);
         } else {

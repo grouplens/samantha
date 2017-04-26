@@ -30,12 +30,12 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.featurizer.*;
 import org.grouplens.samantha.modeler.solver.AbstractLearningModel;
+import org.grouplens.samantha.modeler.solver.IdentityFunction;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
 import org.grouplens.samantha.modeler.solver.StochasticOracle;
 import org.grouplens.samantha.modeler.space.IndexSpace;
 import org.grouplens.samantha.modeler.space.UncollectableModel;
 import org.grouplens.samantha.modeler.space.VariableSpace;
-import org.grouplens.samantha.server.exception.BadRequestException;
 import org.tensorflow.Graph;
 import org.tensorflow.Session;
 import org.tensorflow.Tensor;
@@ -161,9 +161,13 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             int numCol = entry.getValue();
             long[] shape = {batch, numCol};
             if (doubleBufferMap.containsKey(name)) {
-                tensorMap.put(name, Tensor.create(shape, doubleBufferMap.get(name)));
+                DoubleBuffer buffer = doubleBufferMap.get(name);
+                buffer.rewind();
+                tensorMap.put(name, Tensor.create(shape, buffer));
             } else if (intBufferMap.containsKey(name)) {
-                tensorMap.put(name, Tensor.create(shape, intBufferMap.get(name)));
+                IntBuffer buffer = intBufferMap.get(name);
+                buffer.rewind();
+                tensorMap.put(name, Tensor.create(shape, buffer));
             }
         }
         return tensorMap;
@@ -177,15 +181,14 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         }
         runner.addTarget(updateOperationName).fetch(lossOperationName);
         List<Tensor> results = runner.run();
-        StochasticOracle oracle = new StochasticOracle();
-        oracle.setObjVal(results.get(0).doubleValue());
+        StochasticOracle oracle = new StochasticOracle(results.get(0).doubleValue(), 0.0, 1.0);
         List<StochasticOracle> oracles = new ArrayList<>(1);
         oracles.add(oracle);
         return oracles;
     }
 
     public ObjectiveFunction getObjectiveFunction() {
-        throw new BadRequestException("getObjectiveFunction is not supported.");
+        return new IdentityFunction();
     }
 
     public void destroyModel() {

@@ -28,7 +28,7 @@
   -->
   <logger name="play" level="INFO" />
   <logger name="application" level="INFO" />
-  <logger name="org.grouplens.samantha" level="ERROR" />
+  <logger name="org.grouplens.samantha" level="INFO" />
 
   <root level="INFO">
     <appender-ref ref="STDOUT" />
