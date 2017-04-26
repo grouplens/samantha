@@ -22,11 +22,9 @@
 
 package org.grouplens.samantha.modeler.tensorflow;
 
-import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.solver.*;
-import org.grouplens.samantha.server.exception.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,35 +38,17 @@ public class TensorFlowMethod extends AbstractOptimizationMethod implements Onli
     }
 
     public double update(LearningModel model, LearningData learningData) {
-        ObjectiveFunction objFunc = model.getObjectiveFunction();
         List<LearningInstance> instances;
         double objVal = 0.0;
         int cnt = 0;
         while ((instances = learningData.getLearningInstance()).size() > 0) {
             List<StochasticOracle> oracles = model.getStochasticOracle(instances);
-            objFunc.wrapOracle(oracles);
-            for (StochasticOracle orc : oracles) {
-                objVal += orc.getObjectiveValue();
-                if (Double.isNaN(objVal)) {
-                    logger.error("Objective value becomes NaN at {}th instance.", cnt);
-                    throw new BadRequestException("Got NaN error.");
-                }
-                for (int i = 0; i < orc.getScalarNames().size(); i++) {
-                    String name = orc.getScalarNames().get(i);
-                    int idx = orc.getScalarIndexes().getInt(i);
-                    double grad = orc.getScalarGrads().getDouble(i);
-                    model.setScalarVarByNameIndex(name, idx, grad);
-                }
-                for (int i = 0; i < orc.getVectorNames().size(); i++) {
-                    String name = orc.getVectorNames().get(i);
-                    int idx = orc.getVectorIndexes().getInt(i);
-                    RealVector grad = orc.getVectorGrads().get(i);
-                    model.setVectorVarByNameIndex(name, idx, grad);
-                }
-                cnt++;
-                if (cnt % 100000 == 0) {
-                    logger.info("Updated the model using {} instances.", cnt);
-                }
+            for (StochasticOracle oracle : oracles) {
+                objVal += oracle.getObjectiveValue();
+            }
+            cnt += instances.size();
+            if (cnt % 100000 == 0) {
+                logger.info("Updated the model using {} instances.", cnt);
             }
         }
         return objVal;

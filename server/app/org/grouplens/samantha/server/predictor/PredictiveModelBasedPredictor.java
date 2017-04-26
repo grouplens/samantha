@@ -24,7 +24,6 @@ package org.grouplens.samantha.server.predictor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.typesafe.config.ConfigRenderOptions;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.modeler.featurizer.Featurizer;
@@ -32,7 +31,6 @@ import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.common.PredictiveModel;
 import play.Configuration;
 import play.inject.Injector;
-import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +38,6 @@ import java.util.List;
 public class PredictiveModelBasedPredictor extends AbstractPredictor {
     private final PredictiveModel predictiveModel;
     private final Featurizer featurizer;
-    private final Configuration config;
     private final List<EntityExpander> entityExpanders;
 
     public PredictiveModelBasedPredictor(Configuration config,
@@ -53,7 +50,6 @@ public class PredictiveModelBasedPredictor extends AbstractPredictor {
         super(config, daoConfigs, daoConfigKey, injector);
         this.predictiveModel = predictiveModel;
         this.featurizer = featurizer;
-        this.config = config;
         this.entityExpanders = entityExpanders;
     }
 

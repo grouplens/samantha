@@ -25,20 +25,56 @@ package org.grouplens.samantha.modeler.tensorflow;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.featurizer.AbstractLearningInstance;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class TensorFlowInstance extends AbstractLearningInstance {
     private static final long serialVersionUID = 1L;
 
-    double weight;
-    double label;
+    protected double weight;
+    protected double label;
 
-    public TensorFlowInstance(double label, double weight, String group) {
+    protected final Map<String, double[]> name2doubles;
+    protected final Map<String, int[]> name2ints;
+
+    public TensorFlowInstance(String group) {
         super(group);
+        name2doubles = new HashMap<>();
+        name2ints = new HashMap<>();
+        weight = 1.0;
+        label = 0.0;
+    }
+
+    protected TensorFlowInstance(String group, double label, double weight,
+                                 Map<String, double[]> name2doubles,
+                                 Map<String, int[]> name2ints) {
+        super(group);
+        this.name2doubles = name2doubles;
+        this.name2ints= name2ints;
         this.label = label;
         this.weight = weight;
     }
 
+    public void putDoubles(String name, double[] values) {
+        name2doubles.put(name, values);
+    }
+
+    public void putInts(String name, int[] values) {
+        name2ints.put(name, values);
+    }
+
+    public Map<String, double[]> getName2Doubles() {
+        return name2doubles;
+    }
+
+    public Map<String, int[]> getName2Ints() {
+        return name2ints;
+    }
+
     public LearningInstance newInstanceWithLabel(double label) {
-        return new TensorFlowInstance(label, this.weight, this.group);
+        TensorFlowInstance instance = new TensorFlowInstance(group, label, weight, name2doubles, name2ints);
+        instance.label = label;
+        return instance;
     }
 
     public double getLabel() {

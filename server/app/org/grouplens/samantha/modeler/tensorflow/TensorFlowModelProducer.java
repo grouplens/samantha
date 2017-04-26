@@ -22,5 +22,66 @@
 
 package org.grouplens.samantha.modeler.tensorflow;
 
+import org.apache.commons.io.IOUtils;
+import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
+import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.space.SpaceProducer;
+import org.grouplens.samantha.modeler.space.VariableSpace;
+import org.grouplens.samantha.server.exception.BadRequestException;
+import org.tensorflow.Graph;
+
+import javax.inject.Inject;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 public class TensorFlowModelProducer {
+    @Inject
+    private SpaceProducer spaceProducer;
+
+    @Inject
+    private TensorFlowModelProducer() {}
+
+    public TensorFlowModelProducer(SpaceProducer spaceProducer) {
+        this.spaceProducer = spaceProducer;
+    }
+
+    private IndexSpace getIndexSpace(String spaceName, SpaceMode spaceMode) {
+        IndexSpace indexSpace = spaceProducer.getIndexSpace(spaceName, spaceMode);
+        indexSpace.requestKeyMap(TensorFlowModel.indexKey);
+        return indexSpace;
+    }
+
+    private VariableSpace getVariableSpace(String spaceName, SpaceMode spaceMode) {
+        VariableSpace variableSpace = spaceProducer.getVariableSpace(spaceName, spaceMode);
+        return variableSpace;
+    }
+
+    public TensorFlowModel createTensorFlowModelModelFromGraphDef(String modelName,
+                                                                  SpaceMode spaceMode,
+                                                                  String graphDefFilePath,
+                                                                  List<String> groupKeys,
+                                                                  List<FeatureExtractor> featureExtractors,
+                                                                  String lossOperationName,
+                                                                  String updateOperationName,
+                                                                  String outputOperationName,
+                                                                  String initOperationName,
+                                                                  Map<String, List<String>> name2doublefeas,
+                                                                  Map<String, List<String>> name2intfeas) {
+        IndexSpace indexSpace = getIndexSpace(modelName, spaceMode);
+        VariableSpace variableSpace = getVariableSpace(modelName, spaceMode);
+        byte[] graphDef;
+        try {
+            graphDef = IOUtils.toByteArray(new FileInputStream(graphDefFilePath));
+        } catch (IOException e) {
+            throw new BadRequestException(e);
+        }
+        Graph graph = new Graph();
+        graph.importGraphDef(graphDef);
+        return new TensorFlowModel(graph, indexSpace, variableSpace, featureExtractors, lossOperationName,
+                updateOperationName, outputOperationName, initOperationName,
+                groupKeys, name2doublefeas, name2intfeas);
+    }
 }
