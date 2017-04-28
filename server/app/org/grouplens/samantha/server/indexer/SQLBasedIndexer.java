@@ -20,8 +20,8 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.retriever;
+package org.grouplens.samantha.server.indexer;
 
 //TODO: implementation
-public class SQLBasedRetrieverConfig {
+public class SQLBasedIndexer {
 }

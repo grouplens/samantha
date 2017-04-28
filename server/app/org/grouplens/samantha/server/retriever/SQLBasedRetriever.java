@@ -24,6 +24,7 @@ package org.grouplens.samantha.server.retriever;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
@@ -31,15 +32,40 @@ import play.Configuration;
 
 import java.util.List;
 
+//TODO: implementation
 public class SQLBasedRetriever extends AbstractRetriever {
     private final List<EntityExpander> expanders;
+    private final int limit;
+    private final int offset;
+    private final String setScrollKey;
+    private final String selectSqlKey;
+    private final List<String> defMatchFields;
+    private final List<String> defLessFields;
+    private final List<String> defGreaterFields;
 
-    public SQLBasedRetriever(Configuration config, List<EntityExpander> expanders) {
+    public SQLBasedRetriever(Configuration config, List<EntityExpander> expanders, String setScrollKey,
+                             int limit, int offset, String selectSqlKey, List<String> defMatchFields,
+                             List<String> defGreaterFields, List<String> defLessFields) {
         super(config);
         this.expanders = expanders;
+        this.offset = offset;
+        this.limit = limit;
+        this.setScrollKey = setScrollKey;
+        this.selectSqlKey = selectSqlKey;
+        this.defMatchFields = defMatchFields;
+        this.defGreaterFields = defGreaterFields;
+        this.defLessFields = defLessFields;
     }
 
     private List<ObjectNode> retrieve(JsonNode reqBody) {
+        String sql;
+        if (reqBody.has(selectSqlKey)) {
+            sql = JsonHelpers.getRequiredString(reqBody, selectSqlKey);
+        } else if (defMatchFields.size() > 0 || defGreaterFields.size() > 0 || defLessFields.size() > 0) {
+
+        } else {
+        }
+        boolean setScroll = JsonHelpers.getOptionalBoolean(reqBody, setScrollKey, false);
         return null;
     }
 
