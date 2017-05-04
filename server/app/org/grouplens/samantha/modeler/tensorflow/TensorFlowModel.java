@@ -193,7 +193,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
 
     public void destroyModel() {
         if (graph != null) {
-            graph.close();
+            graph.close(); //TODO: this will hang there when being called, to fix, maybe first session.close?
         }
         if (session != null) {
             session.close();
@@ -215,6 +215,5 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         graph = new Graph();
         graph.importGraphDef(graphDef);
         session = new Session(graph);
-        session.runner().addTarget(initOperationName).run();
     }
 }

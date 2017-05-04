@@ -57,7 +57,7 @@ public class StringValueExtractor implements FeatureExtractor {
                     indexSpace, indexName, key, 1.0);
             feaMap.put(feaName, features);
         } else {
-            logger.warn("{} is not present in {}", attrName, entity);
+            //logger.warn("{} is not present in {}", attrName, entity);
         }
         return feaMap;
     }

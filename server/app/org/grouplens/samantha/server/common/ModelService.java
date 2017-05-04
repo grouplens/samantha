@@ -73,7 +73,7 @@ public class ModelService {
             if (engineNamedModels.get(engineName).containsKey(modelName)) {
                 Object model = engineNamedModels.get(engineName).get(modelName);
                 if (model instanceof UncollectableModel) {
-                    ((UncollectableModel) model).destroyModel();
+                    //((UncollectableModel) model).destroyModel(); //TODO: problematic
                 }
             }
             engineNamedModels.get(engineName).put(modelName, object);
@@ -89,7 +89,7 @@ public class ModelService {
                     .get(engineName).containsKey(modelName)) {
                 Object model = engineNamedModels.get(engineName).get(modelName);
                 if (model instanceof UncollectableModel) {
-                    ((UncollectableModel) model).destroyModel();
+                    //((UncollectableModel) model).destroyModel(); TODO: problematic when sharing resources in different model names
                 }
                 engineNamedModels.get(engineName).remove(modelName);
             }
