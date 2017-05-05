@@ -95,13 +95,26 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             runner.feed(entry.getKey(), entry.getValue());
         }
-        runner.fetch(outputOperationName);
+        runner.fetch(outputOperationName); //.fetch("embedding_1/embeddings");
+        //.fetch("embedding_1/Gather").fetch("embedding_1_2/Gather");
+
         List<Tensor> results = runner.run();
-        return results.get(0).doubleValue();
+        DoubleBuffer buffer = DoubleBuffer.allocate(1);
+        results.get(0).writeTo(buffer);
+
+        /*
+        DoubleBuffer uidBuffer = DoubleBuffer.allocate(30);
+        results.get(1).writeTo(uidBuffer);
+
+        DoubleBuffer pidBuffer = DoubleBuffer.allocate(30);
+        results.get(2).writeTo(pidBuffer);
+        */
+
+        return buffer.get(0);
     }
 
     public LearningInstance featurize(JsonNode entity, boolean update) {
-        Map<String, List<Feature>> feaMap = FeaturizerUtilities.getFeatureMap(entity, update,
+        Map<String, List<Feature>> feaMap = FeaturizerUtilities.getFeatureMap(entity, true,
                 featureExtractors, indexSpace);
         String group = null;
         if (groupKeys != null && groupKeys.size() > 0) {
@@ -111,8 +124,10 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (Map.Entry<String, List<String>> entry : name2doublefeas.entrySet()) {
             DoubleList doubles = new DoubleArrayList();
             for (String feaName : entry.getValue()) {
-                for (Feature feature : feaMap.get(feaName)) {
-                    doubles.add(feature.getValue());
+                if (feaMap.containsKey(feaName)) {
+                    for (Feature feature : feaMap.get(feaName)) {
+                        doubles.add(feature.getValue());
+                    }
                 }
             }
             double[] arr = doubles.toDoubleArray();
@@ -121,8 +136,10 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (Map.Entry<String, List<String>> entry : name2intfeas.entrySet()) {
             IntList ints = new IntArrayList();
             for (String feaName : entry.getValue()) {
-                for (Feature feature : feaMap.get(feaName)) {
-                    ints.add(feature.getIndex());
+                if (feaMap.containsKey(feaName)) {
+                    for (Feature feature : feaMap.get(feaName)) {
+                        ints.add(feature.getIndex());
+                    }
                 }
             }
             int[] arr = ints.toIntArray();
@@ -203,7 +220,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     private void writeObject(ObjectOutputStream stream) throws IOException {
         stream.defaultWriteObject();
         byte[] graphDef = graph.toGraphDef();
-        stream.write(graphDef.length);
+        stream.writeInt(graphDef.length);
         stream.write(graph.toGraphDef());
     }
 
