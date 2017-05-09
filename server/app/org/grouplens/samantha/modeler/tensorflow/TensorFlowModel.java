@@ -95,21 +95,10 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             runner.feed(entry.getKey(), entry.getValue());
         }
-        runner.fetch(outputOperationName); //.fetch("embedding_1/embeddings");
-        //.fetch("embedding_1/Gather").fetch("embedding_1_2/Gather");
-
+        runner.fetch(outputOperationName);
         List<Tensor> results = runner.run();
         DoubleBuffer buffer = DoubleBuffer.allocate(1);
         results.get(0).writeTo(buffer);
-
-        /*
-        DoubleBuffer uidBuffer = DoubleBuffer.allocate(30);
-        results.get(1).writeTo(uidBuffer);
-
-        DoubleBuffer pidBuffer = DoubleBuffer.allocate(30);
-        results.get(2).writeTo(pidBuffer);
-        */
-
         return buffer.get(0);
     }
 
@@ -197,7 +186,17 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             runner.feed(entry.getKey(), entry.getValue());
         }
         runner.addTarget(updateOperationName).fetch(lossOperationName);
+        //        .fetch("uids_embeds").fetch("embedding_1_1/Gather");
         List<Tensor> results = runner.run();
+
+        /*
+        DoubleBuffer uidBuffer = DoubleBuffer.allocate(30 * 24);
+        results.get(1).writeTo(uidBuffer);
+
+        DoubleBuffer pidBuffer = DoubleBuffer.allocate(30 * 24);
+        results.get(2).writeTo(pidBuffer);
+        */
+
         StochasticOracle oracle = new StochasticOracle(results.get(0).doubleValue(), 0.0, 1.0);
         List<StochasticOracle> oracles = new ArrayList<>(1);
         oracles.add(oracle);

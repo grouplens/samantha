@@ -47,6 +47,7 @@ public class TensorFlowMethod extends AbstractOptimizationMethod implements Onli
             List<StochasticOracle> oracles = model.getStochasticOracle(instances);
             objFunc.wrapOracle(oracles);
             for (StochasticOracle oracle : oracles) {
+                logger.info("loss value: {}", oracle.getObjectiveValue());
                 objVal += oracle.getObjectiveValue();
             }
             cnt += instances.size();

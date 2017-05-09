@@ -29,6 +29,7 @@
   <logger name="play" level="INFO" />
   <logger name="application" level="INFO" />
   <logger name="org.grouplens.samantha" level="INFO" />
+  <logger name="org.grouplens.samantha.modeler.featurizer" level="ERROR" />
 
   <root level="INFO">
     <appender-ref ref="STDOUT" />
