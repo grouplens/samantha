@@ -186,14 +186,14 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             runner.feed(entry.getKey(), entry.getValue());
         }
         runner.addTarget(updateOperationName).fetch(lossOperationName);
-        //        .fetch("uids_embeds").fetch("embedding_1_1/Gather");
+                //.fetch("similarity").fetch("competition");
         List<Tensor> results = runner.run();
 
         /*
-        DoubleBuffer uidBuffer = DoubleBuffer.allocate(30 * 24);
+        DoubleBuffer uidBuffer = DoubleBuffer.allocate(24 * 24);
         results.get(1).writeTo(uidBuffer);
 
-        DoubleBuffer pidBuffer = DoubleBuffer.allocate(30 * 24);
+        DoubleBuffer pidBuffer = DoubleBuffer.allocate(24);
         results.get(2).writeTo(pidBuffer);
         */
 
