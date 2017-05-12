@@ -97,7 +97,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         }
         runner.fetch(outputOperationName);
         List<Tensor> results = runner.run();
-        DoubleBuffer buffer = DoubleBuffer.allocate(1);
+        DoubleBuffer buffer = DoubleBuffer.allocate(100);
         results.get(0).writeTo(buffer);
         return buffer.get(0);
     }
@@ -231,5 +231,6 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         graph = new Graph();
         graph.importGraphDef(graphDef);
         session = new Session(graph);
+        session.runner().addTarget(initOperationName).run();
     }
 }
