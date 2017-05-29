@@ -48,4 +48,4 @@
 ### For the paper GB-CENT
 
 * The experiments were run with Samantha in: Qian Zhao, Yue Shi, Liangjie Hong. GB-CENT: Gradient Boosted Categorical Embedding and Numerical Trees. In Proceedings of the 26th International World Wide Web conference (WWW 2017), ACM, 2017.
-* Go to branch qian/gbcent, docs/README.md for details
+* Go to branch <a href="https://github.com/grouplens/samantha/blob/qian/gbcent/docs/README.md">qian/gbcent, docs/README.md</a> for details
