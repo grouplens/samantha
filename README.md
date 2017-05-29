@@ -44,3 +44,8 @@
 ### Note
 
 * Samantha is a project developed by <a href="http://www-users.cs.umn.edu/~qian/">Qian Zhao</a>, a Ph.D. candiate at GroupLens lab and originated from his research projects. Currently, Samantha is in the process of integrating with <a href="http://lenskit.org/" target="_blank">Lenskit</a>. Feel free to give a try if you're intersted though. 
+
+### For the paper GB-CENT
+
+* The experiments were run with Samantha in: Qian Zhao, Yue Shi, Liangjie Hong. GB-CENT: Gradient Boosted Categorical Embedding and Numerical Trees. In Proceedings of the 26th International World Wide Web conference (WWW 2017), ACM, 2017.
+* Go to branch qian/gbcent, docs/README.md for details
