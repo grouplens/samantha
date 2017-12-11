@@ -9,6 +9,4 @@ the Git commit history for Samantha.
 Copyright on contributions from University of Minnesota contributors is held by
 the Regents of the University of Minnesota, unless otherwise noted.
 
-- Qian Zhao (qian2015<zhaox331@umn.edu>@GitHub.com)
-
 These contributions do not represent the position of the University of Minnesota.
