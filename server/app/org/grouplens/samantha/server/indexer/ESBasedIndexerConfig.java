@@ -38,7 +38,6 @@ public class ESBasedIndexerConfig implements IndexerConfig {
     private final String elasticSearchIndex;
     private final String indexTypeKey;
     private final String indexType;
-    private final String uniqueFieldsKey;
     private final List<String> uniqueFields;
     private final String daoConfigKey;
     private final Configuration config;
@@ -48,13 +47,11 @@ public class ESBasedIndexerConfig implements IndexerConfig {
                                  String elasticSearchIndex,
                                  String indexTypeKey,
                                  String indexType,
-                                 String uniqueFieldsKey,
                                  List<String> uniqueFields,
                                  Injector injector, String daoConfigKey,
                                  Configuration config) {
         this.config = config;
         this.injector = injector;
-        this.uniqueFieldsKey = uniqueFieldsKey;
         this.daoConfigs = daoConfigs;
         this.indexTypeKey = indexTypeKey;
         this.elasticSearchIndex = elasticSearchIndex;
@@ -83,7 +80,6 @@ public class ESBasedIndexerConfig implements IndexerConfig {
         return new ESBasedIndexerConfig(indexerConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
                 elasticSearchIndex, indexerConfig.getString("indexTypeKey"),
                 indexerConfig.getString("indexType"),
-                indexerConfig.getString("uniqueFieldsKey"),
                 indexerConfig.getStringList("uniqueFields"),
                 injector, indexerConfig.getString("daoConfigKey"),
                 indexerConfig);
@@ -95,6 +91,6 @@ public class ESBasedIndexerConfig implements IndexerConfig {
         SamanthaConfigService configService = injector
                 .instanceOf(SamanthaConfigService.class);
         return new ESBasedIndexer(elasticSearchService, configService, daoConfigs, elasticSearchIndex,
-                indexTypeKey, indexType, uniqueFieldsKey, uniqueFields, injector, daoConfigKey, config);
+                indexTypeKey, indexType, uniqueFields, injector, daoConfigKey, config);
     }
 }

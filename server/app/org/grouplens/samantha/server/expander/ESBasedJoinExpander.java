@@ -22,6 +22,7 @@
 
 package org.grouplens.samantha.server.expander;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.elasticsearch.action.search.SearchResponse;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import play.Configuration;
 import play.inject.Injector;
+import play.libs.Json;
 
 import java.util.*;
 
@@ -63,45 +65,24 @@ public class ESBasedJoinExpander implements EntityExpander {
                 expanderConfig.getConfigList("expandFields"));
     }
 
+
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                   RequestContext requestContext) {
+        ArrayNode arr = Json.newArray();
+        for (ObjectNode one : initialResult) {
+            arr.add(one);
+        }
         for (Configuration config : configList) {
             String type = config.getString("type");
             List<String> keys = config.getStringList("keys");
-            Map<Map<String, String>, SearchHit> keyVals = new HashMap<>();
-            for (ObjectNode entity : initialResult) {
-                Map<String, String> keyVal = IOUtilities.getKeyValueFromEntity(entity, keys);
-                if (! keyVals.containsKey(keyVal) && keyVal.size() > 0) {
-                    keyVals.put(keyVal, null);
-                }
-            }
-            BoolQueryBuilder queryBuilder = boolQuery();
-            for (Map<String, String> keyVal : keyVals.keySet()) {
-                BoolQueryBuilder singleQuery = boolQuery();
-                for (Map.Entry<String, String> entry : keyVal.entrySet()) {
-                   singleQuery.must(QueryBuilders.termQuery(entry.getKey(), entry.getValue()));
-                }
-                queryBuilder.should(singleQuery);
-            }
             List<String> entityFields = config.getStringList("fields");
-            SearchResponse response = elasticSearchService.search(elasticSearchIndex,
-                    type, queryBuilder, entityFields);
-            SearchHits hits = response.getHits();
-            for (SearchHit hit : hits) {
-                Map<String, SearchHitField> hitFields = hit.getFields();
-                Map<String, String> keyVal = new HashMap<>(keys.size());
-                for (String key : keys) {
-                    if (hitFields.containsKey(key)) {
-                        //for some reason, this (String) is necessary for some environments/compilers
-                        keyVal.put(key, (String) hitFields.get(key).getValue());
-                    }
-                }
-                keyVals.put(keyVal, hit);
-            }
+            Map<Map<String, String>, SearchHit> keyVals = elasticSearchService
+                    .searchFieldsByKeys(elasticSearchIndex, type, keys,
+                            entityFields, arr);
             for (ObjectNode entity : initialResult) {
                 Map<String, String> keyVal = IOUtilities.getKeyValueFromEntity(entity,
                         keys);
-                if (keyVals.containsKey(keyVal) && keyVal.size() > 0) {
+                if (keyVals.containsKey(keyVal) && keyVal.size() > 0 && keyVals.get(keyVal) != null) {
                     ExpanderUtilities.parseEntityFromSearchHit(entityFields,
                             null, keyVals.get(keyVal), entity);
                 } else {

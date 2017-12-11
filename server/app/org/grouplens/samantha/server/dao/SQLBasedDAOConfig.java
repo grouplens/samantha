@@ -24,38 +24,36 @@ package org.grouplens.samantha.server.dao;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
-import org.grouplens.samantha.modeler.dao.EntityDAO;
-import org.grouplens.samantha.server.retriever.ESQueryBasedRetriever;
 import org.grouplens.samantha.server.retriever.Retriever;
+import org.grouplens.samantha.server.retriever.SQLBasedRetriever;
 import play.Configuration;
 import play.inject.Injector;
 import play.libs.Json;
 
-public class ESBasedDAOConfig implements EntityDAOConfig {
+public class SQLBasedDAOConfig implements EntityDAOConfig {
     private final Injector injector;
     private final String retrieverName;
     private final String retrieverNameKey;
-    private final String setScrollKey;
+    private final String setCursorKey;
 
-    private ESBasedDAOConfig(Injector injector,
-                             String retrieverName, String setScrollKey, String retrieverNameKey) {
+    private SQLBasedDAOConfig(Injector injector,
+                              String retrieverName, String setCursorKey, String retrieverNameKey) {
         this.injector = injector;
         this.retrieverName = retrieverName;
-        this.setScrollKey = setScrollKey;
+        this.setCursorKey = setCursorKey;
         this.retrieverNameKey = retrieverNameKey;
     }
 
     static public EntityDAOConfig getEntityDAOConfig(Configuration daoConfig,
-                                              Injector injector) {
-        return new ESBasedDAOConfig(injector,
-                daoConfig.getString("retrieverName"),
-                daoConfig.getString("setScrollKey"),
-                daoConfig.getString("retrieverNameKey"));
+                                                     Injector injector) {
+        return new SQLBasedDAOConfig(injector, daoConfig.getString("retrieverName"),
+                daoConfig.getString("setCursorKey"), daoConfig.getString("retrieverNameKey"));
     }
 
     public EntityDAO getEntityDAO(RequestContext requestContext, JsonNode daoConfig) {
@@ -64,11 +62,11 @@ public class ESBasedDAOConfig implements EntityDAOConfig {
         ObjectNode req = Json.newObject();
         IOUtilities.parseEntityFromJsonNode(daoConfig, req);
         String retrieverName = JsonHelpers.getOptionalString(daoConfig, retrieverNameKey, this.retrieverName);
-        req.put(setScrollKey, true);
+        req.put(setCursorKey, true);
         RequestContext pseudoReq = new RequestContext(req, requestContext.getEngineName());
         Retriever retriever = configService.getRetriever(retrieverName, pseudoReq);
-        if (!(retriever instanceof ESQueryBasedRetriever)) {
-            throw new ConfigurationException(retrieverName + " must be of type " + ESQueryBasedRetriever.class);
+        if (!(retriever instanceof SQLBasedRetriever)) {
+            throw new ConfigurationException(retrieverName + " must be of type " + SQLBasedRetriever.class);
         }
         return new RetrieverBasedDAO(retrieverName, configService, pseudoReq);
     }

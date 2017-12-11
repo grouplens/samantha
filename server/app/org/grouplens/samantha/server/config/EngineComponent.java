@@ -63,7 +63,6 @@ public enum EngineComponent implements ComponentGetter {
                                  RequestContext requestContext) {
             Indexer indexer = configService.getIndexer(componentName, requestContext);
             indexer.index(requestContext);
-            indexer.notifyDataSubscribers(requestContext);
         }
     },
     EVALUATOR("evaluators") {

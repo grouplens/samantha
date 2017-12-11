@@ -23,18 +23,17 @@
 package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.server.common.DataOperation;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.common.RedisService;
+import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
-import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
 
 import java.util.List;
 
-//TODO: support remove according to keyFields or/and hashFields
 public class RedisBasedIndexer extends AbstractIndexer {
     private final RedisService service;
     private final IndexStructure structure;
@@ -108,10 +107,14 @@ public class RedisBasedIndexer extends AbstractIndexer {
     public void index(JsonNode data, RequestContext requestContext) {
         JsonNode reqBody = requestContext.getRequestBody();
         String prefix = JsonHelpers.getOptionalString(reqBody, indexPrefixKey, indexPrefix);
-        structure.bulkIndex(prefix, data, this, service, requestContext.getRequestBody());
-    }
-
-    public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
-        throw new BadRequestException("Reading data from this indexer is not supported.");
+        String operation = JsonHelpers.getOptionalString(reqBody, ConfigKey.DATA_OPERATION.get(),
+                DataOperation.INSERT.get());
+        if (operation.equals(DataOperation.INSERT.get()) ||
+                operation.equals(DataOperation.UPSERT.get())) {
+            structure.bulkIndex(prefix, data, this, service, reqBody);
+        } else if (operation.equals(DataOperation.DELETE.get())) {
+            List<String> keyFields = JsonHelpers.getOptionalStringList(reqBody, keyFieldsKey, this.keyFields);
+            service.bulkDelWithData(prefix, keyFields, data);
+        }
     }
 }

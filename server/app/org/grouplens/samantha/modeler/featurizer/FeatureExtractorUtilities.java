@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.grouplens.samantha.modeler.space.IndexSpace;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.slf4j.Logger;
@@ -59,14 +60,17 @@ public class FeatureExtractorUtilities {
 
     static public Map<String, Integer> getTermFreq(Analyzer analyzer, String text, String termField) {
         TokenStream ts = analyzer.tokenStream(termField, text);
+        CharTermAttribute cattr = ts.addAttribute(CharTermAttribute.class);
         Map<String, Integer> termFreq = new HashMap<>();
         try {
             ts.reset();
             while (ts.incrementToken()) {
-                String term = ts.reflectAsString(false);
-                int cnt = termFreq.getOrDefault(term, 0);
+                String term = cattr.toString();
+                int cnt = termFreq.getOrDefault(
+                        FeatureExtractorUtilities.composeKey(termField, term), 0);
                 termFreq.put(term, cnt + 1);
             }
+            ts.end();
             ts.close();
         } catch (IOException e) {
             logger.error("{}", e.getMessage());

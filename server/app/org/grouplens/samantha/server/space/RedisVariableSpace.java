@@ -31,6 +31,7 @@ import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.space.SpaceMode;
 import org.grouplens.samantha.modeler.space.VariableSpace;
 import org.grouplens.samantha.server.common.RedisService;
+import org.grouplens.samantha.server.common.Utilities;
 import org.grouplens.samantha.server.io.IOUtilities;
 import play.libs.Json;
 
@@ -57,7 +58,7 @@ public class RedisVariableSpace extends RedisSpace implements VariableSpace {
         this.spaceMode = spaceMode;
         this.spaceName = spaceName;
         this.spaceType = SpaceType.VARIABLE;
-        this.spaceIdentifier = RedisService.composeKey(spaceName + "_" + spaceType.get(), spaceVersion);
+        this.spaceIdentifier = Utilities.composeKey(spaceName + "_" + spaceType.get(), spaceVersion);
     }
 
     public void requestScalarVar(String name, int size, double initial, boolean randomize) {
