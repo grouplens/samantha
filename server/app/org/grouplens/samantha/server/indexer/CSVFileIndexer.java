@@ -25,8 +25,11 @@ package org.grouplens.samantha.server.indexer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.server.common.DataOperation;
 import org.grouplens.samantha.server.common.JsonHelpers;
+import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -75,20 +78,24 @@ public class CSVFileIndexer extends AbstractIndexer {
     }
 
     public void index(JsonNode documents, RequestContext requestContext) {
-        JsonNode data;
-        if (!documents.isArray()) {
-            ArrayNode arr = Json.newArray();
-            arr.add(documents);
-            data = arr;
-        } else {
-            data = documents;
-        }
-        for (JsonNode document : data) {
-            int tstamp = 0;
-            if (document.has(timestampField)) {
-                tstamp = document.get(timestampField).asInt();
+        JsonNode reqBody = requestContext.getRequestBody();
+        String operation = JsonHelpers.getOptionalString(reqBody, ConfigKey.DATA_OPERATION.get(),
+                DataOperation.INSERT.get());
+        if (operation.equals(DataOperation.INSERT.get()) || operation.equals(DataOperation.UPSERT.get())) {
+            JsonNode data;
+            if (!documents.isArray()) {
+                ArrayNode arr = Json.newArray();
+                arr.add(documents);
+                data = arr;
+            } else {
+                data = documents;
             }
-            dataService.write(indexType, document, dataFields, tstamp);
+            for (JsonNode document : data) {
+                int tstamp = document.get(timestampField).asInt();
+                dataService.write(indexType, document, dataFields, tstamp);
+            }
+        } else {
+            throw new BadRequestException("Data operation " + operation + " is not supported");
         }
     }
 

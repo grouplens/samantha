@@ -34,8 +34,9 @@ import com.lambdaworks.redis.api.async.RedisAsyncCommands;
 import com.lambdaworks.redis.api.sync.RedisCommands;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.exception.BadRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.Configuration;
-import play.Logger;
 import play.inject.ApplicationLifecycle;
 import play.libs.F;
 import play.libs.Json;
@@ -51,6 +52,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Singleton
 public class RedisLettuceService implements RedisService {
+    private static Logger logger = LoggerFactory.getLogger(RedisLettuceService.class);
     private final String cfgHost;
     private final Integer cfgPort;
     private final Integer cfgDb;
@@ -78,12 +80,12 @@ public class RedisLettuceService implements RedisService {
     }
 
     private void startUp() {
-        Logger.info("Starting RedisLettuceService");
+        logger.info("Starting RedisLettuceService");
         {
-            Logger.debug("Redis settings:");
-            Logger.debug("* host={}", cfgHost);
-            Logger.debug("* port={}", cfgPort);
-            Logger.debug("* db={}", cfgDb);
+            logger.debug("Redis settings:");
+            logger.debug("* host={}", cfgHost);
+            logger.debug("* port={}", cfgPort);
+            logger.debug("* db={}", cfgDb);
         }
 
         RedisURI redisURI = new RedisURI();
@@ -97,7 +99,7 @@ public class RedisLettuceService implements RedisService {
         asyncCommands = asyncConnection.async();
         asyncConnection.setAutoFlushCommands(false);
 
-        Logger.info("Connected to a redis client");
+        logger.info("Connected to a redis client");
     }
 
     private void shutDown() {
@@ -117,7 +119,7 @@ public class RedisLettuceService implements RedisService {
 
     public void watch(String prefix, String key) {
         writeLock.lock();
-        syncCommands.watch(RedisService.composeKey(prefix, key));
+        syncCommands.watch(Utilities.composeKey(prefix, key));
     }
 
     public void multi(boolean lock) {
@@ -138,20 +140,20 @@ public class RedisLettuceService implements RedisService {
     public Long incre(String prefix, String key) {
         readLock.lock();
         try {
-            return syncCommands.incr(RedisService.composeKey(prefix, key));
+            return syncCommands.incr(Utilities.composeKey(prefix, key));
         } finally {
             readLock.unlock();
         }
     }
 
     public Long increWithoutLock(String prefix, String key) {
-        return syncCommands.incr(RedisService.composeKey(prefix, key));
+        return syncCommands.incr(Utilities.composeKey(prefix, key));
     }
 
     public String get(String prefix, String key) {
         readLock.lock();
         try {
-            return (String) syncCommands.get(RedisService.composeKey(prefix, key));
+            return (String) syncCommands.get(Utilities.composeKey(prefix, key));
         } finally {
             readLock.unlock();
         }
@@ -161,7 +163,7 @@ public class RedisLettuceService implements RedisService {
         String val = null;
         readLock.lock();
         try {
-            val = (String) syncCommands.get(RedisService.composeKey(prefix, key));
+            val = (String) syncCommands.get(Utilities.composeKey(prefix, key));
         } finally {
             readLock.unlock();
         }
@@ -175,20 +177,20 @@ public class RedisLettuceService implements RedisService {
     public String set(String prefix, String key, String value) {
         readLock.lock();
         try {
-            return syncCommands.set(RedisService.composeKey(prefix, key), value);
+            return syncCommands.set(Utilities.composeKey(prefix, key), value);
         } finally {
             readLock.unlock();
         }
     }
 
     public String setWithoutLock(String prefix, String key, String value) {
-        return syncCommands.set(RedisService.composeKey(prefix, key), value);
+        return syncCommands.set(Utilities.composeKey(prefix, key), value);
     }
 
     public void setValue(String prefix, String key, JsonNode value) {
         readLock.lock();
         try {
-            syncCommands.set(RedisService.composeKey(prefix, key), value.toString());
+            syncCommands.set(Utilities.composeKey(prefix, key), value.toString());
         } finally {
             readLock.unlock();
         }
@@ -197,7 +199,7 @@ public class RedisLettuceService implements RedisService {
     public void del(String prefix, String key) {
         readLock.lock();
         try {
-            syncCommands.del(RedisService.composeKey(prefix, key));
+            syncCommands.del(Utilities.composeKey(prefix, key));
         } finally {
             readLock.unlock();
         }
@@ -215,7 +217,7 @@ public class RedisLettuceService implements RedisService {
     public List<String> keysWithPrefixPattern(String prefix, String key) {
         String pattern = prefix;
         if (key != null) {
-            pattern = RedisService.composeKey(prefix, key);
+            pattern = Utilities.composeKey(prefix, key);
         }
         readLock.lock();
         try {
@@ -280,7 +282,10 @@ public class RedisLettuceService implements RedisService {
     public List<JsonNode> bulkUniqueGetFromHashSet(String prefix, List<String> keyAttrs, List<ObjectNode> data) {
         Set<String> uniqKeys = new HashSet<>();
         for (JsonNode entity : data) {
-            uniqKeys.add(RedisService.composeKey(prefix, RedisService.composeKey(entity, keyAttrs)));
+            boolean complete = Utilities.checkKeyAttributesComplete(entity, keyAttrs);
+            if (complete) {
+                uniqKeys.add(Utilities.composeKey(prefix, Utilities.composeKey(entity, keyAttrs)));
+            }
         }
         return bulkGetFromHashSetWithKeys(uniqKeys);
     }
@@ -289,7 +294,7 @@ public class RedisLettuceService implements RedisService {
         data = getArrayNode(data);
         List<String> keys = new ArrayList<>(data.size());
         for (JsonNode entity : data) {
-            String key = RedisService.composeKey(prefix, RedisService.composeKey(entity, keyAttrs));
+            String key = Utilities.composeKey(prefix, Utilities.composeKey(entity, keyAttrs));
             keys.add(key);
         }
         return bulkGetFromHashSetWithKeys(keys);
@@ -299,7 +304,7 @@ public class RedisLettuceService implements RedisService {
         double score = data.get(scoreAttr).asDouble();
         readLock.lock();
         try {
-            syncCommands.zadd(RedisService.composeKey(prefix, key), score, data.toString());
+            syncCommands.zadd(Utilities.composeKey(prefix, key), score, data.toString());
         } finally {
             readLock.unlock();
         }
@@ -308,7 +313,7 @@ public class RedisLettuceService implements RedisService {
     public void indexIntoHashSet(String prefix, String key, String hash, JsonNode data) {
         readLock.lock();
         try {
-            syncCommands.hset(RedisService.composeKey(prefix, key), hash, data.toString());
+            syncCommands.hset(Utilities.composeKey(prefix, key), hash, data.toString());
         } finally {
             readLock.unlock();
         }
@@ -317,15 +322,45 @@ public class RedisLettuceService implements RedisService {
     public void bulkIndexIntoHashSet(String prefix, List<String> keyAttrs, List<String> hashAttrs, JsonNode data) {
         data = getArrayNode(data);
         for (JsonNode entity : data) {
-            indexIntoHashSet(prefix, RedisService.composeKey(entity, keyAttrs),
-                    RedisService.composeKey(entity, hashAttrs), entity);
+            indexIntoHashSet(prefix, Utilities.composeKey(entity, keyAttrs),
+                    Utilities.composeKey(entity, hashAttrs), entity);
         }
     }
 
     public void bulkIndexIntoSortedSet(String prefix, List<String> keyAttrs, String scoreAttr, JsonNode data) {
         data = getArrayNode(data);
         for (JsonNode entity : data) {
-            indexIntoSortedSet(prefix, RedisService.composeKey(entity, keyAttrs), scoreAttr, entity);
+            indexIntoSortedSet(prefix, Utilities.composeKey(entity, keyAttrs), scoreAttr, entity);
         }
+    }
+
+    public void bulkDelWithKeys(Collection<String> keys) {
+        readLock.lock();
+        try {
+            List<RedisFuture<String>> futures = new ArrayList<>();
+            for (String key : keys) {
+                RedisFuture<String> future = asyncCommands.del(key);
+                futures.add(future);
+            }
+            asyncConnection.flushCommands();
+            LettuceFutures.awaitAll(1, TimeUnit.MINUTES, futures.toArray(new RedisFuture[futures.size()]));
+            for (RedisFuture<String> future : futures) {
+                try {
+                    future.get(5, TimeUnit.SECONDS);
+                } catch (ExecutionException | TimeoutException | InterruptedException e) {
+                    throw new BadRequestException(e);
+                }
+            }
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    public void bulkDelWithData(String prefix, List<String> keyAttrs, JsonNode data) {
+        Set<String> uniqKeys = new HashSet<>();
+        for (JsonNode entity : data) {
+            uniqKeys.add(Utilities.composeKey(prefix, Utilities.composeKey(entity, keyAttrs)));
+        }
+        bulkDelWithKeys(uniqKeys);
     }
 }

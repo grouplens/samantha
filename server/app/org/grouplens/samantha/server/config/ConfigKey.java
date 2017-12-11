@@ -49,6 +49,9 @@ public enum ConfigKey {
     FEATURE_EXTRACTOR_CONFIG_CLASS("extractorConfigClass"),
     DAO_CONFIG_CLASS("daoConfigClass"),
     ENTITY_DAOS_CONFIG("entityDaosConfig"),
+    ENTITY_DAO_NAME_KEY("entityDaoName"),
+    REQUEST_ENTITY_DAO_NAME("RequestEntityDAO"),
+    REQUEST_ENTITY_DAO_ENTITIES_KEY("entities"),
     METRIC_CONFIG_CLASS("metricConfigClass"),
     REQUEST_CONTEXT("requestContext"),
     EVALUATOR_ENGINE_NAME("engine"),
@@ -69,7 +72,8 @@ public enum ConfigKey {
     MODEL_EVALUATING_PREFIX("evaluatingModel"),
     METHOD_CLASS("methodClass"),
     OBJECTIVE_CLASS("objectiveClass"),
-    DATA_SUBSCRIBERS("dataSubscribers")
+    DATA_SUBSCRIBERS("dataSubscribers"),
+    DATA_OPERATION("dataOperation"),
     ;
     private final String key;
 

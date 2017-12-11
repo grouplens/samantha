@@ -33,6 +33,5 @@ public interface Indexer {
     void index(JsonNode data, RequestContext requestContext);
     ObjectNode getIndexedDataDAOConfig(RequestContext requestContext);
     EntityDAO getEntityDAO(RequestContext requestContext);
-    void notifyDataSubscribers(RequestContext requestContext);
     Configuration getConfig();
 }

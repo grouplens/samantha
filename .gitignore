@@ -1,0 +1,16 @@
+docs/.ipynb_checkpoints
+
+server/logs
+server/project
+server/target
+server/lib
+server/data
+server/conf/local.application.conf
+
+server/.idea
+server/.idea_modules
+server/.classpath
+server/.project
+server/.settings
+
+/RUNNING_PID

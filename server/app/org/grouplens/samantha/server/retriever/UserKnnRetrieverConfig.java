@@ -47,14 +47,17 @@ public class UserKnnRetrieverConfig extends AbstractComponentConfig implements R
     final private List<String> userAttrs;
     final private int numNeighbors;
     final private int minSupport;
+    final private int numMatch;
     final private String svdfeaPredictorName;
     final private String svdfeaModelName;
     final private Injector injector;
 
     private UserKnnRetrieverConfig(String retrieverName, String knnModelName, String kdnModelName,
                                    String knnModelFile, String kdnModelFile, int minSupport,
-                                   String weightAttr, String scoreAttr, List<String> itemAttrs, List<String> userAttrs,
-                                   int numNeighbors, String svdfeaPredictorName, String svdfeaModelName, Injector injector,
+                                   String weightAttr, String scoreAttr, List<String> itemAttrs,
+                                   int numMatch, List<String> userAttrs,
+                                   int numNeighbors, String svdfeaPredictorName,
+                                   String svdfeaModelName, Injector injector,
                                    Configuration config) {
         super(config);
         this.retrieverName = retrieverName;
@@ -68,6 +71,7 @@ public class UserKnnRetrieverConfig extends AbstractComponentConfig implements R
         this.itemAttrs = itemAttrs;
         this.userAttrs = userAttrs;
         this.injector = injector;
+        this.numMatch = numMatch;
         this.svdfeaModelName = svdfeaModelName;
         this.svdfeaPredictorName = svdfeaPredictorName;
         this.numNeighbors = numNeighbors;
@@ -75,6 +79,10 @@ public class UserKnnRetrieverConfig extends AbstractComponentConfig implements R
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
                                                      Injector injector) {
+        Integer numMatch = retrieverConfig.getInt("numMatch");
+        if (numMatch == null) {
+            numMatch = 0;
+        }
         return new UserKnnRetrieverConfig(retrieverConfig.getString("userInterRetrieverName"),
                 retrieverConfig.getString("knnModelName"),
                 retrieverConfig.getString("kdnModelName"),
@@ -83,7 +91,7 @@ public class UserKnnRetrieverConfig extends AbstractComponentConfig implements R
                 retrieverConfig.getInt("minSupport"),
                 retrieverConfig.getString("weightAttr"),
                 retrieverConfig.getString("scoreAttr"),
-                retrieverConfig.getStringList("itemAttrs"),
+                retrieverConfig.getStringList("itemAttrs"), numMatch,
                 retrieverConfig.getStringList("userAttrs"),
                 retrieverConfig.getInt("numNeighbors"),
                 retrieverConfig.getString("svdfeaPredictorName"),
@@ -95,10 +103,10 @@ public class UserKnnRetrieverConfig extends AbstractComponentConfig implements R
     public Retriever getRetriever(RequestContext requestContext) {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         ModelManager knnModelManager = new FeatureKnnModelManager(knnModelName, knnModelFile, injector,
-                svdfeaPredictorName, svdfeaModelName, userAttrs, numNeighbors, false, minSupport);
+                svdfeaPredictorName, svdfeaModelName, userAttrs, numMatch, numNeighbors, false, minSupport);
         FeatureKnnModel knnModel = (FeatureKnnModel) knnModelManager.manage(requestContext);
         ModelManager kdnModelManager = new FeatureKnnModelManager(kdnModelName, kdnModelFile, injector,
-                svdfeaPredictorName, svdfeaModelName, userAttrs, numNeighbors, true, minSupport);
+                svdfeaPredictorName, svdfeaModelName, userAttrs, numMatch, numNeighbors, true, minSupport);
         FeatureKnnModel kdnModel = (FeatureKnnModel) kdnModelManager.manage(requestContext);
         Retriever retriever = configService.getRetriever(retrieverName, requestContext);
         List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);

@@ -23,6 +23,8 @@
 package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import play.Logger;
 import org.grouplens.samantha.server.exception.ConfigurationException;
@@ -82,9 +84,11 @@ public class IndexerUtilities {
 
     public static void writeOutJson(JsonNode entity, List<String> curFields, BufferedWriter writer,
                                     String separator) throws IOException {
-        List<JsonNode> fields = new ArrayList<>(curFields.size());
+        ObjectMapper mapper = new ObjectMapper();
+        List<String> fields = new ArrayList<>(curFields.size());
         for (String field : curFields) {
-            fields.add(entity.get(field));
+            String value = mapper.writeValueAsString(entity.get(field));
+            fields.add(StringEscapeUtils.unescapeCsv(value));
         }
         String line = StringUtils.join(fields, separator);
         writer.write(line);

@@ -44,10 +44,11 @@ public class FeatureKnnModelManager extends AbstractModelManager {
     private final int numNeighbors;
     private final boolean reverse;
     private final int minSupport;
+    private final int numMatch;
 
     public FeatureKnnModelManager(String modelName, String modelFile, Injector injector,
-                                  String svdfeaPredictorName,
-                                  String svdfeaModelName, List<String> itemAttrs,
+                                  String svdfeaPredictorName, String svdfeaModelName,
+                                  List<String> itemAttrs, int numMatch,
                                   int numNeighbors, boolean reverse, int minSupport) {
         super(injector, modelName, modelFile, new ArrayList<>());
         this.svdfeaModelName = svdfeaModelName;
@@ -56,6 +57,7 @@ public class FeatureKnnModelManager extends AbstractModelManager {
         this.numNeighbors = numNeighbors;
         this.reverse = reverse;
         this.minSupport = minSupport;
+        this.numMatch = numMatch;
     }
 
     public Object createModel(RequestContext requestContext, SpaceMode spaceMode) {
@@ -68,7 +70,7 @@ public class FeatureKnnModelManager extends AbstractModelManager {
         SpaceProducer spaceProducer = injector.instanceOf(SpaceProducer.class);
         IndexSpace indexSpace = spaceProducer.getIndexSpace(modelName, spaceMode);
         VariableSpace variableSpace = spaceProducer.getVariableSpace(modelName, spaceMode);
-        FeatureKnnModel knnModel = new FeatureKnnModel(modelName, itemAttrs,
+        FeatureKnnModel knnModel = new FeatureKnnModel(modelName, itemAttrs, numMatch,
                 numNeighbors, reverse, minSupport, svdFeature, indexSpace, variableSpace);
         return knnModel;
     }

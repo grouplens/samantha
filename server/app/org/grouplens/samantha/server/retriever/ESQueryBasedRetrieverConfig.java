@@ -37,13 +37,14 @@ import java.util.List;
 public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig implements RetrieverConfig {
     final private Injector injector;
     final private String queryKey;
-    final private List<String> defaultMatchFields;
+    final private List<String> matchFields;
     final private String elasticSearchIndex;
     final private String elasticSearchScoreName;
     final private String elasticSearchReqKey;
     final private String retrieveType;
     final private String setScrollKey;
     final private List<String> retrieveFields;
+    final private boolean defaultMatchAll;
 
     private ESQueryBasedRetrieverConfig(String elasticSearchIndex,
                                         String elasticSearchScoreName,
@@ -51,8 +52,9 @@ public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig impleme
                                         List<String> retrieveFields,
                                         String elasticSearchReqKey,
                                         String setScrollKey,
+                                        boolean defaultMatchAll,
                                         Injector injector, Configuration config,
-                                        String queryKey, List<String> defaultMatchFields) {
+                                        String queryKey, List<String> matchFields) {
         super(config);
         this.injector = injector;
         this.retrieveFields = retrieveFields;
@@ -62,7 +64,8 @@ public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig impleme
         this.elasticSearchScoreName = elasticSearchScoreName;
         this.setScrollKey = setScrollKey;
         this.queryKey = queryKey;
-        this.defaultMatchFields = defaultMatchFields;
+        this.defaultMatchAll = defaultMatchAll;
+        this.matchFields = matchFields;
     }
 
     static public RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
@@ -85,12 +88,13 @@ public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig impleme
                         mappingConfig.getConfig(typeName));
             }
         }
+        Boolean defaultMatchAll = retrieverConfig.getBoolean("defaultMatchAll", false);
         return new ESQueryBasedRetrieverConfig(retrieverConfig.getString("elasticSearchIndex"),
                 elasticSearchScoreName, retrieverConfig.getString("retrieveType"),
                 retrieveFields, retrieverConfig.getString("elasticSearchReqKey"),
-                retrieverConfig.getString("setScrollKey"),
+                retrieverConfig.getString("setScrollKey"), defaultMatchAll,
                 injector, retrieverConfig, retrieverConfig.getString("queryKey"),
-                retrieverConfig.getStringList("defaultMatchFields"));
+                retrieverConfig.getStringList("matchFields"));
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
@@ -98,7 +102,7 @@ public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig impleme
                 .instanceOf(ElasticSearchService.class);
         List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
         return new ESQueryBasedRetriever(elasticSearchService, expanders, elasticSearchScoreName,
-                elasticSearchReqKey, setScrollKey, elasticSearchIndex, retrieveType,
-                retrieveFields, config, defaultMatchFields, queryKey);
+                elasticSearchReqKey, defaultMatchAll, setScrollKey, elasticSearchIndex, retrieveType,
+                retrieveFields, config, matchFields, queryKey);
     }
 }
