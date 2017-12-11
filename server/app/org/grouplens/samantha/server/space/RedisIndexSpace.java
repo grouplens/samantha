@@ -25,9 +25,9 @@ package org.grouplens.samantha.server.space;
 import org.grouplens.samantha.modeler.space.IndexSpace;
 import org.grouplens.samantha.modeler.space.SpaceMode;
 import org.grouplens.samantha.server.common.RedisService;
+import org.grouplens.samantha.server.common.Utilities;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
 import java.util.List;
 
 public class RedisIndexSpace extends RedisSpace implements IndexSpace {
@@ -49,7 +49,7 @@ public class RedisIndexSpace extends RedisSpace implements IndexSpace {
         this.spaceMode = spaceMode;
         this.spaceName = spaceName;
         this.spaceType = SpaceType.INDEX;
-        this.spaceIdentifier = RedisService.composeKey(spaceName + "_" + spaceType.get(), spaceVersion);
+        this.spaceIdentifier = Utilities.composeKey(spaceName + "_" + spaceType.get(), spaceVersion);
     }
 
     public void requestKeyMap(String name) {
@@ -66,14 +66,14 @@ public class RedisIndexSpace extends RedisSpace implements IndexSpace {
     }
 
     public int setKey(String name, Object key) {
-        String watchKey = RedisService.composeKey(name, (String) key);
+        String watchKey = Utilities.composeKey(name, (String) key);
         String value = redisService.get(spaceIdentifier, watchKey);
         if (value != null) {
             return Integer.parseInt(value);
         }
         int index = Integer.parseInt(redisService.get(spaceIdentifier, name));
         index += 1;
-        String idxStr = RedisService.composeKey(name + "_IDX_", Integer.valueOf(index).toString());
+        String idxStr = Utilities.composeKey(name + "_IDX_", Integer.valueOf(index).toString());
         redisService.watch(spaceIdentifier, watchKey);
         redisService.multi(false);
         redisService.setWithoutLock(spaceIdentifier, watchKey, Integer.valueOf(index).toString());
@@ -87,7 +87,7 @@ public class RedisIndexSpace extends RedisSpace implements IndexSpace {
     }
 
     public boolean containsKey(String name, Object key) {
-        String value = redisService.get(spaceIdentifier, RedisService.composeKey(name, (String) key));
+        String value = redisService.get(spaceIdentifier, Utilities.composeKey(name, (String) key));
         if (value != null) {
             return true;
         } else {
@@ -96,11 +96,11 @@ public class RedisIndexSpace extends RedisSpace implements IndexSpace {
     }
 
     public int getIndexForKey(String name, Object key) {
-        return Integer.parseInt(redisService.get(spaceIdentifier, RedisService.composeKey(name, (String) key)));
+        return Integer.parseInt(redisService.get(spaceIdentifier, Utilities.composeKey(name, (String) key)));
     }
 
     public Object getKeyForIndex(String name, int index) {
-        String idxStr = RedisService.composeKey(RedisService.composeKey(name, "index"),
+        String idxStr = Utilities.composeKey(Utilities.composeKey(name, "index"),
                 Integer.valueOf(index).toString());
         return redisService.get(spaceIdentifier, idxStr);
     }

@@ -35,11 +35,11 @@ public class CatDAO implements EntityDAO {
     }
 
     public boolean hasNextEntity() {
-        if (curIdx >= entityDAOList.size()) {
-            return false;
-        }
         while (curIdx < entityDAOList.size() && !entityDAOList.get(curIdx).hasNextEntity()) {
             curIdx++;
+        }
+        if (curIdx >= entityDAOList.size()) {
+            return false;
         }
         return entityDAOList.get(curIdx).hasNextEntity();
     }

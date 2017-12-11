@@ -48,10 +48,12 @@ public class ItemKnnRetrieverConfig extends AbstractComponentConfig implements R
     final private String svdfeaPredictorName;
     final private String svdfeaModelName;
     final private Injector injector;
+    final private int numMatch;
 
     private ItemKnnRetrieverConfig(String retrieverName, String knnModelName, String kdnModelName,
                                    String knnModelFile, String kdnModelFile, int minSupport,
-                                   String weightAttr, String scoreAttr, List<String> itemAttrs, int numNeighbors,
+                                   String weightAttr, String scoreAttr, List<String> itemAttrs,
+                                   int numNeighbors, int numMatch,
                                    String svdfeaPredictorName, String svdfeaModelName, Injector injector,
                                    Configuration config) {
         super(config);
@@ -68,10 +70,15 @@ public class ItemKnnRetrieverConfig extends AbstractComponentConfig implements R
         this.svdfeaModelName = svdfeaModelName;
         this.svdfeaPredictorName = svdfeaPredictorName;
         this.numNeighbors = numNeighbors;
+        this.numMatch = numMatch;
     }
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
                                                      Injector injector) {
+        Integer numMatch = retrieverConfig.getInt("numMatch");
+        if (numMatch == null) {
+            numMatch = 0;
+        }
         return new ItemKnnRetrieverConfig(retrieverConfig.getString("userInterRetrieverName"),
                 retrieverConfig.getString("knnModelName"),
                 retrieverConfig.getString("kdnModelName"),
@@ -81,7 +88,7 @@ public class ItemKnnRetrieverConfig extends AbstractComponentConfig implements R
                 retrieverConfig.getString("weightAttr"),
                 retrieverConfig.getString("scoreAttr"),
                 retrieverConfig.getStringList("itemAttrs"),
-                retrieverConfig.getInt("numNeighbors"),
+                retrieverConfig.getInt("numNeighbors"), numMatch,
                 retrieverConfig.getString("svdfeaPredictorName"),
                 retrieverConfig.getString("svdfeaModelName"),
                 injector, retrieverConfig);
@@ -93,10 +100,10 @@ public class ItemKnnRetrieverConfig extends AbstractComponentConfig implements R
         Retriever retriever = configService.getRetriever(retrieverName, requestContext);
         List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
         ModelManager knnModelManager = new FeatureKnnModelManager(knnModelName, knnModelFile, injector,
-                svdfeaPredictorName, svdfeaModelName, itemAttrs, numNeighbors, false, minSupport);
+                svdfeaPredictorName, svdfeaModelName, itemAttrs, numMatch, numNeighbors, false, minSupport);
         FeatureKnnModel knnModel = (FeatureKnnModel) knnModelManager.manage(requestContext);
         ModelManager kdnModelManager = new FeatureKnnModelManager(kdnModelName, kdnModelFile, injector,
-                svdfeaPredictorName, svdfeaModelName, itemAttrs, numNeighbors, true, minSupport);
+                svdfeaPredictorName, svdfeaModelName, itemAttrs, numMatch, numNeighbors, true, minSupport);
         FeatureKnnModel kdnModel = (FeatureKnnModel) kdnModelManager.manage(requestContext);
         KnnModelFeatureTrigger trigger = new KnnModelFeatureTrigger(knnModel, kdnModel,
                 itemAttrs, weightAttr, scoreAttr);

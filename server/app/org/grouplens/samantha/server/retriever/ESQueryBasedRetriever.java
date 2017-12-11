@@ -33,27 +33,30 @@ import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.libs.Json;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ESQueryBasedRetriever extends AbstractRetriever {
-    private final ElasticSearchService elasticSearchService;
     private String scrollId = null;
+    private boolean scrollComplete = false;
+    private final ElasticSearchService elasticSearchService;
     private final List<EntityExpander> expanders;
     private final String elasticSearchReqKey;
     private final String setScrollKey;
     private final String elasticSearchIndex;
     private final String retrieveType;
     private final List<String> retrieveFields;
-    private final String[] defaultMatchFields;
+    private final String[] matchFields;
+    private final boolean defaultMatchAll;
     private final String queryKey;
     private final String elasticSearchScoreName;
 
     public ESQueryBasedRetriever(ElasticSearchService elasticSearchService,
                                  List<EntityExpander> expanders, String elasticSearchScoreName,
-                                 String elasticSearchReqKey,
+                                 String elasticSearchReqKey, boolean defaultMatchAll,
                                  String setScrollKey, String elasticSearchIndex, String retrieveType,
                                  List<String> retrieveFields, Configuration config,
-                                 List<String> defaultMatchFields, String queryKey) {
+                                 List<String> matchFields, String queryKey) {
         super(config);
         this.elasticSearchService = elasticSearchService;
         this.expanders = expanders;
@@ -63,26 +66,32 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
         this.setScrollKey = setScrollKey;
         this.retrieveFields = retrieveFields;
         this.retrieveType = retrieveType;
-        if (defaultMatchFields != null) {
-            this.defaultMatchFields = defaultMatchFields.toArray(new String[defaultMatchFields.size()]);
+        this.defaultMatchAll = defaultMatchAll;
+        if (matchFields != null) {
+            this.matchFields = matchFields.toArray(new String[matchFields.size()]);
         } else {
-            this.defaultMatchFields = new String[0];
+            this.matchFields = new String[0];
         }
         this.queryKey = queryKey;
     }
 
     public RetrievedResult retrieve(RequestContext requestContext) {
         final JsonNode requestBody = requestContext.getRequestBody();
+        boolean setScroll = JsonHelpers.getOptionalBoolean(requestBody, setScrollKey, false);
+        if (setScroll && scrollComplete) {
+            return new RetrievedResult(new ArrayList<>(), 0);
+        }
         JsonNode elasticSearchRequest;
         if (requestBody.has(elasticSearchReqKey)) {
             elasticSearchRequest = JsonHelpers.getRequiredJson(requestBody, elasticSearchReqKey);
-        } else if (defaultMatchFields.length > 0 && requestBody.has(queryKey)) {
+        } else if (matchFields.length > 0 && requestBody.has(queryKey)) {
             String query = JsonHelpers.getRequiredString(requestBody, queryKey);
-            elasticSearchRequest = Json.parse(QueryBuilders.multiMatchQuery(query, defaultMatchFields).toString());
-        } else {
+            elasticSearchRequest = Json.parse(QueryBuilders.multiMatchQuery(query, matchFields).toString());
+        } else if (defaultMatchAll || setScroll) {
             elasticSearchRequest = Json.parse(QueryBuilders.matchAllQuery().toString());
+        } else {
+            return new RetrievedResult(new ArrayList<>(), 0);
         }
-        boolean setScroll = JsonHelpers.getOptionalBoolean(requestBody, setScrollKey, false);
         Integer size = JsonHelpers.getOptionalInt(elasticSearchRequest, "size", null);
         Integer from = JsonHelpers.getOptionalInt(elasticSearchRequest, "from", null);
         SearchResponse searchResponse = elasticSearchService
@@ -92,18 +101,15 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
                         retrieveFields,
                         setScroll,
                         scrollId, size, from);
-        if (setScroll) {
-            scrollId = searchResponse.getScrollId();
-        }
         RetrievedResult initialResult = ESRetrieverUtilities.parse(elasticSearchScoreName, requestContext,
                 searchResponse, expanders, retrieveFields);
-        return initialResult;
-    }
-
-    public void resetScroll() {
-        if (scrollId != null) {
-            elasticSearchService.resetScroll(scrollId);
+        if (setScroll) {
+            scrollId = searchResponse.getScrollId();
+            if (initialResult.getEntityList().size() == 0) {
+                elasticSearchService.resetScroll(scrollId);
+                scrollComplete = true;
+            }
         }
-        scrollId = null;
+        return initialResult;
     }
 }

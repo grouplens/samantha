@@ -23,39 +23,51 @@
 package org.grouplens.samantha.server.dao;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
+import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
+import org.grouplens.samantha.server.exception.ConfigurationException;
+import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.retriever.Retriever;
 import org.grouplens.samantha.server.retriever.SQLBasedRetriever;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import play.Configuration;
 import play.inject.Injector;
+import play.libs.Json;
 
 public class SQLBasedDAOConfig implements EntityDAOConfig {
-    private static Logger logger = LoggerFactory.getLogger(RedisBasedDAOConfig.class);
     private final Injector injector;
     private final String retrieverName;
+    private final String retrieverNameKey;
+    private final String setCursorKey;
 
     private SQLBasedDAOConfig(Injector injector,
-                              String retrieverName) {
+                              String retrieverName, String setCursorKey, String retrieverNameKey) {
         this.injector = injector;
         this.retrieverName = retrieverName;
+        this.setCursorKey = setCursorKey;
+        this.retrieverNameKey = retrieverNameKey;
     }
 
     static public EntityDAOConfig getEntityDAOConfig(Configuration daoConfig,
                                                      Injector injector) {
-        return new SQLBasedDAOConfig(injector, daoConfig.getString("retriever"));
+        return new SQLBasedDAOConfig(injector, daoConfig.getString("retrieverName"),
+                daoConfig.getString("setCursorKey"), daoConfig.getString("retrieverNameKey"));
     }
 
     public EntityDAO getEntityDAO(RequestContext requestContext, JsonNode daoConfig) {
         SamanthaConfigService configService = injector
                 .instanceOf(SamanthaConfigService.class);
-        Retriever retriever = configService.getRetriever(retrieverName, requestContext);
+        ObjectNode req = Json.newObject();
+        IOUtilities.parseEntityFromJsonNode(daoConfig, req);
+        String retrieverName = JsonHelpers.getOptionalString(daoConfig, retrieverNameKey, this.retrieverName);
+        req.put(setCursorKey, true);
+        RequestContext pseudoReq = new RequestContext(req, requestContext.getEngineName());
+        Retriever retriever = configService.getRetriever(retrieverName, pseudoReq);
         if (!(retriever instanceof SQLBasedRetriever)) {
-            logger.warn("Retriever {} is not a {}", retrieverName, SQLBasedRetriever.class);
+            throw new ConfigurationException(retrieverName + " must be of type " + SQLBasedRetriever.class);
         }
-        return new RetrieverBasedDAO(configService.getRetriever(retrieverName, requestContext), requestContext);
+        return new RetrieverBasedDAO(retrieverName, configService, pseudoReq);
     }
 }

@@ -26,9 +26,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.search.*;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHitField;
+import org.elasticsearch.search.SearchHits;
 import org.grouplens.samantha.server.config.ConfigKey;
 import com.typesafe.config.ConfigRenderOptions;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -43,6 +50,7 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.grouplens.samantha.server.exception.ConfigurationException;
+import org.grouplens.samantha.server.io.IOUtilities;
 import play.Configuration;
 import play.Logger;
 import play.inject.ApplicationLifecycle;
@@ -53,8 +61,9 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+
+import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
 
 @Singleton
 public class ElasticSearchService {
@@ -145,6 +154,8 @@ public class ElasticSearchService {
         for (JsonNode request : query) {
             builder.add(client.prepareSearch(index)
                     .setTypes(type)
+                    .setFrom(defaultFrom)
+                    .setSize(defaultSize)
                     .setQuery(request.toString()));
         }
         return builder.execute().actionGet();
@@ -154,23 +165,82 @@ public class ElasticSearchService {
         return client.prepareSearch(index)
                 .setTypes(type)
                 .setQuery(query)
+                .setFrom(defaultFrom)
+                .setSize(defaultSize)
                 .execute().actionGet();
     }
 
     public SearchResponse search(String index, String type, QueryBuilder query, List<String> fields) {
         SearchRequestBuilder builder = client.prepareSearch(index)
                 .setTypes(type)
-                .setQuery(query);
+                .setQuery(query)
+                .setFrom(defaultFrom)
+                .setSize(defaultSize);
         for (String field : fields) {
             builder.addField(field);
         }
         return builder.execute().actionGet();
     }
 
+    public SearchHits searchHitsByKeys(String index, String type,
+                                       List<String> keys,
+                                       List<String> fields,
+                                       JsonNode data) {
+        Map<Map<String, String>, SearchHit> keyVals = new HashMap<>();
+        if (!data.isArray()) {
+            ArrayNode arr = Json.newArray();
+            arr.add(data);
+            data = arr;
+        }
+        List<String> dataKeys = new ArrayList<>();
+        for (String key : keys) {
+            dataKeys.add(key.replace(".raw", ""));
+        }
+        for (JsonNode entity : data) {
+            Map<String, String> keyVal = IOUtilities.getKeyValueFromEntity(entity, dataKeys);
+            if (! keyVals.containsKey(keyVal) && keyVal.size() == keys.size()) {
+                keyVals.put(keyVal, null);
+            }
+        }
+        BoolQueryBuilder queryBuilder = boolQuery();
+        for (Map<String, String> keyVal : keyVals.keySet()) {
+            BoolQueryBuilder singleQuery = boolQuery();
+            for (String key : keys) {
+                singleQuery.must(QueryBuilders.termQuery(key, keyVal.get(key.replace(".raw", ""))));
+            }
+            queryBuilder.should(singleQuery);
+        }
+        SearchResponse response = search(index, type, queryBuilder, fields);
+        SearchHits hits = response.getHits();
+        return hits;
+    }
+
+    public Map<Map<String, String>, SearchHit> searchFieldsByKeys(String index, String type,
+                                                                  List<String> keys,
+                                                                  List<String> fields,
+                                                                  JsonNode data) {
+        Map<Map<String, String>, SearchHit> keyVals = new HashMap<>();
+        SearchHits hits = searchHitsByKeys(index, type, keys, fields, data);
+        for (SearchHit hit : hits) {
+            Map<String, SearchHitField> hitFields = hit.getFields();
+            Map<String, String> keyVal = new HashMap<>(keys.size());
+            for (String key : keys) {
+                if (hitFields.containsKey(key)) {
+                    //for some reason, this (String) is necessary for some environments/compilers
+                    keyVal.put(key, (String) hitFields.get(key).getValue());
+                }
+            }
+            keyVals.put(keyVal, hit);
+        }
+        return keyVals;
+    }
+
     public SearchResponse search(String index, String type, JsonNode query) {
         return client.prepareSearch(index)
                 .setTypes(type)
                 .setQuery(query.toString())
+                .setFrom(defaultFrom)
+                .setSize(defaultSize)
                 .execute().actionGet();
     }
 
@@ -245,5 +315,17 @@ public class ElasticSearchService {
         return client.prepareIndex(index, type)
                 .setSource(document.toString())
                 .execute().actionGet();
+    }
+
+    public BulkResponse bulkDelete(String index, String type, List<String> ids) {
+        BulkRequestBuilder bulkRequest = client.prepareBulk();
+        for (String id : ids) {
+            bulkRequest.add(client.prepareDelete(index, type, id));
+        }
+        return bulkRequest.execute().actionGet();
+    }
+
+    public DeleteResponse delete(String index, String type, String id) {
+        return client.prepareDelete(index, type, id).execute().actionGet();
     }
 }

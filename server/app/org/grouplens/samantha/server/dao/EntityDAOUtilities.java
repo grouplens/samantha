@@ -40,8 +40,7 @@ public class EntityDAOUtilities {
 
     static public EntityDAO getEntityDAO(Configuration entityDaoConfigs, RequestContext requestContext,
                                          JsonNode reqDao, Injector injector) {
-        String entityDaoKey = entityDaoConfigs.getString("entityDaoKey");
-        String entityDaoConfigName = JsonHelpers.getRequiredString(reqDao, entityDaoKey);
+        String entityDaoConfigName = JsonHelpers.getRequiredString(reqDao, ConfigKey.ENTITY_DAO_NAME_KEY.get());
         Configuration entityDaoConfig = entityDaoConfigs.getConfig(entityDaoConfigName);
         String entityDaoConfigClass = entityDaoConfig.getString(ConfigKey.DAO_CONFIG_CLASS.get());
         try {

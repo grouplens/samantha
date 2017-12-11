@@ -32,9 +32,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import play.libs.Json;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 
 public class CSVFileDAO implements EntityDAO {
@@ -48,7 +48,8 @@ public class CSVFileDAO implements EntityDAO {
 
     private void start() {
         try {
-            this.reader = new BufferedReader(new FileReader(this.filePath));
+            this.reader = new BufferedReader(new InputStreamReader(
+                    new FileInputStream(filePath), StandardCharsets.UTF_8));
             this.it = this.mapper.readerFor(Map.class)
                     .with(this.schema)
                     .readValues(this.reader);
@@ -72,7 +73,12 @@ public class CSVFileDAO implements EntityDAO {
     }
 
     public ObjectNode getNextEntity() {
-        Map<String, Object> rowAsMap = it.next();
+        Map<String, Object> rowAsMap;
+        try {
+            rowAsMap = it.next();
+        } catch (Exception e) {
+            rowAsMap = new HashMap<>();
+        }
         ObjectNode entity = Json.newObject();
         IOUtilities.parseEntityFromMap(entity, rowAsMap);
         cnt++;

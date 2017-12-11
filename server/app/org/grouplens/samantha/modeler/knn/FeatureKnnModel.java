@@ -49,8 +49,9 @@ public class FeatureKnnModel extends IndexedVectorModel {
     final private String modelName;
     final private boolean reverse;
     final private int minSupport;
+    final private int numMatch;
 
-    public FeatureKnnModel(String modelName, List<String> feaAttrs,
+    public FeatureKnnModel(String modelName, List<String> feaAttrs, int numMatch,
                            int numNeighbors, boolean reverse,
                            int minSupport, SVDFeature svdFeature,
                            IndexSpace indexSpace, VariableSpace variableSpace) {
@@ -61,12 +62,29 @@ public class FeatureKnnModel extends IndexedVectorModel {
         this.modelName = modelName;
         this.reverse = reverse;
         this.minSupport = minSupport;
+        this.numMatch = numMatch;
     }
 
-    private List<double[]> getNeighbors(int curIndex, IntList svdIndices, SVDFeature svdFeature) {
+    private boolean matchPrefixFeatures(int first, int second, List<String> features) {
+        String firstFeature  = features.get(first);
+        String secondFeature  = features.get(second);
+        Map<String, String> firstAttrVals = FeatureExtractorUtilities.decomposeKey(firstFeature);
+        Map<String, String> secondAttrVals = FeatureExtractorUtilities.decomposeKey(secondFeature);
+        for (int i=0; i<numMatch; i++) {
+            String attr = feaAttrs.get(i);
+            if (!firstAttrVals.get(attr).equals(secondAttrVals.get(attr))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private List<double[]> getNeighbors(int curIndex, IntList svdIndices,
+                                        SVDFeature svdFeature,
+                                        List<String> features) {
         List<double[]> raw = new ArrayList<>(svdIndices.size());
         for (int target : svdIndices) {
-            if (target != curIndex) {
+            if (target != curIndex && (numMatch == 0 || matchPrefixFeatures(curIndex, target, features))) {
                 double[] pair = new double[2];
                 pair[0] = target;
                 pair[1] = svdFeature.getVectorVarByNameIndex(SVDFeatureKey.FACTORS.get(), target)
@@ -113,7 +131,7 @@ public class FeatureKnnModel extends IndexedVectorModel {
                 modelName, svdIndices.size());
         svdIndices.parallelStream().forEach(curIdx -> {
             int simIdx = simIndices.getInt(curIdx);
-            List<double[]> neighbors = getNeighbors(curIdx, svdIndices, svdFeature);
+            List<double[]> neighbors = getNeighbors(curIdx, svdIndices, svdFeature, features);
             RealVector sims = getIndexVector(simIdx);
             for (int j=0; j<neighbors.size(); j++) {
                 double[] neighbor = neighbors.get(j);

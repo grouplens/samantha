@@ -24,6 +24,7 @@ package org.grouplens.samantha.server.dao;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
+import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
 import org.grouplens.samantha.server.retriever.Retriever;
@@ -31,14 +32,18 @@ import org.grouplens.samantha.server.retriever.Retriever;
 import java.util.List;
 
 public class RetrieverBasedDAO implements EntityDAO {
-    private final Retriever retriever;
+    private final SamanthaConfigService configService;
+    private final String retrieverName;
+    private final RequestContext requestContext;
+    private Retriever retriever;
     private int idx = 0;
     private List<ObjectNode> entityList = null;
-    private final RequestContext requestContext;
 
-    public RetrieverBasedDAO(Retriever retriever,
+    public RetrieverBasedDAO(String retrieverName, SamanthaConfigService configService,
                              RequestContext requestContext) {
-        this.retriever = retriever;
+        this.retrieverName = retrieverName;
+        this.configService = configService;
+        this.retriever = configService.getRetriever(retrieverName, requestContext);
         this.requestContext = requestContext;
     }
 
@@ -71,6 +76,7 @@ public class RetrieverBasedDAO implements EntityDAO {
     }
 
     public void restart() {
+        retriever = configService.getRetriever(retrieverName, requestContext);
         idx = 0;
         entityList = null;
     }

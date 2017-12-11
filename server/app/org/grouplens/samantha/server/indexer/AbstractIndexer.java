@@ -23,6 +23,7 @@
 package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.typesafe.config.ConfigRenderOptions;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
@@ -48,7 +49,6 @@ abstract public class AbstractIndexer implements Indexer {
     protected final Configuration daoConfigs;
     protected final String daoConfigKey;
     protected final Injector injector;
-    //TODO: do the similar thing to expanders for all other components, i.e. moving into abstract
     protected final List<Configuration> expandersConfig;
     protected final List<Configuration> subscribers;
     private final int bufferSize = 100;
@@ -68,19 +68,23 @@ abstract public class AbstractIndexer implements Indexer {
         return this.config;
     }
 
-    public void notifyDataSubscribers(RequestContext requestContext) {
+    private void notifyDataSubscribers(JsonNode entities, RequestContext requestContext) {
         if (subscribers == null) {
             return;
         }
+        ObjectNode reqBody = Json.newObject();
+        IOUtilities.parseEntityFromJsonNode(requestContext.getRequestBody(), reqBody);
+        ObjectNode daoConfig = Json.newObject();
+        daoConfig.put(ConfigKey.ENTITY_DAO_NAME_KEY.get(), ConfigKey.REQUEST_ENTITY_DAO_NAME.get());
+        daoConfig.set(ConfigKey.REQUEST_ENTITY_DAO_ENTITIES_KEY.get(), entities);
+        reqBody.set(daoConfigKey, daoConfig);
+        RequestContext pseudoReq = new RequestContext(reqBody, requestContext.getEngineName());
         for (Configuration configuration : subscribers) {
             String name = configuration.getString(ConfigKey.ENGINE_COMPONENT_NAME.get());
             String type = configuration.getString(ConfigKey.ENGINE_COMPONENT_TYPE.get());
             JsonNode configReq = Json.parse(configuration.getConfig(ConfigKey.REQUEST_CONTEXT.get())
                     .underlying().root().render(ConfigRenderOptions.concise()));
-            ObjectNode reqBody = Json.newObject();
-            IOUtilities.parseEntityFromJsonNode(requestContext.getRequestBody(), reqBody);
             IOUtilities.parseEntityFromJsonNode(configReq, reqBody);
-            RequestContext pseudoReq = new RequestContext(reqBody, requestContext.getEngineName());
             EngineComponent.valueOf(type).getComponent(configService, name, pseudoReq);
         }
     }
@@ -90,6 +94,7 @@ abstract public class AbstractIndexer implements Indexer {
         EntityDAO entityDAO = EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 reqBody.get(daoConfigKey), injector);
         List<ObjectNode> bufferArr = new ArrayList<>();
+        ArrayNode toIndex = Json.newArray();
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
         while (entityDAO.hasNextEntity()) {
@@ -97,19 +102,28 @@ abstract public class AbstractIndexer implements Indexer {
             if (bufferArr.size() >= bufferSize) {
                 bufferArr = ExpanderUtilities.expand(bufferArr, entityExpanders, requestContext);
                 for (ObjectNode entity : bufferArr) {
-                    index(entity, requestContext);
+                    toIndex.add(entity);
                 }
+                index(toIndex, requestContext);
+                notifyDataSubscribers(toIndex, requestContext);
                 bufferArr.clear();
+                toIndex.removeAll();
             }
         }
         bufferArr = ExpanderUtilities.expand(bufferArr, entityExpanders, requestContext);
         for (ObjectNode entity : bufferArr) {
-            index(entity, requestContext);
+            toIndex.add(entity);
         }
+        index(toIndex, requestContext);
+        notifyDataSubscribers(toIndex, requestContext);
     }
 
     public EntityDAO getEntityDAO(RequestContext requestContext) {
         return EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 getIndexedDataDAOConfig(requestContext), injector);
+    }
+
+    public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
+        throw new BadRequestException("Reading data from this indexer is not supported.");
     }
 }

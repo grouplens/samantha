@@ -41,7 +41,7 @@ public class CatDAOConfig implements EntityDAOConfig {
     final private String subDaosConfigKey;
 
     private CatDAOConfig(Configuration daosConfig, Injector injector,
-                                  String subDaosConfigKey) {
+                         String subDaosConfigKey) {
         this.daosConfig = daosConfig;
         this.injector = injector;
         this.subDaosConfigKey = subDaosConfigKey;

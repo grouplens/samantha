@@ -31,6 +31,7 @@ import play.Logger;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
@@ -114,17 +115,20 @@ public class CSVFileService {
             } else {
                 BufferedWriter writer;
                 try {
-                    BufferedReader reader = new BufferedReader(new FileReader(file));
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(
+                            new FileInputStream(file), StandardCharsets.UTF_8));
                     List<String> curFields = Lists.newArrayList(reader.readLine().split(separator));
                     reader.close();
                     if (!curFields.equals(dataFields)) {
                         continue;
                     } else {
-                        writer = new BufferedWriter(new FileWriter(file, true));
+                        writer = new BufferedWriter(new OutputStreamWriter(
+                                new FileOutputStream(file, true), StandardCharsets.UTF_8));
                     }
                 } catch (FileNotFoundException e) {
                     new File(directory).mkdirs();
-                    writer = new BufferedWriter(new FileWriter(file, true));
+                    writer = new BufferedWriter(new OutputStreamWriter(
+                            new FileOutputStream(file, true), StandardCharsets.UTF_8));
                     IndexerUtilities.writeOutHeader(dataFields, writer, separator);
                 }
                 actFiles.put(file, writer);

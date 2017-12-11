@@ -25,6 +25,7 @@ package org.grouplens.samantha.server.expander;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.common.RedisService;
+import org.grouplens.samantha.server.common.Utilities;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.slf4j.Logger;
@@ -38,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 
 public class RedisBasedJoinExpander implements EntityExpander {
-    private static Logger logger = LoggerFactory.getLogger(PercentileExpander.class);
+    private static Logger logger = LoggerFactory.getLogger(RedisBasedJoinExpander.class);
     final private List<Configuration> configList;
     final private RedisService redisService;
 
@@ -63,7 +64,7 @@ public class RedisBasedJoinExpander implements EntityExpander {
             List<String> entityFields = config.getStringList("fields");
             Map<String, List<JsonNode>> key2val = new HashMap<>();
             for (JsonNode entity : retrieved) {
-                String key = RedisService.composeKey(entity, keys);
+                String key = Utilities.composeKey(entity, keys);
                 if (key2val.containsKey(key)) {
                     key2val.get(key).add(entity);
                 } else {
@@ -73,7 +74,10 @@ public class RedisBasedJoinExpander implements EntityExpander {
                 }
             }
             for (ObjectNode entity : initialResult) {
-                String key = RedisService.composeKey(entity, keys);
+                if (!Utilities.checkKeyAttributesComplete(entity, keys)) {
+                    continue;
+                }
+                String key = Utilities.composeKey(entity, keys);
                 if (key2val.containsKey(key)) {
                     for (JsonNode val : key2val.get(key)) {
                         IOUtilities.parseEntityFromJsonNode(entityFields, val, entity);

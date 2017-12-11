@@ -28,7 +28,9 @@ libraryDependencies ++= Seq(
   "org.quartz-scheduler" % "quartz-jobs" % "2.2.1",
   "org.jooq" % "jooq" % "3.9.1",
   "mysql" % "mysql-connector-java" % "5.1.18",
-  "commons-dbutils" % "commons-dbutils" % "1.6"
+  "commons-dbutils" % "commons-dbutils" % "1.6",
+  "org.bouncycastle" % "bcprov-jdk15" % "1.44",
+  "org.bouncycastle" % "bcmail-jdk15" % "1.44"
 )
 
 //For xgboost extension; Optional; uncomment if cloned submodule
