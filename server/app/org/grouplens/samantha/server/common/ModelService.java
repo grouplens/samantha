@@ -73,7 +73,7 @@ public class ModelService {
             if (engineNamedModels.get(engineName).containsKey(modelName)) {
                 Object model = engineNamedModels.get(engineName).get(modelName);
                 if (model instanceof UncollectableModel) {
-                    //((UncollectableModel) model).destroyModel(); //TODO: problematic
+                    //((UncollectableModel) model).destroyModel(); //TODO: problematic, see below
                 }
             }
             engineNamedModels.get(engineName).put(modelName, object);

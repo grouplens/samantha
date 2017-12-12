@@ -96,9 +96,14 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             runner.feed(entry.getKey(), entry.getValue());
         }
         runner.fetch(outputOperationName);
-        List<Tensor> results = runner.run();
+        List<Tensor<?>> results = runner.run();
+        // free the resource of Tensor, see the Java api of TensorFlow
+        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
+            entry.getValue().close();
+        }
         DoubleBuffer buffer = DoubleBuffer.allocate(100);
         results.get(0).writeTo(buffer);
+        results.get(0).close();
         return buffer.get(0);
     }
 
@@ -186,18 +191,13 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             runner.feed(entry.getKey(), entry.getValue());
         }
         runner.addTarget(updateOperationName).fetch(lossOperationName);
-                //.fetch("similarity").fetch("competition");
-        List<Tensor> results = runner.run();
-
-        /*
-        DoubleBuffer uidBuffer = DoubleBuffer.allocate(24 * 24);
-        results.get(1).writeTo(uidBuffer);
-
-        DoubleBuffer pidBuffer = DoubleBuffer.allocate(24);
-        results.get(2).writeTo(pidBuffer);
-        */
-
+        List<Tensor<?>> results = runner.run();
+        // free the resource of Tensor, see the Java api of TensorFlow
+        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
+            entry.getValue().close();
+        }
         StochasticOracle oracle = new StochasticOracle(results.get(0).doubleValue(), 0.0, 1.0);
+        results.get(0).close();
         List<StochasticOracle> oracles = new ArrayList<>(1);
         oracles.add(oracle);
         return oracles;
@@ -208,11 +208,11 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     }
 
     public void destroyModel() {
-        if (graph != null) {
-            graph.close(); //TODO: this will hang there when being called, to fix, maybe first session.close?
-        }
         if (session != null) {
             session.close();
+        }
+        if (graph != null) {
+            graph.close();
         }
     }
 
