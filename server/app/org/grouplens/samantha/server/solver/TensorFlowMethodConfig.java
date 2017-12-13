@@ -46,7 +46,11 @@ public class TensorFlowMethodConfig implements LearningMethodConfig {
         if (methodConfig.asMap().containsKey("maxIter")) {
             maxIter = methodConfig.getInt("maxIter");
         }
-        TensorFlowMethod method = new TensorFlowMethod(tol, maxIter, minIter);
+        Integer num = Runtime.getRuntime().availableProcessors();
+        if (methodConfig.getInt("numProcessors") != null) {
+            num = methodConfig.getInt("numProcessors");
+        }
+        TensorFlowMethod method = new TensorFlowMethod(tol, maxIter, minIter, num);
         return method;
     }
 }
