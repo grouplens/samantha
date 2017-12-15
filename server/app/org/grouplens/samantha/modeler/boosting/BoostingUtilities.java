@@ -38,7 +38,7 @@ public class BoostingUtilities {
         for (LearningInstance ins : instances) {
             GBCentLearningInstance centIns = (GBCentLearningInstance) ins;
             SVDFeatureInstance svdfeaIns = centIns.getSvdfeaIns();
-            double pred = svdfeaModel.predict(svdfeaIns);
+            double pred = svdfeaModel.predict(svdfeaIns)[0];
             preds.add(pred);
             StochasticOracle oracle = new StochasticOracle(pred, svdfeaIns.getLabel(),
                     svdfeaIns.getWeight());

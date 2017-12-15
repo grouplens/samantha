@@ -67,8 +67,8 @@ public class PredictiveModelBasedPredictor extends AbstractPredictor {
         for (int i=0; i<entityList.size(); i++) {
             ObjectNode entity = entityList.get(i);
             LearningInstance ins = instanceList.get(i);
-            double score = predictiveModel.predict(ins);
-            results.add(new Prediction(entity, ins, score));
+            double[] scores = predictiveModel.predict(ins);
+            results.add(new Prediction(entity, ins, scores[0], scores));
         }
         return results;
     }

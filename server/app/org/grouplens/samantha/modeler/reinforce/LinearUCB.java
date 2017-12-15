@@ -108,7 +108,7 @@ public class LinearUCB extends AbstractLearningModel implements Featurizer {
         return x;
     }
 
-    public double predict(LearningInstance instance) {
+    public double[] predict(LearningInstance instance) {
         RealMatrix A = variableSpace.getMatrixVarByName(LinearUCBKey.A.get());
         RealVector B = variableSpace.getScalarVarByName(LinearUCBKey.B.get());
         RealMatrix invA = new LUDecomposition(A).getSolver().getInverse();
@@ -121,7 +121,9 @@ public class LinearUCB extends AbstractLearningModel implements Featurizer {
             logger.error("Prediction is NaN, model parameter A probably goes wrong.");
             pred = 0.0;
         }
-        return pred;
+        double[] preds = new double[1];
+        preds[0] = pred;
+        return preds;
     }
 
     private void ensureScalarVarSpace() {

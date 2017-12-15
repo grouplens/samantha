@@ -92,7 +92,7 @@ public class FieldBlendingRanker extends AbstractRanker {
                     score += (entry.getDoubleValue() * val);
                 }
             }
-            scoredList.add(new Prediction(entity, null, score));
+            scoredList.add(new Prediction(entity, null, score, null));
         }
         Ordering<Prediction> ordering = RankerUtilities.scoredResultScoreOrdering();
         List<Prediction> candidates = ordering

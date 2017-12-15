@@ -97,7 +97,8 @@ public class RegressionTree extends AbstractDecisionTree {
         return node;
     }
 
-    public double predict(LearningInstance instance) {
+    public double[] predict(LearningInstance instance) {
+        double[] preds = new double[1];
         if (variableSpace.getVectorVarSizeByName(treeName) > 0) {
             StandardLearningInstance ins = (StandardLearningInstance) instance;
             int node = 0;
@@ -105,7 +106,8 @@ public class RegressionTree extends AbstractDecisionTree {
                 RealVector nodeVec = variableSpace.getVectorVarByNameIndex(treeName, node);
                 int splitIdx = (int)nodeVec.getEntry(0);
                 if (splitIdx == -1) {
-                    return nodeVec.getEntry(4);
+                    preds[0] = nodeVec.getEntry(4);
+                    return preds;
                 }
                 double splitVal = nodeVec.getEntry(1);
                 double feaVal = 0.0;
@@ -118,11 +120,13 @@ public class RegressionTree extends AbstractDecisionTree {
                     node = (int)nodeVec.getEntry(3);
                 }
                 if (node == -1) {
-                    return nodeVec.getEntry(4);
+                    preds[0] = nodeVec.getEntry(4);
+                    return preds;
                 }
             } while (node != -1);
         }
-        return 0.0;
+        preds[0] = 0.0;
+        return preds;
     }
 
     private int predictLeaf(LearningInstance instance) {

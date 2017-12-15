@@ -65,12 +65,14 @@ public class GBDT extends StandardFeaturizer implements BoostedPredictiveModel {
         this.method = method;
     }
 
-    public double predict(LearningInstance ins) {
+    public double[] predict(LearningInstance ins) {
         double pred = 0.0;
         for (RegressionTree tree : trees) {
-            pred += tree.predict(ins);
+            pred += tree.predict(ins)[0];
         }
-        return pred;
+        double[] preds = new double[1];
+        preds[0] = pred;
+        return preds;
     }
 
     public ObjectiveFunction getObjectiveFunction() {

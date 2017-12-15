@@ -31,11 +31,9 @@ public interface PredictiveModel extends SpaceModel {
     /**
      * Make prediction on a {@link LearningInstance} or data point.
      *
-     * Currently, it is returning a double value. It will be extended to be more natural for classification in the future,
-     * although class label can be represented as a double, too.
-     *
      * @param ins the learning instance to make prediction on.
-     * @return the predicted value based on the model.
+     * @return the predicted values based on the model, which supports both regression with single output or
+     *     classification with multiple outputs.
      */
-    double predict(LearningInstance ins);
+    double[] predict(LearningInstance ins);
 }

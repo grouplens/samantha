@@ -57,7 +57,7 @@ public class FieldBlendingPredictor extends AbstractPredictor {
                     score += (entry.getDoubleValue() * entity.get(key).asDouble());
                 }
             }
-            scoredList.add(new Prediction(entity, null, score));
+            scoredList.add(new Prediction(entity, null, score, null));
         }
         return scoredList;
     }

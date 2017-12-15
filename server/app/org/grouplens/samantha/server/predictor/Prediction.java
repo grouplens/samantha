@@ -23,15 +23,10 @@
 package org.grouplens.samantha.server.predictor;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import play.Logger;
 import play.libs.Json;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.Base64;
 
 public class Prediction {
     final private LearningInstance instance;
@@ -40,15 +35,13 @@ public class Prediction {
 
     final private double score;
 
-    //TODO: support classification
-    //final private String class;
-    //final private DoubleList probabilities;
-    //may need a builder for construction
+    final private double[] scores;
 
-    public Prediction(ObjectNode entity, LearningInstance ins, double score) {
+    public Prediction(ObjectNode entity, LearningInstance ins, double score, double[] scores) {
         this.entity = entity;
         this.instance = ins;
         this.score = score;
+        this.scores = scores;
     }
 
     public LearningInstance getInstance() {
@@ -63,26 +56,21 @@ public class Prediction {
         return score;
     }
 
+    public double[] getScores() {
+        return scores;
+    }
+
     public JsonNode toJson() {
         ObjectNode obj = Json.newObject();
         obj.put("score", score);
         obj.set("attributes", entity);
-        if (instance != null) {
-            obj.put("instance", getInstanceString());
+        if (scores != null) {
+            ArrayNode scoreArr = Json.newArray();
+            for (int i = 0; i < scores.length; i++) {
+                scoreArr.add(scores[i]);
+            }
+            obj.set("scores", scoreArr);
         }
         return obj;
-    }
-
-    public String getInstanceString() {
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-            oos.writeUnshared(instance);
-            baos.close();
-            return Base64.getEncoder().encodeToString(baos.toByteArray());
-        } catch (IOException e) {
-            Logger.error(e.getMessage());
-        }
-        return null;
     }
 }

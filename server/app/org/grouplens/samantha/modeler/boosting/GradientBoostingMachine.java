@@ -80,7 +80,7 @@ public class GradientBoostingMachine {
                     modelOutput += (preds.getDouble(subidx));
                     idx++;
                 }
-                modelOutput += boostModel.predict(ins);
+                modelOutput += boostModel.predict(ins)[0];
                 oracles.add(new StochasticOracle(modelOutput, ins.getLabel(), ins.getWeight()));
             }
             oracles = objectiveFunction.wrapOracle(oracles);
@@ -102,7 +102,7 @@ public class GradientBoostingMachine {
         List<LearningInstance> instances;
         while ((instances = data.getLearningInstance()).size() > 0) {
             for (LearningInstance ins : instances) {
-                double modelOutput = boostModel.predict(ins);
+                double modelOutput = boostModel.predict(ins)[0];
                 if (preds == null) {
                     results.add(modelOutput);
                 } else {

@@ -50,21 +50,23 @@ public class RegressionTreeGBCent extends AbstractGBCent implements PredictiveMo
         this.criterion = criterion;
     }
 
-    public double predict(LearningInstance ins) {
+    public double[] predict(LearningInstance ins) {
         GBCentLearningInstance centIns = (GBCentLearningInstance) ins;
         SVDFeatureInstance svdfeaIns = centIns.getSvdfeaIns();
         StandardLearningInstance treeIns = centIns.getTreeIns();
-        double pred = svdfeaModel.predict(svdfeaIns);
+        double pred = svdfeaModel.predict(svdfeaIns)[0];
         for (Feature feature : svdfeaIns.getBiasFeatures()) {
             int idx = feature.getIndex();
             if (idx < trees.size()) {
                 PredictiveModel tree = trees.get(idx);
                 if (tree != null) {
-                    pred += tree.predict(treeIns);
+                    pred += tree.predict(treeIns)[0];
                 }
             }
         }
-        return pred;
+        double[] preds = new double[1];
+        preds[0] = pred;
+        return preds;
     }
 
     //TODO: for updating trees, this needs to create a temporary tree instead of setting the variableSpace directly

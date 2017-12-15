@@ -78,7 +78,7 @@ public class PercentileBlendingRanker extends AbstractRanker {
                 String key = entry.getKey();
                 score += (entry.getDoubleValue() * entity.get(key + "Percentile").asDouble());
             }
-            scoredList.add(new Prediction(entity, null, score));
+            scoredList.add(new Prediction(entity, null, score, null));
         }
         Ordering<Prediction> ordering = RankerUtilities.scoredResultScoreOrdering();
         List<Prediction> candidates = ordering

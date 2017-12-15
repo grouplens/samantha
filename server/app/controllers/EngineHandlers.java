@@ -241,7 +241,6 @@ public class EngineHandlers extends Controller {
         String indexerName = JsonHelpers.getRequiredString(body, "indexer");
         Indexer indexer = samanthaConfigService.getIndexer(indexerName, requestContext);
         indexer.index(requestContext);
-        indexer.notifyDataSubscribers(requestContext);
         ObjectNode resp = JsonHelpers.successJson();
         return ok(resp);
     }

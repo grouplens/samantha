@@ -86,8 +86,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         session.runner().addTarget(initOperationName).run();
     }
 
-    //TODO: this is assuming regression, i.e. the output is always a single scalar value; change to/or add another double[], and also accepts List<LearningInstance>
-    public double predict(LearningInstance ins) {
+    public double[] predict(LearningInstance ins) {
         List<LearningInstance> instances = new ArrayList<>(1);
         instances.add(ins);
         Session.Runner runner = session.runner();
@@ -104,7 +103,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         DoubleBuffer buffer = DoubleBuffer.allocate(100);
         results.get(0).writeTo(buffer);
         results.get(0).close();
-        return buffer.get(0);
+        return buffer.array();
     }
 
     public LearningInstance featurize(JsonNode entity, boolean update) {
