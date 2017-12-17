@@ -24,6 +24,8 @@ package org.grouplens.samantha.modeler.common;
 
 import org.grouplens.samantha.modeler.space.SpaceModel;
 
+import java.util.List;
+
 /**
  * The interface representing a predictive model, which takes in an {@link LearningInstance} and produces a value.
  */
@@ -36,4 +38,23 @@ public interface PredictiveModel extends SpaceModel {
      *     classification with multiple outputs.
      */
     double[] predict(LearningInstance ins);
+
+    /**
+     * Make prediction on a list of {@link LearningInstance}s or data points.
+     *
+     * @param instances the learning instances to make prediction on.
+     * @return the predicted values based on the model, which supports both regression with single output or
+     *     classification with multiple outputs. The first dimension represents the number of instances while
+     *     the second dimension represents the number of outputs for each instance. The introduction of this
+     *     method is to support matrix-like computation to enable more parallel such as TensorFlow. The default
+     *     implementation is treating the problem as regression.
+     */
+    default double[][] predict(List<LearningInstance> instances) {
+        double[][] preds = new double[instances.size()][1];
+        for (int i=0; i<instances.size(); i++) {
+            double[] insPreds = predict(instances.get(i));
+            preds[i][0] = insPreds[0];
+        }
+        return preds;
+    }
 }
