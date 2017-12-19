@@ -36,6 +36,7 @@ import org.grouplens.samantha.modeler.solver.StochasticOracle;
 import org.grouplens.samantha.modeler.space.IndexSpace;
 import org.grouplens.samantha.modeler.space.UncollectableModel;
 import org.grouplens.samantha.modeler.space.VariableSpace;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.tensorflow.Graph;
 import org.tensorflow.Session;
 import org.tensorflow.Tensor;
@@ -89,6 +90,15 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     public double[] predict(LearningInstance ins) {
         List<LearningInstance> instances = new ArrayList<>(1);
         instances.add(ins);
+        double[][] preds = predict(instances);
+        double[] insPreds = new double[preds[0].length];
+        for (int i=0; i<preds[0].length; i++) {
+            insPreds[i] = preds[0][i];
+        }
+        return insPreds;
+    }
+
+    public double[][] predict(List<LearningInstance> instances) {
         Session.Runner runner = session.runner();
         Map<String, Tensor> feedDict = getFeedDict(instances);
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
@@ -96,14 +106,28 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         }
         runner.fetch(outputOperationName);
         List<Tensor<?>> results = runner.run();
-        // free the resource of Tensor, see the Java api of TensorFlow
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             entry.getValue().close();
         }
-        DoubleBuffer buffer = DoubleBuffer.allocate(100);
-        results.get(0).writeTo(buffer);
-        results.get(0).close();
-        return buffer.array();
+        Tensor<?> tensorOutput = results.get(0);
+        if (tensorOutput.numDimensions() != 2) {
+            throw new BadRequestException("The TensorFlow model should always predict with a two dimensional tensor.");
+        }
+        long[] outputShape = tensorOutput.shape();
+        double[][] preds = new double[(int)outputShape[0]][(int)outputShape[1]];
+        DoubleBuffer buffer = DoubleBuffer.allocate(tensorOutput.numElements());
+        tensorOutput.writeTo(buffer);
+        int k = 0;
+        for (int i=0; i<instances.size(); i++) {
+            for (int j=0; j<preds[0].length; j++) {
+                preds[i][j] = buffer.get(k++);
+            }
+        }
+        for (int i=0; i<results.size(); i++) {
+            results.get(i).close();
+        }
+        buffer.clear();
+        return preds;
     }
 
     public LearningInstance featurize(JsonNode entity, boolean update) {
@@ -191,7 +215,6 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         }
         runner.addTarget(updateOperationName).fetch(lossOperationName);
         List<Tensor<?>> results = runner.run();
-        // free the resource of Tensor, see the Java api of TensorFlow
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             entry.getValue().close();
         }
