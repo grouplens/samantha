@@ -70,8 +70,8 @@ public class PdfFileDAO implements EntityDAO {
 
     private String getParagraph() {
         String paragraph = "";
-        for (; idx<lines.length; idx++) {
-            paragraph += lines[idx];
+        while (idx<lines.length) {
+            paragraph += lines[idx++];
             if (paragraph.length() >= paraLength) {
                 break;
             }
