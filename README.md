@@ -35,6 +35,7 @@
 
 * text modeling
 * scale up to clusters: learning algorithm and offline data storage
+* web interface based creation and deployment of recommender/predictor engines
 
 [Detailed Documentation](docs/SamanthaDoc.pdf)
 
