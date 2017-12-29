@@ -158,6 +158,16 @@ public class FileWriterService {
     }
 
     public void writeCSV(String type, JsonNode entity, List<String> dataFields, int tstamp) {
+        write(type, entity, dataFields, tstamp, separator, ".csv");
+    }
+
+    public void writeJson(String type, JsonNode entity, int tstamp) {
+        write(type, entity, null, tstamp, separator, ".json");
+    }
+
+    private void write(String type, JsonNode entity,
+                       List<String> dataFields, int tstamp,
+                       String separator, String appendix) {
         for (int idx=curDirIdx; idx<dataDirs.size(); idx++) {
             String directory = pickDirectory(idx, type, tstamp);
             String file = null;
@@ -165,7 +175,7 @@ public class FileWriterService {
             List<String> curFields;
             writeLock.lock();
             try {
-                file = lockFile(type, directory, dataFields, ".csv");
+                file = lockFile(type, directory, dataFields, appendix);
                 writer = getWriter(type, file);
                 curFields = getSchema(type, file);
             } catch (Exception e) {
@@ -177,7 +187,11 @@ public class FileWriterService {
                 writeLock.unlock();
             }
             try {
-                IndexerUtilities.writeCSVFields(entity, curFields, writer, separator);
+                if (dataFields != null && dataFields.size() > 0 && separator != null) {
+                    IndexerUtilities.writeCSVFields(entity, curFields, writer, separator);
+                } else {
+                    IndexerUtilities.writeJson(entity, writer);
+                }
                 break;
             } catch (Exception e) {
                 Logger.error(e.getMessage());

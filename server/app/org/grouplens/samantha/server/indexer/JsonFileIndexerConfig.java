@@ -22,7 +22,6 @@
 
 package org.grouplens.samantha.server.indexer;
 
-import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.io.RequestContext;
@@ -30,19 +29,22 @@ import play.Configuration;
 import play.inject.Injector;
 
 public class JsonFileIndexerConfig implements IndexerConfig {
-    private final String filePathKey;
+    private final String tstampField;
+    private final String type;
     private final Injector injector;
     private final String daoConfigKey;
     private final Configuration daoConfigs;
     private final Configuration config;
 
     private JsonFileIndexerConfig(Configuration config, Injector injector,
-                                  Configuration daoConfigs, String daoConfigKey, String filePathKey) {
-        this.filePathKey = filePathKey;
+                                  Configuration daoConfigs, String daoConfigKey,
+                                  String tstampField, String type) {
         this.injector = injector;
         this.daoConfigKey = daoConfigKey;
         this.daoConfigs = daoConfigs;
         this.config = config;
+        this.tstampField = tstampField;
+        this.type = type;
     }
 
     public static IndexerConfig getIndexerConfig(Configuration indexerConfig,
@@ -50,13 +52,14 @@ public class JsonFileIndexerConfig implements IndexerConfig {
         return new JsonFileIndexerConfig(indexerConfig, injector,
                 indexerConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
                 indexerConfig.getString("daoConfigKey"),
-                indexerConfig.getString("filePathKey"));
+                indexerConfig.getString("timeStampField"),
+                indexerConfig.getString("type"));
     }
 
     public Indexer getIndexer(RequestContext requestContext) {
-        String filePath = JsonHelpers.getRequiredString(requestContext.getRequestBody(), filePathKey);
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
+        FileWriterService writerService = injector.instanceOf(FileWriterService.class);
         return new JsonFileIndexer(config, configService, daoConfigs, daoConfigKey,
-                injector, filePath);
+                injector, writerService, type, tstampField);
     }
 }

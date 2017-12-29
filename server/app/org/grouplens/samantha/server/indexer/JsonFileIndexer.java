@@ -30,39 +30,31 @@ import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-
-//TODO: needs to refactor to use file service because the writer opened is never closed, temporary solution
 public class JsonFileIndexer extends AbstractIndexer {
-    private final BufferedWriter writer;
+    private final FileWriterService writerService;
+    private final String type;
+    private final String tstampField;
 
-    public JsonFileIndexer(Configuration config, SamanthaConfigService configService, Configuration daoConfigs,
-                           String daoConfigKey, Injector injector, String filePath) {
+    public JsonFileIndexer(Configuration config,
+                           SamanthaConfigService configService, Configuration daoConfigs,
+                           String daoConfigKey, Injector injector, FileWriterService writerService,
+                           String type, String tstampField) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
-        try {
-            this.writer = new BufferedWriter(new FileWriter(filePath));
-        } catch (IOException e) {
-            throw new BadRequestException(e);
-        }
+        this.writerService = writerService;
+        this.tstampField = tstampField;
+        this.type = type;
     }
 
     public void index(JsonNode documents, RequestContext requestContext) {
-        try {
-            writer.write(documents.toString() + '\n');
-        } catch (IOException e) {
-            throw new BadRequestException(e);
+        if (documents.isArray()) {
+            for (JsonNode doc : documents) {
+                writerService.writeJson(type, doc, doc.get(tstampField).asInt());
+            }
         }
     }
 
+    //TODO: implementation
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
-        try {
-            writer.close();
-        } catch (IOException e) {
-            throw new BadRequestException(e);
-        }
-        throw new BadRequestException("Indexer successfully closed, " +
-                "but reading data from this indexer is not supported.");
+        throw new BadRequestException("Reading data from this indexer is not supported yet.");
     }
 }
