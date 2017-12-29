@@ -38,7 +38,7 @@ import play.libs.Json;
 import java.util.List;
 
 public class CSVFileIndexer extends AbstractIndexer {
-    private final CSVFileService dataService;
+    private final FileWriterService dataService;
     private final String indexType;
     private final String timestampField;
     private final List<String> dataFields;
@@ -54,7 +54,7 @@ public class CSVFileIndexer extends AbstractIndexer {
     private final String subDaoConfigKey;
 
     public CSVFileIndexer(SamanthaConfigService configService,
-                          CSVFileService dataService,
+                          FileWriterService dataService,
                           Configuration config, Injector injector, Configuration daoConfigs,
                           String daoConfigKey, String timestampField, List<String> dataFields,
                           String beginTimeKey, String beginTime, String endTimeKey, String endTime,
@@ -92,7 +92,7 @@ public class CSVFileIndexer extends AbstractIndexer {
             }
             for (JsonNode document : data) {
                 int tstamp = document.get(timestampField).asInt();
-                dataService.write(indexType, document, dataFields, tstamp);
+                dataService.writeCSV(indexType, document, dataFields, tstamp);
             }
         } else {
             throw new BadRequestException("Data operation " + operation + " is not supported");

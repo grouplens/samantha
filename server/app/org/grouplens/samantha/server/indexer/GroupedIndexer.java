@@ -93,7 +93,7 @@ public class GroupedIndexer extends AbstractIndexer {
             for (int i = 0; i < usedBuckets; i++) {
                 BufferedWriter writer = new BufferedWriter(new FileWriter(prefix +
                         Integer.valueOf(i).toString() + ".tmp"));
-                IndexerUtilities.writeOutHeader(dataFields, writer, separator);
+                IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
                 writers.add(writer);
             }
             while (entityDAO.hasNextEntity()) {
@@ -101,7 +101,7 @@ public class GroupedIndexer extends AbstractIndexer {
                 int idx = FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys)
                         .hashCode() % numBuckets;
                 if (idx < usedBuckets) {
-                    IndexerUtilities.writeOutJson(entity, dataFields, writers.get(idx), separator);
+                    IndexerUtilities.writeCSVFields(entity, dataFields, writers.get(idx), separator);
                 }
             }
             for (int i = 0; i < usedBuckets; i++) {
@@ -134,9 +134,9 @@ public class GroupedIndexer extends AbstractIndexer {
                     buffer.sort(comparator);
                     String resultFile = prefix + Integer.valueOf(i).toString() + ".csv";
                     BufferedWriter writer = new BufferedWriter(new FileWriter(resultFile));
-                    IndexerUtilities.writeOutHeader(dataFields, writer, separator);
+                    IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
                     for (ObjectNode entity : buffer) {
-                        IndexerUtilities.writeOutJson(entity, dataFields, writer, separator);
+                        IndexerUtilities.writeCSVFields(entity, dataFields, writer, separator);
                     }
                     buffer.clear();
                     writer.close();

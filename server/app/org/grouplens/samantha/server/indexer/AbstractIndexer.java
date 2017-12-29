@@ -116,6 +116,7 @@ abstract public class AbstractIndexer implements Indexer {
         }
         index(toIndex, requestContext);
         notifyDataSubscribers(toIndex, requestContext);
+        entityDAO.close();
     }
 
     public EntityDAO getEntityDAO(RequestContext requestContext) {

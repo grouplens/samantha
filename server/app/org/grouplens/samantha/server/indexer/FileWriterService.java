@@ -38,7 +38,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Singleton
-public class CSVFileService {
+public class FileWriterService {
     private final int maxWriter;
     private final String separator;
     private final List<String> dataDirs;
@@ -51,7 +51,7 @@ public class CSVFileService {
     private int curDirIdx = 0;
 
     @Inject
-    private CSVFileService(Configuration configuration) {
+    private FileWriterService(Configuration configuration) {
         String sep = configuration.getString(ConfigKey.CSV_FILE_SERVICE_SEPARATOR.get());
         if (sep != null) {
             separator = sep;
@@ -94,7 +94,7 @@ public class CSVFileService {
         }
     }
 
-    private String lockFile(String type, String directory, List<String> dataFields)
+    private String lockFile(String type, String directory, List<String> dataFields, String appendix)
             throws IOException {
         if (!activeFiles.containsKey(type)) {
             activeFiles.put(type, new TreeMap<>());
@@ -106,7 +106,7 @@ public class CSVFileService {
         Map<String, Lock> actLocks = activeLocks.get(type);
         Map<String, List<String>> actSchemas = activeSchemas.get(type);
         for (int i=0; i<Integer.MAX_VALUE; i++) {
-            String file = directory + Integer.valueOf(i) + ".csv";
+            String file = directory + Integer.valueOf(i) + appendix;
             if (actSchemas.containsKey(file)) {
                 if (dataFields.equals(actSchemas.get(file))) {
                     actLocks.get(file).lock();
@@ -129,7 +129,7 @@ public class CSVFileService {
                     new File(directory).mkdirs();
                     writer = new BufferedWriter(new OutputStreamWriter(
                             new FileOutputStream(file, true), StandardCharsets.UTF_8));
-                    IndexerUtilities.writeOutHeader(dataFields, writer, separator);
+                    IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
                 }
                 actFiles.put(file, writer);
                 actSchemas.put(file, dataFields);
@@ -140,7 +140,7 @@ public class CSVFileService {
                 return file;
             }
         }
-        throw new IOException("Can not find a good file to write in the directory.");
+        throw new IOException("Can not find a good file to writeCSV in the directory.");
     }
 
     private void unlockFile(String type, String file) {
@@ -157,7 +157,7 @@ public class CSVFileService {
         return activeFiles.get(type).get(file);
     }
 
-    public void write(String type, JsonNode entity, List<String> dataFields, int tstamp) {
+    public void writeCSV(String type, JsonNode entity, List<String> dataFields, int tstamp) {
         for (int idx=curDirIdx; idx<dataDirs.size(); idx++) {
             String directory = pickDirectory(idx, type, tstamp);
             String file = null;
@@ -165,7 +165,7 @@ public class CSVFileService {
             List<String> curFields;
             writeLock.lock();
             try {
-                file = lockFile(type, directory, dataFields);
+                file = lockFile(type, directory, dataFields, ".csv");
                 writer = getWriter(type, file);
                 curFields = getSchema(type, file);
             } catch (Exception e) {
@@ -177,7 +177,7 @@ public class CSVFileService {
                 writeLock.unlock();
             }
             try {
-                IndexerUtilities.writeOutJson(entity, curFields, writer, separator);
+                IndexerUtilities.writeCSVFields(entity, curFields, writer, separator);
                 break;
             } catch (Exception e) {
                 Logger.error(e.getMessage());

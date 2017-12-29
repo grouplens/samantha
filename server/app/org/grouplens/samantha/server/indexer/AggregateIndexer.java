@@ -92,7 +92,7 @@ public class AggregateIndexer extends AbstractIndexer {
         GroupedEntityList groupDao = new GroupedEntityList(groupKeys, data);
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
-            IndexerUtilities.writeOutHeader(otherFields, writer, separator);
+            IndexerUtilities.writeCSVHeader(otherFields, writer, separator);
             List<ObjectNode> acts;
             while ((acts = groupDao.getNextGroup()).size() > 0) {
                 ObjectNode act = acts.get(0);
@@ -104,7 +104,7 @@ public class AggregateIndexer extends AbstractIndexer {
                 for (int i=0; i<aggFields.size(); i++) {
                     act.put(aggFields.get(i) + aggSumAppendix, sums[i]);
                 }
-                IndexerUtilities.writeOutJson(act, dataFields, writer, separator);
+                IndexerUtilities.writeCSVFields(act, dataFields, writer, separator);
                 acts.clear();
             }
             writer.close();

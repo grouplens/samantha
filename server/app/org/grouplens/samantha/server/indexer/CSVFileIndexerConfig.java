@@ -96,7 +96,7 @@ public class CSVFileIndexerConfig implements IndexerConfig {
 
     public Indexer getIndexer(RequestContext requestContext) {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
-        CSVFileService dataService = injector.instanceOf(CSVFileService.class);
+        FileWriterService dataService = injector.instanceOf(FileWriterService.class);
         return new CSVFileIndexer(configService, dataService, config, injector,
                 daoConfigs, daoConfigKey, timestampField, dataFields, beginTime, beginTimeKey,
                 endTime, endTimeKey, daoName, daoNameKey, filesKey, separatorKey, indexType,

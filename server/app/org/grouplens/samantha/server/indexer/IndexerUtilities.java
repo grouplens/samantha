@@ -75,15 +75,23 @@ public class IndexerUtilities {
         }
     }
 
-    public static void writeOutHeader(List<String> dataFields, BufferedWriter writer,
+    public static void writeCSVHeader(List<String> dataFields, BufferedWriter writer,
                                       String separator) throws IOException {
-        writer.write(StringUtils.join(dataFields, separator));
+        if (separator != null && dataFields != null && dataFields.size() > 0) {
+            writer.write(StringUtils.join(dataFields, separator));
+            writer.newLine();
+            writer.flush();
+        }
+    }
+
+    public static void writeJson(JsonNode entity, BufferedWriter writer) throws IOException {
+        writer.write(entity.toString());
         writer.newLine();
         writer.flush();
     }
 
-    public static void writeOutJson(JsonNode entity, List<String> curFields, BufferedWriter writer,
-                                    String separator) throws IOException {
+    public static void writeCSVFields(JsonNode entity, List<String> curFields, BufferedWriter writer,
+                                      String separator) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         List<String> fields = new ArrayList<>(curFields.size());
         for (String field : curFields) {

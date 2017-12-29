@@ -122,7 +122,7 @@ public class UserReturnIndexer extends AbstractIndexer {
         GroupedEntityList userDao = new GroupedEntityList(groupKeys, data);
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
-            IndexerUtilities.writeOutHeader(dataFields, writer, separator);
+            IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
             List<ObjectNode> acts;
             while ((acts = userDao.getNextGroup()).size() > 0) {
                 if (usedGroups.size() > 0) {
@@ -144,10 +144,10 @@ public class UserReturnIndexer extends AbstractIndexer {
                     if (reward >= 0.0) {
                         for (ObjectNode entity : group) {
                             entity.put(rewardKey, 0.0);
-                            IndexerUtilities.writeOutJson(entity, dataFields, writer, separator);
+                            IndexerUtilities.writeCSVFields(entity, dataFields, writer, separator);
                         }
                         lastEntity.put(rewardKey, reward);
-                        IndexerUtilities.writeOutJson(lastEntity, dataFields, writer, separator);
+                        IndexerUtilities.writeCSVFields(lastEntity, dataFields, writer, separator);
                     }
                     group.clear();
                     group = nextGrp;
