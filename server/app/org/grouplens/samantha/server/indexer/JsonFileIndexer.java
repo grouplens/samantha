@@ -24,6 +24,9 @@ package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.server.common.DataOperation;
+import org.grouplens.samantha.server.common.JsonHelpers;
+import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
@@ -35,8 +38,7 @@ public class JsonFileIndexer extends AbstractIndexer {
     private final String type;
     private final String tstampField;
 
-    public JsonFileIndexer(Configuration config,
-                           SamanthaConfigService configService, Configuration daoConfigs,
+    public JsonFileIndexer(Configuration config, SamanthaConfigService configService, Configuration daoConfigs,
                            String daoConfigKey, Injector injector, FileWriterService writerService,
                            String type, String tstampField) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
@@ -46,10 +48,19 @@ public class JsonFileIndexer extends AbstractIndexer {
     }
 
     public void index(JsonNode documents, RequestContext requestContext) {
-        if (documents.isArray()) {
-            for (JsonNode doc : documents) {
-                writerService.writeJson(type, doc, doc.get(tstampField).asInt());
+        JsonNode reqBody = requestContext.getRequestBody();
+        String operation = JsonHelpers.getOptionalString(reqBody, ConfigKey.DATA_OPERATION.get(),
+                DataOperation.INSERT.get());
+        if (operation.equals(DataOperation.INSERT.get()) || operation.equals(DataOperation.UPSERT.get())) {
+            if (!documents.isArray()) {
+                writerService.writeJson(type, documents, documents.get(tstampField).asInt());
+            } else {
+                for (JsonNode document : documents) {
+                    writerService.writeJson(type, document, document.get(tstampField).asInt());
+                }
             }
+        } else {
+            throw new BadRequestException("Data operation " + operation + " is not supported");
         }
     }
 

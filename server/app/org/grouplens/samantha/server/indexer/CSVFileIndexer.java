@@ -82,17 +82,14 @@ public class CSVFileIndexer extends AbstractIndexer {
         String operation = JsonHelpers.getOptionalString(reqBody, ConfigKey.DATA_OPERATION.get(),
                 DataOperation.INSERT.get());
         if (operation.equals(DataOperation.INSERT.get()) || operation.equals(DataOperation.UPSERT.get())) {
-            JsonNode data;
             if (!documents.isArray()) {
-                ArrayNode arr = Json.newArray();
-                arr.add(documents);
-                data = arr;
+                dataService.writeCSV(indexType, documents, dataFields,
+                        documents.get(timestampField).asInt());
             } else {
-                data = documents;
-            }
-            for (JsonNode document : data) {
-                int tstamp = document.get(timestampField).asInt();
-                dataService.writeCSV(indexType, document, dataFields, tstamp);
+                for (JsonNode document : documents) {
+                    dataService.writeCSV(indexType, document, dataFields,
+                            document.get(timestampField).asInt());
+                }
             }
         } else {
             throw new BadRequestException("Data operation " + operation + " is not supported");
