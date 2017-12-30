@@ -32,19 +32,44 @@ import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
+import play.libs.Json;
+
+import java.util.List;
 
 public class JsonFileIndexer extends AbstractIndexer {
-    private final FileWriterService writerService;
-    private final String type;
-    private final String tstampField;
+    private final FileWriterService dataService;
+    private final String indexType;
+    private final String timestampField;
+    private final String beginTimeKey;
+    private final String beginTime;
+    private final String endTimeKey;
+    private final String endTime;
+    private final String daoNameKey;
+    private final String daoName;
+    private final String filesKey;
+    private final String subDaoName;
+    private final String subDaoConfigKey;
 
-    public JsonFileIndexer(Configuration config, SamanthaConfigService configService, Configuration daoConfigs,
-                           String daoConfigKey, Injector injector, FileWriterService writerService,
-                           String type, String tstampField) {
+    public JsonFileIndexer(SamanthaConfigService configService,
+                           FileWriterService dataService,
+                           Configuration config, Injector injector, Configuration daoConfigs,
+                           String daoConfigKey, String timestampField,
+                           String beginTimeKey, String beginTime, String endTimeKey, String endTime,
+                           String daoNameKey, String daoName, String filesKey,
+                           String indexType, String subDaoName, String subDaoConfigKey) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
-        this.writerService = writerService;
-        this.tstampField = tstampField;
-        this.type = type;
+        this.dataService = dataService;
+        this.indexType = indexType;
+        this.timestampField = timestampField;
+        this.beginTime = beginTime;
+        this.beginTimeKey = beginTimeKey;
+        this.endTime = endTime;
+        this.endTimeKey = endTimeKey;
+        this.daoName = daoName;
+        this.daoNameKey = daoNameKey;
+        this.filesKey = filesKey;
+        this.subDaoConfigKey = subDaoConfigKey;
+        this.subDaoName = subDaoName;
     }
 
     public void index(JsonNode documents, RequestContext requestContext) {
@@ -53,10 +78,12 @@ public class JsonFileIndexer extends AbstractIndexer {
                 DataOperation.INSERT.get());
         if (operation.equals(DataOperation.INSERT.get()) || operation.equals(DataOperation.UPSERT.get())) {
             if (!documents.isArray()) {
-                writerService.writeJson(type, documents, documents.get(tstampField).asInt());
+                dataService.writeJson(indexType, documents,
+                        documents.get(timestampField).asInt());
             } else {
                 for (JsonNode document : documents) {
-                    writerService.writeJson(type, document, document.get(tstampField).asInt());
+                    dataService.writeJson(indexType, document,
+                            document.get(timestampField).asInt());
                 }
             }
         } else {
@@ -64,8 +91,24 @@ public class JsonFileIndexer extends AbstractIndexer {
         }
     }
 
-    //TODO: implementation
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
-        throw new BadRequestException("Reading data from this indexer is not supported yet.");
+        JsonNode reqBody = requestContext.getRequestBody();
+        String start = JsonHelpers.getOptionalString(reqBody, beginTimeKey,
+                beginTime);
+        String end = JsonHelpers.getOptionalString(reqBody, endTimeKey,
+                endTime);
+        int startStamp = IndexerUtilities.parseTime(start);
+        int endStamp = IndexerUtilities.parseTime(end);
+        List<String> files = dataService.getFiles(indexType, startStamp, endStamp);
+        ObjectNode sub = Json.newObject();
+        sub.set(filesKey, Json.toJson(files));
+        sub.put(daoNameKey, subDaoName);
+
+        ObjectNode ret = Json.newObject();
+        ret.put(daoNameKey, daoName);
+        ret.put(beginTimeKey, Integer.valueOf(startStamp).toString());
+        ret.put(endTimeKey, Integer.valueOf(endStamp).toString());
+        ret.set(subDaoConfigKey, sub);
+        return ret;
     }
 }
