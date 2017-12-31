@@ -1,3 +1,5 @@
+*.iml
+
 docs/.ipynb_checkpoints
 
 server/logs
