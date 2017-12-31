@@ -76,7 +76,7 @@ public class RecommendationEvaluator implements Evaluator {
 
     public Evaluation evaluate(RequestContext requestContext) {
         Logger.info("Note that the input evaluation data must be sorted by the group keys, e.g. groupId");
-        GroupedEntityList groupedEntityList = new GroupedEntityList(groupKeys, entityDAO);
+        GroupedEntityList groupedEntityList = new GroupedEntityList(groupKeys, null, entityDAO);
         List<ObjectNode> entityList;
         int cnt = 0;
         while ((entityList = groupedEntityList.getNextGroup()).size() > 0) {

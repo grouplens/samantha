@@ -67,9 +67,7 @@ public class TensorFlowModelProducer {
                                                                   String lossOperationName,
                                                                   String updateOperationName,
                                                                   String outputOperationName,
-                                                                  String initOperationName,
-                                                                  Map<String, List<String>> name2doublefeas,
-                                                                  Map<String, List<String>> name2intfeas) {
+                                                                  String initOperationName) {
         IndexSpace indexSpace = getIndexSpace(modelName, spaceMode);
         VariableSpace variableSpace = getVariableSpace(modelName, spaceMode);
         byte[] graphDef;
@@ -81,7 +79,6 @@ public class TensorFlowModelProducer {
         Graph graph = new Graph();
         graph.importGraphDef(graphDef);
         return new TensorFlowModel(graph, indexSpace, variableSpace, featureExtractors, lossOperationName,
-                updateOperationName, outputOperationName, initOperationName,
-                groupKeys, name2doublefeas, name2intfeas);
+                updateOperationName, outputOperationName, initOperationName, groupKeys);
     }
 }

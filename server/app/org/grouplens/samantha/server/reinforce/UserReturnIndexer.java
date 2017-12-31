@@ -119,7 +119,7 @@ public class UserReturnIndexer extends AbstractIndexer {
             csvFileDAO.close();
         }
         EntityDAO data = indexer.getEntityDAO(requestContext);
-        GroupedEntityList userDao = new GroupedEntityList(groupKeys, data);
+        GroupedEntityList userDao = new GroupedEntityList(groupKeys, null, data);
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
             IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
@@ -133,7 +133,7 @@ public class UserReturnIndexer extends AbstractIndexer {
                 }
                 EntityDAO listDao = new EntityListDAO(acts);
                 GroupedEntityList grouped = new GroupedEntityList(
-                        Lists.newArrayList(sessionIdKey), listDao);
+                        Lists.newArrayList(sessionIdKey), null, listDao);
                 List<ObjectNode> group = grouped.getNextGroup();
                 List<ObjectNode> nextGrp;
                 while ((nextGrp = grouped.getNextGroup()).size() > 0) {

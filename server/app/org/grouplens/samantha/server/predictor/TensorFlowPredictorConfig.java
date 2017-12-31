@@ -44,9 +44,7 @@ import play.Configuration;
 import play.inject.Injector;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class TensorFlowPredictorConfig implements PredictorConfig {
     private final List<String> groupKeys;
@@ -60,8 +58,6 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
     private final Injector injector;
     private final List<Configuration> expandersConfig;
     private final String daoConfigKey;
-    private final Map<String, List<String>> name2doublefeas;
-    private final Map<String, List<String>> name2intfeas;
     private final String outputOperationName;
     private final String updateOperationName;
     private final String lossOperationName;
@@ -74,8 +70,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                                       List<FeatureExtractorConfig> feaExtConfigs,
                                       Configuration entityDaoConfigs,
                                       Configuration methodConfig, Configuration onlineMethodConfig,
-                                      Injector injector, Map<String, List<String>> name2doublefeas,
-                                      Map<String, List<String>> name2intfeas,
+                                      Injector injector,
                                       List<Configuration> expandersConfig, String daoConfigKey,
                                       String outputOperationName, String updateOperationName,
                                       String lossOperationName, String initOperationName,
@@ -88,8 +83,6 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
         this.methodConfig = methodConfig;
         this.onlineMethodConfig = onlineMethodConfig;
         this.entityDaoConfigs = entityDaoConfigs;
-        this.name2doublefeas = name2doublefeas;
-        this.name2intfeas = name2intfeas;
         this.outputOperationName = outputOperationName;
         this.updateOperationName = updateOperationName;
         this.lossOperationName = lossOperationName;
@@ -99,17 +92,6 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
         this.expandersConfig = expandersConfig;
         this.daoConfigKey = daoConfigKey;
         this.config = config;
-    }
-
-    static private Map<String, List<String>> getName2Features(Configuration predictorConfig, String type) {
-        Map<String, List<String>> name2feas = new HashMap<>();
-        if (predictorConfig.asMap().containsKey(type)) {
-            Configuration config = predictorConfig.getConfig(type);
-            for (String name : config.keys()) {
-                name2feas.put(name, config.getStringList(name));
-            }
-        }
-        return name2feas;
     }
 
     static public PredictorConfig getPredictorConfig(Configuration predictorConfig,
@@ -131,9 +113,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                 feaExtConfigs, daoConfigs,
                 predictorConfig.getConfig("methodConfig"),
                 predictorConfig.getConfig("onlineMethodConfig"),
-                injector,
-                getName2Features(predictorConfig, "name2doublefeas"),
-                getName2Features(predictorConfig, "name2intfeas"), expanders,
+                injector, expanders,
                 predictorConfig.getString("daoConfigKey"),
                 predictorConfig.getString("outputOperationName"),
                 predictorConfig.getString("updateOperationName"),
@@ -157,8 +137,8 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
             }
             TensorFlowModelProducer producer = injector.instanceOf(TensorFlowModelProducer.class);
             return producer.createTensorFlowModelModelFromGraphDef(modelName, spaceMode, graphDefFilePath,
-                    groupKeys, featureExtractors, lossOperationName, updateOperationName, outputOperationName,
-                    initOperationName, name2doublefeas, name2intfeas);
+                    groupKeys, featureExtractors, lossOperationName, updateOperationName,
+                    outputOperationName, initOperationName);
         }
 
         public Object buildModel(Object model, RequestContext requestContext) {

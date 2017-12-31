@@ -89,7 +89,7 @@ public class AggregateIndexer extends AbstractIndexer {
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
         EntityDAO data = indexer.getEntityDAO(requestContext);
-        GroupedEntityList groupDao = new GroupedEntityList(groupKeys, data);
+        GroupedEntityList groupDao = new GroupedEntityList(groupKeys, null, data);
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
             IndexerUtilities.writeCSVHeader(otherFields, writer, separator);
