@@ -23,6 +23,7 @@
 package org.grouplens.samantha.modeler.solver;
 
 import org.grouplens.samantha.modeler.common.LearningData;
+import org.grouplens.samantha.modeler.model.LearningModel;
 
 public class SGDRunnable implements ObjectiveRunnable {
     private final LearningModel learningModel;

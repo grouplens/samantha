@@ -24,7 +24,7 @@ package org.grouplens.samantha.server.predictor;
 
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.common.LearningData;
-import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.model.SpaceMode;
 import org.grouplens.samantha.modeler.tree.RegressionTree;
 import org.grouplens.samantha.modeler.tree.RegressionTreeProducer;
 import org.grouplens.samantha.modeler.tree.TreeLearningMethod;

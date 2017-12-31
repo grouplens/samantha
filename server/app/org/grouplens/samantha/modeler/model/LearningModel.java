@@ -20,47 +20,32 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.featurizer;
+package org.grouplens.samantha.modeler.model;
 
-import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
+import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.common.LearningInstance;
+import org.grouplens.samantha.modeler.common.PredictiveModel;
+import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
+import org.grouplens.samantha.modeler.solver.StochasticOracle;
 
-public class StandardLearningInstance extends AbstractLearningInstance {
-    private static final long serialVersionUID = 1L;
-    public static double defaultWeight = 1.0;
-    public static double defaultLabel = 0.0;
-    double weight;
-    double label;
-    final Int2DoubleMap features;
+import java.util.List;
 
-    public StandardLearningInstance(Int2DoubleMap features, double label, double weight, String group) {
-        super(group);
-        this.features = features;
-        this.weight = weight;
-        this.label = label;
-    }
+public interface LearningModel extends PredictiveModel {
+    RealVector getScalarVarByName(String name);
+    int getScalarVarSizeByName(String name);
+    void setScalarVarByName(String name, RealVector vars);
+    double getScalarVarByNameIndex(String name, int index);
+    void setScalarVarByNameIndex(String name, int index, double var);
 
-    public LearningInstance newInstanceWithLabel(double label) {
-        return new StandardLearningInstance(this.features, label, this.weight, this.group);
-    }
+    List<RealVector> getVectorVarByName(String name);
+    int getVectorVarSizeByName(String name);
+    int getVectorVarDimensionByName(String name);
+    RealVector getVectorVarByNameIndex(String name, int index);
+    void setVectorVarByNameIndex(String name, int index, RealVector var);
 
-    public Int2DoubleMap getFeatures() {
-        return features;
-    }
+    List<String> getAllScalarVarNames();
+    List<String> getAllVectorVarNames();
 
-    public double getLabel() {
-        return this.label;
-    }
-
-    public double getWeight() {
-        return this.weight;
-    }
-
-    public void setLabel(double label) {
-        this.label = label;
-    }
-
-    public void setWeight(double weight) {
-        this.weight = weight;
-    }
+    List<StochasticOracle> getStochasticOracle(List<LearningInstance> instances);
+    ObjectiveFunction getObjectiveFunction();
 }

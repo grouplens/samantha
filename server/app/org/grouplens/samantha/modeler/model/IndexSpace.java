@@ -20,32 +20,24 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.featurizer;
+package org.grouplens.samantha.modeler.model;
 
-import org.grouplens.samantha.modeler.common.LearningData;
-import org.grouplens.samantha.modeler.common.LearningInstance;
+import com.google.inject.ImplementedBy;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.Serializable;
 
-public class StandardListLearningData implements LearningData {
-    private final List<StandardLearningInstance> instances;
-    private int idx = 0;
-
-    //TODO: support grouping learning instance according to group info.
-    public StandardListLearningData(List<StandardLearningInstance> instances) {
-        this.instances = instances;
-    }
-
-    public List<LearningInstance> getLearningInstance() {
-        List<LearningInstance> curList = new ArrayList<>(1);
-        if (idx < instances.size()) {
-            curList.add(instances.get(idx++));
-        }
-        return curList;
-    }
-
-    public void startNewIteration() {
-        idx = 0;
-    }
+/**
+ * Every method needs to be thread-safe.
+ */
+@ImplementedBy(SynchronizedIndexSpace.class)
+public interface IndexSpace extends Serializable {
+    void setSpaceState(String spaceName, SpaceMode spaceMode);
+    void publishSpaceVersion();
+    void requestKeyMap(String name);
+    boolean hasKeyMap(String name);
+    int setKey(String name, Object key);
+    boolean containsKey(String name, Object key);
+    int getIndexForKey(String name, Object key);
+    Object getKeyForIndex(String name, int index);
+    int getKeyMapSize(String name);
 }

@@ -29,7 +29,7 @@ import org.grouplens.samantha.modeler.dao.CSVFileDAO;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.modeler.dao.EntityListDAO;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.modeler.featurizer.GroupedEntityList;
+import org.grouplens.samantha.modeler.instance.GroupedEntityList;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.exception.BadRequestException;

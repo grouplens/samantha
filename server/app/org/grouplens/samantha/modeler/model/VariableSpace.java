@@ -20,13 +20,12 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.space;
+package org.grouplens.samantha.modeler.model;
 
 import com.google.inject.ImplementedBy;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.solver.RandomInitializer;
-import org.grouplens.samantha.server.space.RedisVariableSpace;
 
 import java.io.Serializable;
 import java.util.List;

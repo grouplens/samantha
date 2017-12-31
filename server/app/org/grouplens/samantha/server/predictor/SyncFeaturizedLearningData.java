@@ -28,7 +28,7 @@ import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.modeler.featurizer.Featurizer;
 import org.grouplens.samantha.modeler.featurizer.FeaturizerUtilities;
-import org.grouplens.samantha.modeler.featurizer.GroupedEntityList;
+import org.grouplens.samantha.modeler.instance.GroupedEntityList;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;

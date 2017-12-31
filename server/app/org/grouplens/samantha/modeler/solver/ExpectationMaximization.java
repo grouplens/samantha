@@ -24,6 +24,8 @@ package org.grouplens.samantha.modeler.solver;
 
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
+import org.grouplens.samantha.modeler.model.LatentLearningModel;
+import org.grouplens.samantha.modeler.model.LearningModel;
 
 import java.util.List;
 

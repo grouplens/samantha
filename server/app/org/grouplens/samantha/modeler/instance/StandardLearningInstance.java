@@ -20,48 +20,47 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.space;
+package org.grouplens.samantha.modeler.instance;
 
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
+import org.grouplens.samantha.modeler.common.LearningInstance;
 
-import java.io.Serializable;
-
-public class ObjectKeyIndex<K> implements Serializable {
+public class StandardLearningInstance extends AbstractLearningInstance {
     private static final long serialVersionUID = 1L;
+    public static double defaultWeight = 1.0;
+    public static double defaultLabel = 0.0;
+    double weight;
+    double label;
+    final Int2DoubleMap features;
 
-    private Object2IntOpenHashMap<K> key2idx;
-    private ObjectArrayList<K> keyList;
-
-    public ObjectKeyIndex() {
-        this.key2idx = new Object2IntOpenHashMap<>();
-        this.keyList = new ObjectArrayList<>();
+    public StandardLearningInstance(Int2DoubleMap features, double label, double weight, String group) {
+        super(group);
+        this.features = features;
+        this.weight = weight;
+        this.label = label;
     }
 
-    public int getIndex(K key) {
-        return key2idx.getInt(key);
+    public LearningInstance newInstanceWithLabel(double label) {
+        return new StandardLearningInstance(this.features, label, this.weight, this.group);
     }
 
-    public K getKey(int idx) {
-        return keyList.get(idx);
+    public Int2DoubleMap getFeatures() {
+        return features;
     }
 
-    public boolean containsKey(K key) {
-        return key2idx.containsKey(key);
+    public double getLabel() {
+        return this.label;
     }
 
-    public int size() {
-        return keyList.size();
+    public double getWeight() {
+        return this.weight;
     }
 
-    public int setKey(K key) {
-        if (key2idx.containsKey(key)) {
-            return key2idx.getInt(key);
-        } else {
-            int idx = keyList.size();
-            key2idx.put(key, idx);
-            keyList.add(key);
-            return idx;
-        }
+    public void setLabel(double label) {
+        this.label = label;
+    }
+
+    public void setWeight(double weight) {
+        this.weight = weight;
     }
 }

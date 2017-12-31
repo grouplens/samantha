@@ -23,7 +23,7 @@
 package org.grouplens.samantha.modeler.tensorflow;
 
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.modeler.featurizer.AbstractLearningInstance;
+import org.grouplens.samantha.modeler.instance.AbstractLearningInstance;
 
 import java.util.HashMap;
 import java.util.Map;

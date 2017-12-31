@@ -20,25 +20,32 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.space;
+package org.grouplens.samantha.modeler.model;
 
-import com.google.inject.ImplementedBy;
-import org.grouplens.samantha.server.space.RedisIndexSpace;
+import javax.inject.Inject;
 
-import java.io.Serializable;
+public class SpaceProducer {
+    @Inject
+    private IndexSpace indexSpace;
+    @Inject
+    private VariableSpace variableSpace;
 
-/**
- * Every method needs to be thread-safe.
- */
-@ImplementedBy(SynchronizedIndexSpace.class)
-public interface IndexSpace extends Serializable {
-    void setSpaceState(String spaceName, SpaceMode spaceMode);
-    void publishSpaceVersion();
-    void requestKeyMap(String name);
-    boolean hasKeyMap(String name);
-    int setKey(String name, Object key);
-    boolean containsKey(String name, Object key);
-    int getIndexForKey(String name, Object key);
-    Object getKeyForIndex(String name, int index);
-    int getKeyMapSize(String name);
+    @Inject
+    private SpaceProducer() {
+    }
+
+    public SpaceProducer(IndexSpace indexSpace, VariableSpace variableSpace) {
+        this.indexSpace = indexSpace;
+        this.variableSpace = variableSpace;
+    }
+
+    public IndexSpace getIndexSpace(String spaceName, SpaceMode spaceMode) {
+        indexSpace.setSpaceState(spaceName, spaceMode);
+        return indexSpace;
+    }
+
+    public VariableSpace getVariableSpace(String spaceName, SpaceMode spaceMode) {
+        variableSpace.setSpaceState(spaceName, spaceMode);
+        return variableSpace;
+    }
 }

@@ -27,7 +27,7 @@ import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.solver.OnlineOptimizationMethod;
 import org.grouplens.samantha.modeler.solver.OptimizationMethod;
-import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.model.SpaceMode;
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModelProducer;
 import org.grouplens.samantha.server.common.AbstractModelManager;

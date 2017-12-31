@@ -25,7 +25,7 @@ package org.grouplens.samantha.modeler.boosting;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.PredictiveModel;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
-import org.grouplens.samantha.modeler.featurizer.StandardLearningInstance;
+import org.grouplens.samantha.modeler.instance.StandardLearningInstance;
 
 import java.util.List;
 

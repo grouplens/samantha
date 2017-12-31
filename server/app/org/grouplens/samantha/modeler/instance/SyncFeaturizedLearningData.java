@@ -20,12 +20,14 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.featurizer;
+package org.grouplens.samantha.modeler.instance;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
+import org.grouplens.samantha.modeler.featurizer.Featurizer;
+import org.grouplens.samantha.modeler.featurizer.FeaturizerUtilities;
 
 import java.util.ArrayList;
 import java.util.List;

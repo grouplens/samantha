@@ -24,7 +24,7 @@ package org.grouplens.samantha.modeler.boosting;
 
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureInstance;
-import org.grouplens.samantha.modeler.featurizer.StandardLearningInstance;
+import org.grouplens.samantha.modeler.instance.StandardLearningInstance;
 
 public class GBCentLearningInstance implements LearningInstance {
     private static final long serialVersionUID = 1L;

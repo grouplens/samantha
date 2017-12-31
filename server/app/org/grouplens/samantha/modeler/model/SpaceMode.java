@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.space;
+package org.grouplens.samantha.modeler.model;
 
 public enum SpaceMode {
     BUILDING("building"),

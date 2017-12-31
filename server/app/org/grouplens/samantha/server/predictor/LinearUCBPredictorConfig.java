@@ -28,7 +28,7 @@ import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.solver.OnlineOptimizationMethod;
 import org.grouplens.samantha.modeler.reinforce.LinearUCB;
 import org.grouplens.samantha.modeler.reinforce.LinearUCBProducer;
-import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.model.SpaceMode;
 import org.grouplens.samantha.server.common.AbstractModelManager;
 import org.grouplens.samantha.server.common.ModelManager;
 import org.grouplens.samantha.server.config.ConfigKey;

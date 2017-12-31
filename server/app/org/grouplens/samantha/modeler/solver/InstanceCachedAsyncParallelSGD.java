@@ -23,6 +23,8 @@
 package org.grouplens.samantha.modeler.solver;
 
 import org.grouplens.samantha.modeler.common.LearningData;
+import org.grouplens.samantha.modeler.instance.ObjectStreamLearningData;
+import org.grouplens.samantha.modeler.model.LearningModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

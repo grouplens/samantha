@@ -25,7 +25,7 @@ package org.grouplens.samantha.modeler.featurizer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.model.IndexSpace;
 
 import java.util.ArrayList;
 import java.util.HashMap;

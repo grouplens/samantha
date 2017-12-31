@@ -22,8 +22,8 @@
 
 package org.grouplens.samantha.server.space;
 
-import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.model.IndexSpace;
+import org.grouplens.samantha.modeler.model.SpaceMode;
 import org.grouplens.samantha.server.common.RedisService;
 import org.grouplens.samantha.server.common.Utilities;
 

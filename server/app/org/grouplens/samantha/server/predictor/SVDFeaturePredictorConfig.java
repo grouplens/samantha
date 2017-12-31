@@ -25,7 +25,7 @@ package org.grouplens.samantha.server.predictor;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.grouplens.samantha.modeler.solver.*;
-import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.model.SpaceMode;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureProducer;
 import org.grouplens.samantha.server.common.AbstractModelManager;

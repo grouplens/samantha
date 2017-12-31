@@ -29,7 +29,7 @@ import org.grouplens.samantha.modeler.boosting.StandardBoostingMethod;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
-import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.model.SpaceMode;
 import org.grouplens.samantha.modeler.tree.TreeLearningMethod;
 import org.grouplens.samantha.server.common.AbstractModelManager;
 import org.grouplens.samantha.server.common.ModelManager;

@@ -20,12 +20,9 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.solver;
+package org.grouplens.samantha.modeler.model;
 
 import org.apache.commons.math3.linear.RealVector;
-
-import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.modeler.space.VariableSpace;
 
 import java.util.List;
 

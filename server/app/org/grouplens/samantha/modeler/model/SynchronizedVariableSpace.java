@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.space;
+package org.grouplens.samantha.modeler.model;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;

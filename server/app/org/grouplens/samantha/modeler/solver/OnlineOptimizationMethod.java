@@ -24,6 +24,7 @@ package org.grouplens.samantha.modeler.solver;
 
 import com.google.inject.ImplementedBy;
 import org.grouplens.samantha.modeler.common.LearningData;
+import org.grouplens.samantha.modeler.model.LearningModel;
 
 @ImplementedBy(StochasticGradientDescent.class)
 public interface OnlineOptimizationMethod extends OptimizationMethod {

@@ -23,7 +23,7 @@
 package org.grouplens.samantha.server.evaluator;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.grouplens.samantha.modeler.featurizer.GroupedEntityList;
+import org.grouplens.samantha.modeler.instance.GroupedEntityList;
 import org.grouplens.samantha.server.evaluator.metric.MetricResult;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.evaluator.metric.Metric;

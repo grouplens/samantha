@@ -32,10 +32,11 @@ import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.featurizer.Featurizer;
 import org.grouplens.samantha.modeler.featurizer.StandardFeaturizer;
-import org.grouplens.samantha.modeler.featurizer.StandardLearningInstance;
+import org.grouplens.samantha.modeler.instance.StandardLearningInstance;
+import org.grouplens.samantha.modeler.model.AbstractLearningModel;
 import org.grouplens.samantha.modeler.solver.*;
-import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.modeler.space.VariableSpace;
+import org.grouplens.samantha.modeler.model.IndexSpace;
+import org.grouplens.samantha.modeler.model.VariableSpace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.space;
+package org.grouplens.samantha.modeler.model;
 
 import org.grouplens.samantha.server.exception.BadRequestException;
 

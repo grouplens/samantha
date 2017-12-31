@@ -24,10 +24,10 @@ package org.grouplens.samantha.modeler.boosting;
 
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
-import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.modeler.space.SpaceMode;
-import org.grouplens.samantha.modeler.space.SpaceProducer;
-import org.grouplens.samantha.modeler.space.VariableSpace;
+import org.grouplens.samantha.modeler.model.IndexSpace;
+import org.grouplens.samantha.modeler.model.SpaceMode;
+import org.grouplens.samantha.modeler.model.SpaceProducer;
+import org.grouplens.samantha.modeler.model.VariableSpace;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureProducer;
 import org.grouplens.samantha.modeler.tree.RegressionCriterion;

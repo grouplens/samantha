@@ -28,9 +28,9 @@ import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.featurizer.Feature;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.modeler.featurizer.StandardLearningInstance;
-import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.modeler.space.VariableSpace;
+import org.grouplens.samantha.modeler.instance.StandardLearningInstance;
+import org.grouplens.samantha.modeler.model.IndexSpace;
+import org.grouplens.samantha.modeler.model.VariableSpace;
 
 import java.util.List;
 

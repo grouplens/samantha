@@ -23,7 +23,8 @@
 package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.model.IndexSpace;
+import org.grouplens.samantha.modeler.model.PercentileModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

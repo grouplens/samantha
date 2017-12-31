@@ -31,7 +31,7 @@ import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.predictor.Predictor;
-import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.model.IndexSpace;
 import play.libs.Json;
 
 import java.util.ArrayList;

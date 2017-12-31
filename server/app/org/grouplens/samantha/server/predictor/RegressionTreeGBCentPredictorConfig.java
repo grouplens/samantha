@@ -29,7 +29,7 @@ import org.grouplens.samantha.modeler.boosting.RegressionTreeGBCent;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningMethod;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
-import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.model.SpaceMode;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.server.common.AbstractModelManager;
 import org.grouplens.samantha.server.common.ModelManager;

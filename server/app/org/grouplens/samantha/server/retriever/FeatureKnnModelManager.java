@@ -23,10 +23,10 @@
 package org.grouplens.samantha.server.retriever;
 
 import org.grouplens.samantha.modeler.knn.FeatureKnnModel;
-import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.modeler.space.SpaceMode;
-import org.grouplens.samantha.modeler.space.SpaceProducer;
-import org.grouplens.samantha.modeler.space.VariableSpace;
+import org.grouplens.samantha.modeler.model.IndexSpace;
+import org.grouplens.samantha.modeler.model.SpaceMode;
+import org.grouplens.samantha.modeler.model.SpaceProducer;
+import org.grouplens.samantha.modeler.model.VariableSpace;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.server.common.AbstractModelManager;
 import org.grouplens.samantha.server.common.ModelService;

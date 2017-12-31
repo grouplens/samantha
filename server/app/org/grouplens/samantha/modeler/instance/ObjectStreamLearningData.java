@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.solver;
+package org.grouplens.samantha.modeler.instance;
 
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;

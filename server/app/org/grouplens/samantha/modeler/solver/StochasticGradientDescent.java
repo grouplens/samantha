@@ -23,6 +23,7 @@
 package org.grouplens.samantha.modeler.solver;
 
 import org.grouplens.samantha.modeler.common.LearningData;
+import org.grouplens.samantha.modeler.model.LearningModel;
 
 public class StochasticGradientDescent extends AbstractOptimizationMethod implements OnlineOptimizationMethod {
     private double l2coef;

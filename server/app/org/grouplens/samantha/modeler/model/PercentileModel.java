@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.modeler.featurizer;
+package org.grouplens.samantha.modeler.model;
 
 import it.unimi.dsi.fastutil.doubles.Double2IntAVLTreeMap;
 import it.unimi.dsi.fastutil.doubles.Double2IntSortedMap;
@@ -28,9 +28,6 @@ import it.unimi.dsi.fastutil.doubles.Double2IntMap;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
-import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.modeler.space.IndexedVectorModel;
-import org.grouplens.samantha.modeler.space.VariableSpace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

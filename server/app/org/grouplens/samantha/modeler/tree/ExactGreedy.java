@@ -27,7 +27,7 @@ import it.unimi.dsi.fastutil.ints.*;
 import org.grouplens.samantha.modeler.featurizer.Feature;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.modeler.featurizer.StandardLearningInstance;
+import org.grouplens.samantha.modeler.instance.StandardLearningInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
