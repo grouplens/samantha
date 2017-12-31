@@ -34,10 +34,16 @@ public class GroupedEntityList {
     private String prevGroup;
     private final List<String> groupKeys;
     private final EntityDAO entityDAO;
+    private final int batchSize;
 
-    public GroupedEntityList(List<String> groupKeys, EntityDAO entityDAO) {
+    public GroupedEntityList(List<String> groupKeys, Integer batchSize, EntityDAO entityDAO) {
         this.entityDAO = entityDAO;
-        this.groupKeys = groupKeys;
+        if (groupKeys != null && groupKeys.size() > 0) {
+            this.groupKeys = groupKeys;
+        } else {
+            this.groupKeys = null;
+        }
+        this.batchSize = batchSize;
     }
 
     public List<ObjectNode> getNextGroup() {
@@ -48,16 +54,23 @@ public class GroupedEntityList {
         }
         while (entityDAO.hasNextEntity()) {
             ObjectNode entity = entityDAO.getNextEntity();
-            String group = FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys);
-            if (prevGroup == null) {
-                prevGroup = group;
-            }
-            if (!group.equals(prevGroup)) {
-                prevGroup = group;
-                prevEntity = entity;
-                break;
+            if (groupKeys != null) {
+                String group = FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys);
+                if (prevGroup == null) {
+                    prevGroup = group;
+                }
+                if (!group.equals(prevGroup)) {
+                    prevGroup = group;
+                    prevEntity = entity;
+                    break;
+                } else {
+                    entityList.add(entity);
+                }
             } else {
                 entityList.add(entity);
+                if (entityList.size() >= batchSize) {
+                    break;
+                }
             }
         }
         return entityList;

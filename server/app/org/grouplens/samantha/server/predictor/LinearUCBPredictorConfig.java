@@ -136,12 +136,12 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
             JsonNode reqBody = requestContext.getRequestBody();
             LearningData data = PredictorUtilities.getLearningData(ucbModel, requestContext,
                     reqBody.get("learningDaoConfig"), daoConfigs, expandersConfig,
-                    injector, true, null);
+                    injector, true, null, 128);
             LearningData valid = null;
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(ucbModel, requestContext,
                         reqBody.get("validationDaoConfig"), daoConfigs, expandersConfig,
-                        injector, false, null);
+                        injector, false, null, 128);
             }
             OnlineOptimizationMethod method = (OnlineOptimizationMethod) PredictorUtilities
                     .getLearningMethod(methodConfig, injector, requestContext);
@@ -153,7 +153,7 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
             LinearUCB ucbModel = (LinearUCB) model;
             LearningData data = PredictorUtilities.getLearningData(ucbModel, requestContext,
                     requestContext.getRequestBody().get(daoConfigKey), daoConfigs,
-                    expandersConfig, injector, true, null);
+                    expandersConfig, injector, true, null, 128);
             OnlineOptimizationMethod onlineMethod = (OnlineOptimizationMethod) PredictorUtilities
                     .getLearningMethod(methodConfig, injector, requestContext);
             onlineMethod.update(ucbModel, data);

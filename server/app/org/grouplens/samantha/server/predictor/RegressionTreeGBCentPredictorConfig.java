@@ -127,12 +127,12 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
             RegressionTreeGBCent gbcent = (RegressionTreeGBCent) model;
             LearningData data = PredictorUtilities.getLearningData(gbcent, requestContext,
                     reqBody.get("learningDaoConfig"), daosConfig, expandersConfig,
-                    injector, true, groupKeys);
+                    injector, true, groupKeys, 128);
             LearningData valid = null;
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(gbcent, requestContext,
                         reqBody.get("validationDaoConfig"), daosConfig, expandersConfig,
-                        injector, false, groupKeys);
+                        injector, false, groupKeys, 128);
             }
             LearningMethod method = PredictorUtilities.getLearningMethod(methodConfig, injector, requestContext);
             method.learn(gbcent, data, valid);

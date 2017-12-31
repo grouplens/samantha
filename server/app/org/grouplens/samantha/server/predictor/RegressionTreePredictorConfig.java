@@ -114,7 +114,7 @@ public class RegressionTreePredictorConfig implements PredictorConfig {
             RegressionTree regressionTree = (RegressionTree) model;
             LearningData data = PredictorUtilities.getLearningData(regressionTree, requestContext,
                     requestContext.getRequestBody().get(daoConfigKey), daoConfigs, expandersConfig,
-                    injector, true, null);
+                    injector, true, null, 128);
             method.learn(regressionTree, data, null);
             return model;
         }

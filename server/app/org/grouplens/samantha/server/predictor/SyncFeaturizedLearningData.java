@@ -37,7 +37,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SyncFeaturizedLearningData implements LearningData {
-    private final EntityDAO entityDAO;
     private final GroupedEntityList groupedEntityList;
     private final List<EntityExpander> entityExpanders;
     private final Featurizer featurizer;
@@ -46,61 +45,37 @@ public class SyncFeaturizedLearningData implements LearningData {
 
     public SyncFeaturizedLearningData(EntityDAO entityDAO,
                                       List<String> groupKeys,
+                                      Integer batchSize,
                                       List<EntityExpander> entityExpanders,
                                       Featurizer featurizer,
                                       RequestContext requestContext,
                                       boolean update) {
-        this.entityDAO = entityDAO;
         this.entityExpanders = entityExpanders;
         this.featurizer = featurizer;
         this.requestContext = requestContext;
         this.update = update;
-        if (groupKeys != null && groupKeys.size() > 0) {
-            groupedEntityList = new GroupedEntityList(groupKeys, entityDAO);
-        } else {
-            groupedEntityList = null;
-        }
+        this.groupedEntityList = new GroupedEntityList(groupKeys, batchSize, entityDAO);
     }
 
     public List<LearningInstance> getLearningInstance() {
         List<LearningInstance> instances;
         List<ObjectNode> curList;
-        if (groupedEntityList == null) {
-            do {
-                synchronized (entityDAO) {
-                    if (entityDAO.hasNextEntity()) {
-                        curList = new ArrayList<>();
-                        curList.add(entityDAO.getNextEntity());
-                    } else {
-                        entityDAO.close();
-                        return new ArrayList<>(0);
-                    }
+        do {
+            synchronized (groupedEntityList) {
+                curList = groupedEntityList.getNextGroup();
+                if (curList.size() == 0) {
+                    groupedEntityList.close();
+                    return new ArrayList<>(0);
                 }
-                curList = ExpanderUtilities.expand(curList, entityExpanders, requestContext);
-            } while (curList.size() == 0);
-            instances = FeaturizerUtilities.featurize(curList, featurizer, update);
-        } else {
-            do {
-                synchronized (groupedEntityList) {
-                    curList = groupedEntityList.getNextGroup();
-                    if (curList.size() == 0) {
-                        groupedEntityList.close();
-                        return new ArrayList<>(0);
-                    }
-                }
-                curList = ExpanderUtilities.expand(curList, entityExpanders, requestContext);
-            } while (curList.size() == 0);
-            instances = FeaturizerUtilities.featurize(curList, featurizer, update);
-        }
+            }
+            curList = ExpanderUtilities.expand(curList, entityExpanders, requestContext);
+        } while (curList.size() == 0);
+        instances = FeaturizerUtilities.featurize(curList, featurizer, update);
         curList.clear();
         return instances;
     }
 
     synchronized public void startNewIteration() {
-        if (groupedEntityList == null) {
-            entityDAO.restart();
-        } else {
-            groupedEntityList.restart();
-        }
+        groupedEntityList.restart();
     }
 }

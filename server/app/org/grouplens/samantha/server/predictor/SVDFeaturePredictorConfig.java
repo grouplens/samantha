@@ -179,12 +179,12 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
             SVDFeature svdFeature = (SVDFeature) model;
             LearningData data = PredictorUtilities.getLearningData(svdFeature, requestContext,
                     reqBody.get("learningDaoConfig"), entityDaoConfigs, expandersConfig,
-                    injector, true, groupKeys);
+                    injector, true, groupKeys, 128);
             LearningData valid = null;
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(svdFeature, requestContext,
                         reqBody.get("validationDaoConfig"), entityDaoConfigs, expandersConfig,
-                        injector, false, groupKeys);
+                        injector, false, groupKeys, 128);
             }
             OptimizationMethod method = (OptimizationMethod) PredictorUtilities
                     .getLearningMethod(methodConfig, injector, requestContext);
@@ -196,7 +196,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
             SVDFeature svdFeature = (SVDFeature) model;
             LearningData data = PredictorUtilities.getLearningData(svdFeature, requestContext,
                     requestContext.getRequestBody().get(daoConfigKey), entityDaoConfigs,
-                    expandersConfig, injector, true, groupKeys);
+                    expandersConfig, injector, true, groupKeys, 128);
             OnlineOptimizationMethod onlineMethod = (OnlineOptimizationMethod) PredictorUtilities
                     .getLearningMethod(onlineMethodConfig, injector, requestContext);
             onlineMethod.update(svdFeature, data);

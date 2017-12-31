@@ -133,12 +133,12 @@ public class GBDTPredictorConfig implements PredictorConfig {
             JsonNode reqBody = requestContext.getRequestBody();
             LearningData data = PredictorUtilities.getLearningData(gbdt, requestContext,
                     reqBody.get("learningDaoConfig"), daoConfigs, expandersConfig,
-                    injector, true, groupKeys);
+                    injector, true, groupKeys, 128);
             LearningData valid = null;
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(gbdt, requestContext,
                         reqBody.get("validationDaoConfig"), daoConfigs, expandersConfig,
-                        injector, false, groupKeys);
+                        injector, false, groupKeys, 128);
             }
             boostingMethod.learn(gbdt, data, valid);
             return model;
