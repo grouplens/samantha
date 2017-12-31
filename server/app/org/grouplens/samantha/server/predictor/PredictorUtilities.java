@@ -36,8 +36,6 @@ import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
-import org.grouplens.samantha.server.predictor.learning.SyncDeserializedLearningData;
-import org.grouplens.samantha.server.predictor.learning.SyncFeaturizedLearningData;
 import play.Configuration;
 import play.inject.Injector;
 
@@ -53,19 +51,13 @@ public class PredictorUtilities {
     static public LearningData getLearningData(Featurizer model, RequestContext requestContext,
                                                JsonNode daoConfig, Configuration entityDaoConfigs,
                                                List<Configuration> expandersConfig, Injector injector,
-                                               boolean update, String serializedKey, String insAttr,
-                                               String labelAttr, String weightAttr, List<String> groupKeys) {
+                                               boolean update, List<String> groupKeys) {
         EntityDAO entityDAO = EntityDAOUtilities.getEntityDAO(entityDaoConfigs, requestContext,
                 daoConfig, injector);
-        boolean serialized = JsonHelpers.getOptionalBoolean(requestContext.getRequestBody(), serializedKey, false);
-        if (serialized) {
-            return new SyncDeserializedLearningData(entityDAO, insAttr, groupKeys, labelAttr, weightAttr);
-        } else {
-            List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
-                    expandersConfig, injector);
-            return new SyncFeaturizedLearningData(entityDAO, groupKeys, entityExpanders,
-                    model, requestContext, update);
-        }
+        List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
+                expandersConfig, injector);
+        return new SyncFeaturizedLearningData(entityDAO, groupKeys, entityExpanders,
+                model, requestContext, update);
     }
 
     static public List<Prediction> predictFromRequest(Predictor predictor, RequestContext requestContext,

@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.predictor.learning;
+package org.grouplens.samantha.server.predictor;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.common.LearningData;

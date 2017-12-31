@@ -60,8 +60,6 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
     private final double lambda;
     private final double alpha;
     private final int numMainFeatures;
-    private final String serializedKey;
-    private final String insName;
     private final Configuration config;
 
     private LinearUCBPredictorConfig(String modelName, List<FeatureExtractorConfig> feaExtConfigs,
@@ -69,7 +67,7 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
                                      Configuration daoConfigs, List<Configuration> expandersConfig,
                                      Injector injector, Configuration methodConfig, String modelFile,
                                      String daoConfigKey, double lambda, double alpha, List<String> evaluatorNames,
-                                     String insName, String serializedKey, Configuration config) {
+                                     Configuration config) {
         this.modelName = modelName;
         this.feaExtConfigs = feaExtConfigs;
         this.features = features;
@@ -84,8 +82,6 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
         this.lambda = lambda;
         this.alpha = alpha;
         this.numMainFeatures = numMainFeatures;
-        this.serializedKey = serializedKey;
-        this.insName = insName;
         this.config = config;
         this.evaluatorNames = evaluatorNames;
     }
@@ -114,9 +110,7 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
                 predictorConfig.getConfig("onlineOptimizationMethod"),
                 predictorConfig.getString("modelFile"),
                 predictorConfig.getString("daoConfigKey"), lambda, alpha,
-                predictorConfig.getStringList("evaluatorNames"),
-                predictorConfig.getString("instanceName"),
-                predictorConfig.getString("serializedKey"), predictorConfig);
+                predictorConfig.getStringList("evaluatorNames"), predictorConfig);
     }
 
     private class LinearUCBModelManager extends AbstractModelManager {
@@ -141,13 +135,13 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
             LinearUCB ucbModel = (LinearUCB) model;
             JsonNode reqBody = requestContext.getRequestBody();
             LearningData data = PredictorUtilities.getLearningData(ucbModel, requestContext,
-                    reqBody.get("learningDaoConfig"), daoConfigs, expandersConfig, injector, true,
-                    serializedKey, insName, labelName, weightName, null);
+                    reqBody.get("learningDaoConfig"), daoConfigs, expandersConfig,
+                    injector, true, null);
             LearningData valid = null;
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(ucbModel, requestContext,
                         reqBody.get("validationDaoConfig"), daoConfigs, expandersConfig,
-                        injector, false, serializedKey, insName, labelName, weightName, null);
+                        injector, false, null);
             }
             OnlineOptimizationMethod method = (OnlineOptimizationMethod) PredictorUtilities
                     .getLearningMethod(methodConfig, injector, requestContext);
@@ -159,8 +153,7 @@ public class LinearUCBPredictorConfig implements PredictorConfig {
             LinearUCB ucbModel = (LinearUCB) model;
             LearningData data = PredictorUtilities.getLearningData(ucbModel, requestContext,
                     requestContext.getRequestBody().get(daoConfigKey), daoConfigs,
-                    expandersConfig, injector, true, serializedKey, insName, labelName,
-                    weightName, null);
+                    expandersConfig, injector, true, null);
             OnlineOptimizationMethod onlineMethod = (OnlineOptimizationMethod) PredictorUtilities
                     .getLearningMethod(methodConfig, injector, requestContext);
             onlineMethod.update(ucbModel, data);

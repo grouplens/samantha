@@ -55,16 +55,13 @@ public class RegressionTreePredictorConfig implements PredictorConfig {
     private final Injector injector;
     private final TreeLearningMethod method;
     private final String daoConfigKey;
-    private final String serializedKey;
-    private final String insName;
     private final Configuration config;
 
     private RegressionTreePredictorConfig(String modelName, List<FeatureExtractorConfig> feaExtConfigs,
                                           List<String> features, String labelName, String weightName,
                                           Configuration daoConfigs, List<Configuration> expandersConfig,
                                           Injector injector, TreeLearningMethod method, String modelFile,
-                                          String daoConfigKey, String insName, String serializedKey,
-                                          Configuration config) {
+                                          String daoConfigKey, Configuration config) {
         this.modelName = modelName;
         this.feaExtConfigs = feaExtConfigs;
         this.features = features;
@@ -76,8 +73,6 @@ public class RegressionTreePredictorConfig implements PredictorConfig {
         this.method = method;
         this.modelFile = modelFile;
         this.daoConfigKey = daoConfigKey;
-        this.serializedKey = serializedKey;
-        this.insName = insName;
         this.config = config;
     }
 
@@ -95,9 +90,7 @@ public class RegressionTreePredictorConfig implements PredictorConfig {
                 predictorConfig.getString("weightName"), daoConfigs, expanders, injector,
                 injector.instanceOf(TreeLearningMethod.class),
                 predictorConfig.getString("modelFile"),
-                predictorConfig.getString("daoConfigKey"),
-                predictorConfig.getString("instanceName"),
-                predictorConfig.getString("serializedKey"), predictorConfig);
+                predictorConfig.getString("daoConfigKey"), predictorConfig);
     }
 
     private class RegressionTreeModelManager extends AbstractModelManager {
@@ -121,7 +114,7 @@ public class RegressionTreePredictorConfig implements PredictorConfig {
             RegressionTree regressionTree = (RegressionTree) model;
             LearningData data = PredictorUtilities.getLearningData(regressionTree, requestContext,
                     requestContext.getRequestBody().get(daoConfigKey), daoConfigs, expandersConfig,
-                    injector, true, serializedKey, insName, labelName, weightName, null);
+                    injector, true, null);
             method.learn(regressionTree, data, null);
             return model;
         }

@@ -61,10 +61,6 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
     private final List<Configuration> expandersConfig;
     private final Configuration methodConfig;
     private final String daoConfigKey;
-    private final String serializedKey;
-    private final String insName;
-    private final String labelName;
-    private final String weightName;
     private final Configuration config;
 
     private RegressionTreeGBCentPredictorConfig(String modelName, String svdfeaModelName, String svdfeaPredictorName,
@@ -72,8 +68,7 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
                                                 List<FeatureExtractorConfig> treeExtractorsConfig,
                                                 Configuration daosConfig, List<Configuration> expandersConfig,
                                                 Configuration methodConfig, Injector injector, String modelFile,
-                                                String daoConfigKey, String serializedKey, String insName,
-                                                String labelName, String weightName, Configuration config) {
+                                                String daoConfigKey, Configuration config) {
         this.daosConfig = daosConfig;
         this.expandersConfig = expandersConfig;
         this.modelName = modelName;
@@ -86,10 +81,6 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
         this.treeFeatures = treeFeatures;
         this.modelFile = modelFile;
         this.daoConfigKey = daoConfigKey;
-        this.serializedKey = serializedKey;
-        this.insName = insName;
-        this.labelName = labelName;
-        this.weightName = weightName;
         this.config = config;
     }
 
@@ -106,11 +97,7 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
                 predictorConfig.getStringList("treeFeatures"), predictorConfig.getStringList("groupKeys"),
                 feaExtConfigs, daosConfig, expanders,
                 predictorConfig.getConfig("methodConfig"), injector, predictorConfig.getString("modelFile"),
-                predictorConfig.getString("daoConfigKey"),
-                predictorConfig.getString("instanceName"),
-                predictorConfig.getString("serializedKey"),
-                predictorConfig.getString("labelName"),
-                predictorConfig.getString("weightName"), predictorConfig);
+                predictorConfig.getString("daoConfigKey"), predictorConfig);
     }
 
     private class RegressionTreeGBCentModelManager extends AbstractModelManager {
@@ -139,13 +126,13 @@ public class RegressionTreeGBCentPredictorConfig implements PredictorConfig {
             JsonNode reqBody = requestContext.getRequestBody();
             RegressionTreeGBCent gbcent = (RegressionTreeGBCent) model;
             LearningData data = PredictorUtilities.getLearningData(gbcent, requestContext,
-                    reqBody.get("learningDaoConfig"), daosConfig, expandersConfig, injector, true,
-                    serializedKey, insName, labelName, weightName, groupKeys);
+                    reqBody.get("learningDaoConfig"), daosConfig, expandersConfig,
+                    injector, true, groupKeys);
             LearningData valid = null;
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(gbcent, requestContext,
-                        reqBody.get("validationDaoConfig"), daosConfig, expandersConfig, injector, false,
-                        serializedKey, insName, labelName, weightName, groupKeys);
+                        reqBody.get("validationDaoConfig"), daosConfig, expandersConfig,
+                        injector, false, groupKeys);
             }
             LearningMethod method = PredictorUtilities.getLearningMethod(methodConfig, injector, requestContext);
             method.learn(gbcent, data, valid);
