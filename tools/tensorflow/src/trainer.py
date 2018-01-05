@@ -29,12 +29,13 @@ class ModelTrainer(object):
         with session.as_default():
             graph = tf.get_default_graph()
             with graph.as_default():
-                loss = self.builder.build_model()
-                update_op = tf.train.AdagradOptimizer(
-                    self.learning_rate).minimize(loss, name='update_op')
+                loss, updates = self.builder.build_model()
+                update_op = tf.train.AdagradOptimizer(self.learning_rate).minimize(loss)
+                for update in updates:
+                    update_op = tf.group(update_op, update)
+                merged_summary = tf.summary.merge_all()
                 if run_name is None:
                     run_name = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-                merged_summary = tf.summary.merge_all()
                 train_writer = tf.summary.FileWriter(self.tensorboard_dir + run_name + '_train', graph)
                 eval_writer = tf.summary.FileWriter(self.tensorboard_dir + run_name + '_eval', graph)
                 step = 0
