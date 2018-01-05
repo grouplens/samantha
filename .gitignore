@@ -1,4 +1,5 @@
 *.iml
+*.pyc
 
 docs/.ipynb_checkpoints
 

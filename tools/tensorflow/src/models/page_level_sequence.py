@@ -27,11 +27,12 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         event = tf.placeholder(
             tf.int32, shape=(None, None), name='%s_idx' % name)
         max_sequence_len = tf.shape(event)[1] / self._page_size
-        recognized_item = event * (event < self._item_vocab_size)
+        recognized_item = event * tf.cast(event < self._item_vocab_size, tf.int32)
         return tf.reshape(event, [tf.shape(recognized_item)[0], max_sequence_len, self._page_size])
 
-    def _step_wise_relu(self, input):
-        relu_layer = tf.keras.layers.Dense(self._rnn_size, activation='relu')
+    def _step_wise_relu(self, input, last_dim):
+        relu_layer = tf.keras.layers.Dense(
+            self._rnn_size, activation='relu', input_shape=(tf.shape(input)[1], last_dim))
         return relu_layer(input)
 
     def _get_rnn_output(self, input):
@@ -144,10 +145,11 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         user_embedder = tf.keras.layers.Embedding(self._user_vocab_size, self._rnn_size)
         expanded_user = tf.tile(user_idx, [1, tf.shape(item_input)[1]])
         expanded_user_embedding = user_embedder(expanded_user)
-        all_input = tf.concate([item_input, expanded_user_embedding], 2)
+        all_input = tf.concat([item_input, expanded_user_embedding], 2)
 
         #go through relu to have [batch, sequence_length, relu_output]
-        relu_output = self._step_wise_relu(all_input)
+        relu_output = self._step_wise_relu(
+            all_input, (1 + len(self._item_events) * self._page_size) * self._rnn_size)
 
         #go through rnn and get all the states output [batch, sequence_length, rnn_state]
         rnn_output = self._get_rnn_output(relu_output)
