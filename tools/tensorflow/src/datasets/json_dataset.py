@@ -3,7 +3,7 @@ import json
 
 import tensorflow as tf
 
-from dataset import DataSet
+from src.dataset import DataSet
 
 class JsonDataSet(DataSet):
 

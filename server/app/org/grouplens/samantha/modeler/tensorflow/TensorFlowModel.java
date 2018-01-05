@@ -53,7 +53,6 @@ import java.util.Map;
 
 public class TensorFlowModel extends AbstractLearningModel implements Featurizer, UncollectableModel {
     private static final long serialVersionUID = 1L;
-    public static final String indexKey = "TENSOR_FLOW";
     transient protected Graph graph;
     transient protected Session session;
     protected final List<FeatureExtractor> featureExtractors;
@@ -62,13 +61,14 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     protected final String outputOperationName;
     protected final String initOperationName;
     protected final List<String> groupKeys;
+    protected final List<String> indexKeys;
 
     public TensorFlowModel(Graph graph,
                            IndexSpace indexSpace, VariableSpace variableSpace,
                            List<FeatureExtractor> featureExtractors,
                            String lossOperationName, String updateOperationName,
                            String outputOperationName, String initOperationName,
-                           List<String> groupKeys) {
+                           List<String> groupKeys, List<String> indexKeys) {
         super(indexSpace, variableSpace);
         this.graph = graph;
         this.session = new Session(graph);
@@ -78,6 +78,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         this.updateOperationName = updateOperationName;
         this.outputOperationName = outputOperationName;
         this.initOperationName = initOperationName;
+        this.indexKeys = indexKeys;
         session.runner().addTarget(initOperationName).run();
     }
 
@@ -154,21 +155,30 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         Map<String, IntBuffer> intBufferMap = new HashMap<>();
         for (LearningInstance instance : instances) {
             TensorFlowInstance tfins = (TensorFlowInstance) instance;
+            for (Map.Entry<String, int[]> entry : tfins.getName2Indices().entrySet()) {
+                String name = entry.getKey();
+                int[] values = entry.getValue();
+                int cur = numCols.getOrDefault(name, 0);
+                if (values.length > cur) {
+                    numCols.put(name, values.length);
+                }
+            }
+        }
+        for (LearningInstance instance : instances) {
+            TensorFlowInstance tfins = (TensorFlowInstance) instance;
             for (Map.Entry<String, double[]> entry : tfins.getName2Values().entrySet()) {
                 String name = entry.getKey();
                 double[] values = entry.getValue();
-                doubleBufferMap.putIfAbsent(name, DoubleBuffer.allocate(batch * values.length));
-                DoubleBuffer buffer = doubleBufferMap.get(name);
+                DoubleBuffer buffer = DoubleBuffer.allocate(batch * numCols.get(name));
                 buffer.put(values);
-                numCols.putIfAbsent(name, values.length);
+                doubleBufferMap.put(name, buffer);
             }
             for (Map.Entry<String, int[]> entry : tfins.getName2Indices().entrySet()) {
                 String name = entry.getKey();
                 int[] values = entry.getValue();
-                intBufferMap.putIfAbsent(name, IntBuffer.allocate(batch * values.length));
-                IntBuffer buffer = intBufferMap.get(name);
+                IntBuffer buffer = IntBuffer.allocate(batch * numCols.get(name));
                 buffer.put(values);
-                numCols.putIfAbsent(name, values.length);
+                intBufferMap.put(name, buffer);
             }
         }
         Map<String, Tensor> tensorMap = new HashMap<>();

@@ -48,6 +48,7 @@ import java.util.List;
 
 public class TensorFlowPredictorConfig implements PredictorConfig {
     private final List<String> groupKeys;
+    private final List<String> indexKeys;
     private final List<String> evaluatorNames;
     private final String modelFile;
     private final String modelName;
@@ -65,7 +66,8 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
     private final String graphDefFilePath;
     private final Configuration config;
 
-    private TensorFlowPredictorConfig(List<String> groupKeys, List<String> evaluatorNames,
+    private TensorFlowPredictorConfig(List<String> groupKeys, List<String> indexKeys,
+                                      List<String> evaluatorNames,
                                       String modelFile, String modelName,
                                       List<FeatureExtractorConfig> feaExtConfigs,
                                       Configuration entityDaoConfigs,
@@ -76,6 +78,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                                       String lossOperationName, String initOperationName,
                                       String graphDefFilePath, Configuration config) {
         this.groupKeys = groupKeys;
+        this.indexKeys = indexKeys;
         this.evaluatorNames = evaluatorNames;
         this.modelFile = modelFile;
         this.modelName = modelName;
@@ -107,7 +110,10 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
         if (predictorConfig.asMap().containsKey("evaluatorNames")) {
             evaluatorNames = predictorConfig.getStringList("evaluatorNames");
         }
-        return new TensorFlowPredictorConfig(predictorConfig.getStringList("groupKeys"), evaluatorNames,
+        return new TensorFlowPredictorConfig(
+                predictorConfig.getStringList("groupKeys"),
+                predictorConfig.getStringList("indexKeys"),
+                evaluatorNames,
                 predictorConfig.getString("modelFile"),
                 predictorConfig.getString("modelName"),
                 feaExtConfigs, daoConfigs,
@@ -136,8 +142,11 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                 featureExtractors.add(feaExtConfig.getFeatureExtractor(requestContext));
             }
             TensorFlowModelProducer producer = injector.instanceOf(TensorFlowModelProducer.class);
-            return producer.createTensorFlowModelModelFromGraphDef(modelName, spaceMode, graphDefFilePath,
-                    groupKeys, featureExtractors, lossOperationName, updateOperationName,
+            return producer.createTensorFlowModelModelFromGraphDef(
+                    modelName, spaceMode, graphDefFilePath,
+                    groupKeys, indexKeys,
+                    featureExtractors,
+                    lossOperationName, updateOperationName,
                     outputOperationName, initOperationName);
         }
 

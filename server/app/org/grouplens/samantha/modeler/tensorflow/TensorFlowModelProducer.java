@@ -35,7 +35,6 @@ import javax.inject.Inject;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 public class TensorFlowModelProducer {
     @Inject
@@ -50,7 +49,6 @@ public class TensorFlowModelProducer {
 
     private IndexSpace getIndexSpace(String spaceName, SpaceMode spaceMode) {
         IndexSpace indexSpace = spaceProducer.getIndexSpace(spaceName, spaceMode);
-        indexSpace.requestKeyMap(TensorFlowModel.indexKey);
         return indexSpace;
     }
 
@@ -63,12 +61,17 @@ public class TensorFlowModelProducer {
                                                                   SpaceMode spaceMode,
                                                                   String graphDefFilePath,
                                                                   List<String> groupKeys,
+                                                                  List<String> indexKeys,
                                                                   List<FeatureExtractor> featureExtractors,
                                                                   String lossOperationName,
                                                                   String updateOperationName,
                                                                   String outputOperationName,
                                                                   String initOperationName) {
         IndexSpace indexSpace = getIndexSpace(modelName, spaceMode);
+        for (String indexKey : indexKeys) {
+            indexSpace.requestKeyMap(indexKey);
+            indexSpace.setKey(indexKey, "__OOV__");
+        }
         VariableSpace variableSpace = getVariableSpace(modelName, spaceMode);
         byte[] graphDef;
         try {
@@ -78,7 +81,9 @@ public class TensorFlowModelProducer {
         }
         Graph graph = new Graph();
         graph.importGraphDef(graphDef);
-        return new TensorFlowModel(graph, indexSpace, variableSpace, featureExtractors, lossOperationName,
-                updateOperationName, outputOperationName, initOperationName, groupKeys);
+        return new TensorFlowModel(graph, indexSpace, variableSpace,
+                featureExtractors, lossOperationName,
+                updateOperationName, outputOperationName, initOperationName,
+                groupKeys, indexKeys);
     }
 }
