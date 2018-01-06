@@ -14,13 +14,13 @@ class PageLevelSequenceModelTest(unittest.TestCase):
     def test_model_builder_with_trainer(self):
         model_builder = PageLevelSequenceModelBuilder()
         item_events = {'click': 0.3, 'high_rate': 0.5, 'low_rate': 0.5, 'wishlist': 0.1}
-        user_vocab_size = 10000
-        item_vocab_size = 10000
+        user_vocab_size = 10
+        item_vocab_size = 10
         batches = []
-        batch_size = 128
-        page_size = 24
+        batch_size = 4
+        page_size = 3
         for i in range(10):
-            max_seq_len = random.randint(50, 100)
+            max_seq_len = random.randint(5, 10)
             batch = {'user_idx': [], 'display_idx': [], 'sequence_length_val': []}
             for l in range(batch_size):
                 batch['user_idx'].append([random.randint(1, user_vocab_size - 1)])
@@ -45,8 +45,8 @@ class PageLevelSequenceModelTest(unittest.TestCase):
                             batch['%s_idx' % event][l].append(0)
             batches.append(batch)
         train_data = ListDataSet(batches)
-        model_trainer = ModelTrainer(train_data, builder=model_builder)
-        model_trainer.train('page_level_sequence_run1')
+        model_trainer = ModelTrainer(train_data, builder=model_builder, max_steps=10)
+        model_trainer.train('page_level_sequence_test_run')
 
 if __name__ == '__main__':
     unittest.main()

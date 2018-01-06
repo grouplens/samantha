@@ -6,10 +6,10 @@ from ..builder import ModelBuilder
 class PageLevelSequenceModelBuilder(ModelBuilder):
 
     def __init__(self,
-                 page_size=24,
-                 user_vocab_size=10000,
-                 item_vocab_size=10000,
-                 rnn_size=128,
+                 page_size=3,
+                 user_vocab_size=10,
+                 item_vocab_size=10,
+                 rnn_size=5,
                  item_events=['display', 'click', 'high_rate', 'low_rate', 'wishlist'],
                  predicted_event='click',
                  train_eval_split=0.8,
@@ -42,7 +42,7 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         rnn_layer = tf.keras.layers.GRU(self._rnn_size, return_sequences=True)
         return rnn_layer(input)
 
-    def _compute_map_metrics(self, labels, logits, metric):
+    def _compute_map_metrics(self, event, labels, logits, metric):
         K = metric.split('@')[1].split(',')
         updates = []
         expand_labels = tf.expand_dims(labels, 1)
@@ -56,10 +56,10 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
                 map_value, map_update = tf.metrics.sparse_average_precision_at_k(
                     tf.cast(dense_labels, tf.int64), logits, int(k))
                 updates.append(map_update)
+            tf.summary.scalar('MAP@%s' % k, map_value)
         return updates
 
-    def _compute_event_loss(self, rnn_output, indices, labels, softmax, metrics=None):
-        print indices.shape
+    def _compute_event_loss(self, event, rnn_output, indices, labels, softmax, metrics=None):
         valid_labels = tf.gather_nd(labels, indices)
         batch_idx = tf.reshape(tf.slice(indices,
             begin=[0, 0],
@@ -67,21 +67,16 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         step_idx = tf.reshape(tf.slice(indices,
             begin=[0, 1],
             size=[tf.shape(indices)[0], 1]) - 1, [tf.shape(indices)[0], 1])
-        print batch_idx.shape, step_idx.shape
         rnn_indices = tf.concat([batch_idx, step_idx], 1)
-        print rnn_indices.shape
-        print rnn_output.shape
         used_output = tf.gather_nd(rnn_output, rnn_indices)
-        print used_output.shape
         logits = softmax(used_output)
-        print valid_labels.shape
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=valid_labels, logits=logits)
         loss = tf.reduce_sum(losses) / tf.cast(tf.shape(valid_labels)[0], tf.float32)
         metric_update = []
         if metrics != None:
             for metric in metrics.split(' '):
                 if 'MAP' in metric:
-                    metric_update += self._compute_map_metrics(valid_labels, logits, metric)
+                    metric_update += self._compute_map_metrics(event, valid_labels, logits, metric)
         return loss, metric_update
 
     def _get_softmax_loss(self, sequence_length, rnn_output, label_by_event, softmax_by_event):
@@ -91,9 +86,7 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         eval_loss = 0
         updates = []
         for key in self._item_events:
-            print label_by_event[key].shape
             non_zeros_indices = tf.cast(tf.where(label_by_event[key] > 0), tf.int32)
-            print non_zeros_indices.shape
             batch_idx = tf.reshape(tf.slice(
                 non_zeros_indices,
                 begin=[0, 0],
@@ -104,23 +97,24 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
                 size=[tf.shape(non_zeros_indices)[0], 1]), [-1])
             step_split_limit = tf.gather(split_limit, batch_idx)
             step_length_limit = tf.gather(length_limit, batch_idx)
-            print step_split_limit.shape, step_length_limit.shape
             train_indices = tf.boolean_mask(
                 non_zeros_indices, tf.logical_and(step_idx > 0, step_idx <= step_split_limit))
             eval_indices = tf.boolean_mask(
                 non_zeros_indices, tf.logical_and(step_idx > step_split_limit, step_idx < step_length_limit))
-            train_event_loss, _ = self._compute_event_loss(
-                rnn_output, train_indices, label_by_event[key], softmax_by_event[key])
+            with tf.name_scope(key):
+                train_event_loss, _ = self._compute_event_loss(
+                    key, rnn_output, train_indices, label_by_event[key], softmax_by_event[key])
+                eval_event_loss, metric_update = self._compute_event_loss(
+                    key, rnn_output, eval_indices, label_by_event[key],
+                    softmax_by_event[key], metrics=self._eval_metrics)
             train_loss += train_event_loss
-            eval_event_loss, metric_update = self._compute_event_loss(
-                rnn_output, eval_indices, label_by_event[key],
-                softmax_by_event[key], metrics=self._eval_metrics)
             eval_loss += eval_event_loss
             updates += metric_update
         train_loss /= len(self._item_events)
         eval_loss /= len(self._item_events)
-        tf.summary.scalar('train_loss', train_loss)
-        tf.summary.scalar('eval_loss', eval_loss)
+        with tf.name_scope('loss'):
+            tf.summary.scalar('train_loss', train_loss)
+            tf.summary.scalar('eval_loss', eval_loss)
         self._test_tensors['eval_loss'] = eval_loss
         return train_loss, updates
 
@@ -148,10 +142,7 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         event_embedding = []
         for key in self._item_events:
             event_embedding.append(event_embedder[key](item_idx[key]))
-        for embed in event_embedding:
-            print embed.shape
         concated_event_embedding = tf.concat(event_embedding, 3)
-        print concated_event_embedding.shape
         item_input = tf.reshape(concated_event_embedding,
                                 [tf.shape(concated_event_embedding)[0],
                                  tf.shape(concated_event_embedding)[1],
@@ -161,7 +152,6 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         user_embedder = tf.keras.layers.Embedding(self._user_vocab_size, self._rnn_size)
         expanded_user = tf.tile(user_idx, [1, tf.shape(item_input)[1]])
         expanded_user_embedding = user_embedder(expanded_user)
-        print item_input.shape, expanded_user_embedding.shape
         all_input = tf.concat([item_input, expanded_user_embedding], 2)
 
         #go through relu to have [batch, sequence_length, relu_output]
