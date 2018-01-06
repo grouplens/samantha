@@ -1,8 +1,6 @@
 
 import json
 
-import tensorflow as tf
-
 from src.dataset import DataSet
 
 class JsonDataSet(DataSet):
@@ -17,7 +15,7 @@ class JsonDataSet(DataSet):
                     obj = json.loads(line.strip())
                     feed_dict = {}
                     for key, val in obj.iteritems():
-                        feed_dict[key] = tf.Constant(val)
+                        feed_dict['%s:0' % key] = val
                     yield feed_dict
 
     def reset(self):

@@ -22,6 +22,10 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         self._predicted_event = predicted_event
         self._train_eval_split = train_eval_split
         self._eval_metrics = eval_metrics
+        self._test_tensors = {}
+
+    def test_tensors(self):
+        return self._test_tensors
 
     def _event_item(self, name):
         event = tf.placeholder(
@@ -48,30 +52,31 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
             output_shape=[tf.shape(labels)[0], self._item_vocab_size],
             sparse_values=1)
         for k in K:
-            with tf.variable_scope('MAP@%s' % k):
+            with tf.variable_scope('MAP_K%s' % k):
                 map_value, map_update = tf.metrics.sparse_average_precision_at_k(
-                    dense_labels, logits, k)
+                    tf.cast(dense_labels, tf.int64), logits, int(k))
                 updates.append(map_update)
         return updates
 
     def _compute_event_loss(self, rnn_output, indices, labels, softmax, metrics=None):
         print indices.shape
-        valid_labels = tf.gather(labels, indices)
-        batch_idx = tf.slice(indices,
+        valid_labels = tf.gather_nd(labels, indices)
+        batch_idx = tf.reshape(tf.slice(indices,
             begin=[0, 0],
-            size=[tf.shape(indices)[0], 1])
-        step_idx = tf.slice(indices,
+            size=[tf.shape(indices)[0], 1]), [tf.shape(indices)[0], 1])
+        step_idx = tf.reshape(tf.slice(indices,
             begin=[0, 1],
-            size=[tf.shape(indices)[0], 1]) - 1
+            size=[tf.shape(indices)[0], 1]) - 1, [tf.shape(indices)[0], 1])
         print batch_idx.shape, step_idx.shape
         rnn_indices = tf.concat([batch_idx, step_idx], 1)
         print rnn_indices.shape
         print rnn_output.shape
-        used_output = tf.gather(rnn_output, rnn_indices)
+        used_output = tf.gather_nd(rnn_output, rnn_indices)
         print used_output.shape
         logits = softmax(used_output)
+        print valid_labels.shape
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=valid_labels, logits=logits)
-        loss = tf.reduce_sum(losses) / tf.shape(valid_labels)[0]
+        loss = tf.reduce_sum(losses) / tf.cast(tf.shape(valid_labels)[0], tf.float32)
         metric_update = []
         if metrics != None:
             for metric in metrics.split(' '):
@@ -116,16 +121,17 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         eval_loss /= len(self._item_events)
         tf.summary.scalar('train_loss', train_loss)
         tf.summary.scalar('eval_loss', eval_loss)
+        self._test_tensors['eval_loss'] = eval_loss
         return train_loss, updates
 
-    def _get_softmax_prediction(self, sequence_length, rnn_output, biases_by_event, weights_by_event):
+    def _get_softmax_prediction(self, sequence_length, rnn_output, softmax_by_event):
         seq_idx = sequence_length - 1
-        batch_idx = tf.range(tf.shape(sequence_length)[0])
+        batch_idx = tf.expand_dims(tf.range(tf.shape(sequence_length)[0]), 1)
         output_idx = tf.concat([batch_idx, seq_idx], 1)
-        sequence_output = tf.gather(rnn_output, output_idx)
+        sequence_output = tf.gather_nd(rnn_output, output_idx)
         probs_by_event = {}
         for key in self._item_events:
-            logits = tf.matmul(tf.transpose(weights_by_event[key]), sequence_output) + biases_by_event[key]
+            logits = softmax_by_event[key](sequence_output)
             probs_by_event[key] = tf.nn.softmax(logits, name='%s_prob' % key)
         return probs_by_event[self._predicted_event]
 

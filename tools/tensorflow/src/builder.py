@@ -14,4 +14,7 @@ class ModelBuilder(object):
         loss: A scalar Tensor indicating the loss of the model to optimize.
     """
     def build_model(self):
-        pass
+        raise Exception('This method must be overridden.')
+
+    def test_tensors(self):
+        return {}
