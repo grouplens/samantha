@@ -7,7 +7,7 @@
 
 #### what Samantha can do in simple words: full-fledged, self-contained server that can be used in production right away with one configuration file, including the following components
 
-* data management, including offline and online, in (indexing) and out (post-processing), bootstrap once for all (with configurable backend of ElasticSearch or Redis)
+* data management, including offline and online, in (indexing) and out (post-processing), through configurable backends of most relational databases (e.g. MySQL, PostresSQL, SQLServer etc.), ElasticSearch or Redis.
 * model management, including online updating, building, loading, dumping and serving.
 * data processing pipeline based on a data expanding and feature extraction framework
 * state-of-the-art models: collaborative filtering, matrix factorization, knn, trees, boosting and bandits/reinforcement learning
@@ -28,7 +28,7 @@
 #### what to support in the near future
 
 * text modeling
-* scale up to clusters: learning algorithm and offline data storage
+* scale up to clusters including data storage and model learning
 
 [Detailed Documentation](docs/SamanthaDoc.pdf)
 
