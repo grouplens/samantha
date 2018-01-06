@@ -23,7 +23,7 @@
 package org.grouplens.samantha.modeler.tensorflow;
 
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.modeler.featurizer.AbstractLearningInstance;
+import org.grouplens.samantha.modeler.instance.AbstractLearningInstance;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,45 +34,45 @@ public class TensorFlowInstance extends AbstractLearningInstance {
     protected double weight;
     protected double label;
 
-    protected final Map<String, double[]> name2doubles;
-    protected final Map<String, int[]> name2ints;
+    protected final Map<String, double[]> name2values;
+    protected final Map<String, int[]> name2indices;
 
     public TensorFlowInstance(String group) {
         super(group);
-        name2doubles = new HashMap<>();
-        name2ints = new HashMap<>();
+        name2values = new HashMap<>();
+        name2indices = new HashMap<>();
         weight = 1.0;
         label = 0.0;
     }
 
     protected TensorFlowInstance(String group, double label, double weight,
-                                 Map<String, double[]> name2doubles,
-                                 Map<String, int[]> name2ints) {
+                                 Map<String, double[]> name2values,
+                                 Map<String, int[]> name2indices) {
         super(group);
-        this.name2doubles = name2doubles;
-        this.name2ints= name2ints;
+        this.name2values = name2values;
+        this.name2indices= name2indices;
         this.label = label;
         this.weight = weight;
     }
 
-    public void putDoubles(String name, double[] values) {
-        name2doubles.put(name, values);
+    public void putValues(String name, double[] values) {
+        name2values.put(name, values);
     }
 
-    public void putInts(String name, int[] values) {
-        name2ints.put(name, values);
+    public void putIndices(String name, int[] values) {
+        name2indices.put(name, values);
     }
 
-    public Map<String, double[]> getName2Doubles() {
-        return name2doubles;
+    public Map<String, double[]> getName2Values() {
+        return name2values;
     }
 
-    public Map<String, int[]> getName2Ints() {
-        return name2ints;
+    public Map<String, int[]> getName2Indices() {
+        return name2indices;
     }
 
     public LearningInstance newInstanceWithLabel(double label) {
-        TensorFlowInstance instance = new TensorFlowInstance(group, label, weight, name2doubles, name2ints);
+        TensorFlowInstance instance = new TensorFlowInstance(group, label, weight, name2values, name2indices);
         instance.label = label;
         return instance;
     }

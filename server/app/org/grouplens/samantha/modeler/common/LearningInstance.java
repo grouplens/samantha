@@ -22,12 +22,14 @@
 
 package org.grouplens.samantha.modeler.common;
 
+import org.grouplens.samantha.modeler.model.LearningModel;
+
 import java.io.Serializable;
 
 /**
  * The interface representing one featurized data point.
  *
- * Typically, LearningInstance is specific to certain {@link org.grouplens.samantha.modeler.solver.LearningModel LearningModel},
+ * Typically, LearningInstance is specific to certain {@link LearningModel LearningModel},
  * because different kinds of models require different numerical representation of the data. Usually, LearningInstance is
  * consisted of {@link org.grouplens.samantha.modeler.featurizer.Feature Feature}s. However, different LearningInstance
  * organize the lists of Features differently, e.g. {@link org.grouplens.samantha.modeler.svdfeature.SVDFeature SVDFeature}

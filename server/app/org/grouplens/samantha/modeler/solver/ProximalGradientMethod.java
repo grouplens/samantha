@@ -26,11 +26,11 @@ import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.modeler.space.SpaceMode;
-import org.grouplens.samantha.modeler.space.SynchronizedVariableSpace;
-import org.grouplens.samantha.modeler.space.VariableSpace;
+import org.grouplens.samantha.modeler.model.LearningModel;
+import org.grouplens.samantha.modeler.model.SpaceMode;
+import org.grouplens.samantha.modeler.model.SynchronizedVariableSpace;
+import org.grouplens.samantha.modeler.model.VariableSpace;
 
-import javax.inject.Inject;
 import java.util.List;
 
 public class ProximalGradientMethod extends AbstractOptimizationMethod {

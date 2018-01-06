@@ -25,7 +25,7 @@ package org.grouplens.samantha.server.predictor;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.grouplens.samantha.modeler.solver.*;
-import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.model.SpaceMode;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeatureProducer;
 import org.grouplens.samantha.server.common.AbstractModelManager;
@@ -67,8 +67,6 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
     private final Injector injector;
     private final List<Configuration> expandersConfig;
     private final String daoConfigKey;
-    private final String serializedKey;
-    private final String insName;
     private final Configuration config;
 
     private SVDFeaturePredictorConfig(List<String> biasFeas, List<String> ufactFeas, List<String> ifactFeas,
@@ -79,8 +77,8 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
                                       List<FeatureExtractorConfig> feaExtConfigs,
                                       Configuration entityDaoConfigs, String dependPredictorName,
                                       String dependPredictorModelName, Injector injector,
-                                      List<Configuration> expandersConfig, String daoConfigKey, String insName,
-                                      String serializedKey, Configuration config) {
+                                      List<Configuration> expandersConfig, String daoConfigKey,
+                                      Configuration config) {
         this.biasFeas = biasFeas;
         this.ufactFeas = ufactFeas;
         this.ifactFeas = ifactFeas;
@@ -101,8 +99,6 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
         this.injector = injector;
         this.expandersConfig = expandersConfig;
         this.daoConfigKey = daoConfigKey;
-        this.serializedKey = serializedKey;
-        this.insName = insName;
         this.config = config;
     }
 
@@ -142,8 +138,6 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
                 dependPredictorName,
                 dependPredictorModelName, injector, expanders,
                 predictorConfig.getString("daoConfigKey"),
-                predictorConfig.getString("instanceName"),
-                predictorConfig.getString("serializedKey"),
                 predictorConfig);
     }
 
@@ -184,13 +178,13 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
             JsonNode reqBody = requestContext.getRequestBody();
             SVDFeature svdFeature = (SVDFeature) model;
             LearningData data = PredictorUtilities.getLearningData(svdFeature, requestContext,
-                    reqBody.get("learningDaoConfig"), entityDaoConfigs, expandersConfig, injector, true,
-                    serializedKey, insName, labelName, weightName, groupKeys);
+                    reqBody.get("learningDaoConfig"), entityDaoConfigs, expandersConfig,
+                    injector, true, groupKeys, 128);
             LearningData valid = null;
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(svdFeature, requestContext,
                         reqBody.get("validationDaoConfig"), entityDaoConfigs, expandersConfig,
-                        injector, false, serializedKey, insName, labelName, weightName, groupKeys);
+                        injector, false, groupKeys, 128);
             }
             OptimizationMethod method = (OptimizationMethod) PredictorUtilities
                     .getLearningMethod(methodConfig, injector, requestContext);
@@ -202,8 +196,7 @@ public class SVDFeaturePredictorConfig implements PredictorConfig {
             SVDFeature svdFeature = (SVDFeature) model;
             LearningData data = PredictorUtilities.getLearningData(svdFeature, requestContext,
                     requestContext.getRequestBody().get(daoConfigKey), entityDaoConfigs,
-                    expandersConfig, injector, true, serializedKey, insName,
-                    labelName, weightName, groupKeys);
+                    expandersConfig, injector, true, groupKeys, 128);
             OnlineOptimizationMethod onlineMethod = (OnlineOptimizationMethod) PredictorUtilities
                     .getLearningMethod(onlineMethodConfig, injector, requestContext);
             onlineMethod.update(svdFeature, data);

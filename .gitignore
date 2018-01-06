@@ -1,3 +1,6 @@
+*.iml
+*.pyc
+
 docs/.ipynb_checkpoints
 
 server/logs

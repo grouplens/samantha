@@ -29,7 +29,7 @@ import org.grouplens.samantha.modeler.dao.CSVFileDAO;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.modeler.dao.EntityListDAO;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.modeler.featurizer.GroupedEntityList;
+import org.grouplens.samantha.modeler.instance.GroupedEntityList;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.exception.BadRequestException;
@@ -119,10 +119,10 @@ public class UserReturnIndexer extends AbstractIndexer {
             csvFileDAO.close();
         }
         EntityDAO data = indexer.getEntityDAO(requestContext);
-        GroupedEntityList userDao = new GroupedEntityList(groupKeys, data);
+        GroupedEntityList userDao = new GroupedEntityList(groupKeys, null, data);
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
-            IndexerUtilities.writeOutHeader(dataFields, writer, separator);
+            IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
             List<ObjectNode> acts;
             while ((acts = userDao.getNextGroup()).size() > 0) {
                 if (usedGroups.size() > 0) {
@@ -133,7 +133,7 @@ public class UserReturnIndexer extends AbstractIndexer {
                 }
                 EntityDAO listDao = new EntityListDAO(acts);
                 GroupedEntityList grouped = new GroupedEntityList(
-                        Lists.newArrayList(sessionIdKey), listDao);
+                        Lists.newArrayList(sessionIdKey), null, listDao);
                 List<ObjectNode> group = grouped.getNextGroup();
                 List<ObjectNode> nextGrp;
                 while ((nextGrp = grouped.getNextGroup()).size() > 0) {
@@ -144,10 +144,10 @@ public class UserReturnIndexer extends AbstractIndexer {
                     if (reward >= 0.0) {
                         for (ObjectNode entity : group) {
                             entity.put(rewardKey, 0.0);
-                            IndexerUtilities.writeOutJson(entity, dataFields, writer, separator);
+                            IndexerUtilities.writeCSVFields(entity, dataFields, writer, separator);
                         }
                         lastEntity.put(rewardKey, reward);
-                        IndexerUtilities.writeOutJson(lastEntity, dataFields, writer, separator);
+                        IndexerUtilities.writeCSVFields(lastEntity, dataFields, writer, separator);
                     }
                     group.clear();
                     group = nextGrp;

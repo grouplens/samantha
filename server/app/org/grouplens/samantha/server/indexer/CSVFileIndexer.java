@@ -38,7 +38,7 @@ import play.libs.Json;
 import java.util.List;
 
 public class CSVFileIndexer extends AbstractIndexer {
-    private final CSVFileService dataService;
+    private final FileWriterService dataService;
     private final String indexType;
     private final String timestampField;
     private final List<String> dataFields;
@@ -54,7 +54,7 @@ public class CSVFileIndexer extends AbstractIndexer {
     private final String subDaoConfigKey;
 
     public CSVFileIndexer(SamanthaConfigService configService,
-                          CSVFileService dataService,
+                          FileWriterService dataService,
                           Configuration config, Injector injector, Configuration daoConfigs,
                           String daoConfigKey, String timestampField, List<String> dataFields,
                           String beginTimeKey, String beginTime, String endTimeKey, String endTime,
@@ -82,17 +82,14 @@ public class CSVFileIndexer extends AbstractIndexer {
         String operation = JsonHelpers.getOptionalString(reqBody, ConfigKey.DATA_OPERATION.get(),
                 DataOperation.INSERT.get());
         if (operation.equals(DataOperation.INSERT.get()) || operation.equals(DataOperation.UPSERT.get())) {
-            JsonNode data;
             if (!documents.isArray()) {
-                ArrayNode arr = Json.newArray();
-                arr.add(documents);
-                data = arr;
+                dataService.writeCSV(indexType, documents, dataFields,
+                        documents.get(timestampField).asInt());
             } else {
-                data = documents;
-            }
-            for (JsonNode document : data) {
-                int tstamp = document.get(timestampField).asInt();
-                dataService.write(indexType, document, dataFields, tstamp);
+                for (JsonNode document : documents) {
+                    dataService.writeCSV(indexType, document, dataFields,
+                            document.get(timestampField).asInt());
+                }
             }
         } else {
             throw new BadRequestException("Data operation " + operation + " is not supported");

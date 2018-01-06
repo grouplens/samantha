@@ -29,7 +29,7 @@ import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.modeler.space.*;
+import org.grouplens.samantha.modeler.model.*;
 import org.grouplens.samantha.server.common.*;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.dao.EntityDAOUtilities;

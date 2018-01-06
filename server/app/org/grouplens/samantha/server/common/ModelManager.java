@@ -22,7 +22,7 @@
 
 package org.grouplens.samantha.server.common;
 
-import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.model.SpaceMode;
 import org.grouplens.samantha.server.io.RequestContext;
 
 public interface ModelManager {

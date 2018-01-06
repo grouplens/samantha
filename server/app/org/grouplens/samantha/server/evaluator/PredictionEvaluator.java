@@ -23,7 +23,7 @@
 package org.grouplens.samantha.server.evaluator;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.grouplens.samantha.modeler.featurizer.GroupedEntityList;
+import org.grouplens.samantha.modeler.instance.GroupedEntityList;
 import org.grouplens.samantha.server.evaluator.metric.MetricResult;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.evaluator.metric.Metric;
@@ -77,25 +77,14 @@ public class PredictionEvaluator implements Evaluator {
         if (groupKeys != null && groupKeys.size() > 0) {
             Logger.info("Note that the input evaluation data must be sorted by the group keys, e.g. groupId");
         }
-        if (groupKeys == null || groupKeys.size() == 0) {
-            List<ObjectNode> entityList = new ArrayList<>();
-            while (entityDAO.hasNextEntity()) {
-                ObjectNode entity = entityDAO.getNextEntity();
-                entityList.add(entity);
-                getPredictionMetrics(requestContext, entityList);
-                entityList.clear();
-            }
-            entityDAO.close();
-        } else {
-            GroupedEntityList groupedEntityList = new GroupedEntityList(groupKeys, entityDAO);
-            List<ObjectNode> entityList;
-            int cnt = 0;
-            while ((entityList = groupedEntityList.getNextGroup()).size() > 0) {
-                getPredictionMetrics(requestContext, entityList);
-                cnt++;
-                if (cnt % 10000 == 0) {
-                    Logger.info("Evaluated on {} groups.", cnt);
-                }
+        GroupedEntityList groupedEntityList = new GroupedEntityList(groupKeys, 1, entityDAO);
+        List<ObjectNode> entityList;
+        int cnt = 0;
+        while ((entityList = groupedEntityList.getNextGroup()).size() > 0) {
+            getPredictionMetrics(requestContext, entityList);
+            cnt++;
+            if (cnt % 10000 == 0) {
+                Logger.info("Evaluated on {} groups.", cnt);
             }
         }
         List<MetricResult> metricResults = EvaluatorUtilities.indexMetrics(predictor.getConfig(),

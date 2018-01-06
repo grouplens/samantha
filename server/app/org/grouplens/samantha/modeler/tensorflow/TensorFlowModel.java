@@ -29,13 +29,13 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.featurizer.*;
-import org.grouplens.samantha.modeler.solver.AbstractLearningModel;
+import org.grouplens.samantha.modeler.model.AbstractLearningModel;
 import org.grouplens.samantha.modeler.solver.IdentityFunction;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
 import org.grouplens.samantha.modeler.solver.StochasticOracle;
-import org.grouplens.samantha.modeler.space.IndexSpace;
-import org.grouplens.samantha.modeler.space.UncollectableModel;
-import org.grouplens.samantha.modeler.space.VariableSpace;
+import org.grouplens.samantha.modeler.model.IndexSpace;
+import org.grouplens.samantha.modeler.model.UncollectableModel;
+import org.grouplens.samantha.modeler.model.VariableSpace;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.tensorflow.Graph;
 import org.tensorflow.Session;
@@ -53,7 +53,6 @@ import java.util.Map;
 
 public class TensorFlowModel extends AbstractLearningModel implements Featurizer, UncollectableModel {
     private static final long serialVersionUID = 1L;
-    public static final String indexKey = "TENSOR_FLOW";
     transient protected Graph graph;
     transient protected Session session;
     protected final List<FeatureExtractor> featureExtractors;
@@ -62,28 +61,24 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     protected final String outputOperationName;
     protected final String initOperationName;
     protected final List<String> groupKeys;
-    protected final Map<String, List<String>> name2intfeas;
-    protected final Map<String, List<String>> name2doublefeas;
+    protected final List<String> indexKeys;
 
     public TensorFlowModel(Graph graph,
                            IndexSpace indexSpace, VariableSpace variableSpace,
                            List<FeatureExtractor> featureExtractors,
                            String lossOperationName, String updateOperationName,
                            String outputOperationName, String initOperationName,
-                           List<String> groupKeys,
-                           Map<String, List<String>> name2doublefeas,
-                           Map<String, List<String>> name2intfeas) {
+                           List<String> groupKeys, List<String> indexKeys) {
         super(indexSpace, variableSpace);
         this.graph = graph;
         this.session = new Session(graph);
         this.groupKeys = groupKeys;
-        this.name2doublefeas = name2doublefeas;
-        this.name2intfeas = name2intfeas;
         this.featureExtractors = featureExtractors;
         this.lossOperationName = lossOperationName;
         this.updateOperationName = updateOperationName;
         this.outputOperationName = outputOperationName;
         this.initOperationName = initOperationName;
+        this.indexKeys = indexKeys;
         session.runner().addTarget(initOperationName).run();
     }
 
@@ -138,29 +133,17 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             group = FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys);
         }
         TensorFlowInstance instance = new TensorFlowInstance(group);
-        for (Map.Entry<String, List<String>> entry : name2doublefeas.entrySet()) {
+        for (Map.Entry<String, List<Feature>> entry : feaMap.entrySet()) {
             DoubleList doubles = new DoubleArrayList();
-            for (String feaName : entry.getValue()) {
-                if (feaMap.containsKey(feaName)) {
-                    for (Feature feature : feaMap.get(feaName)) {
-                        doubles.add(feature.getValue());
-                    }
-                }
-            }
-            double[] arr = doubles.toDoubleArray();
-            instance.putDoubles(entry.getKey(), arr);
-        }
-        for (Map.Entry<String, List<String>> entry : name2intfeas.entrySet()) {
             IntList ints = new IntArrayList();
-            for (String feaName : entry.getValue()) {
-                if (feaMap.containsKey(feaName)) {
-                    for (Feature feature : feaMap.get(feaName)) {
-                        ints.add(feature.getIndex());
-                    }
-                }
+            for (Feature feature : entry.getValue()) {
+                doubles.add(feature.getValue());
+                ints.add(feature.getIndex());
             }
-            int[] arr = ints.toIntArray();
-            instance.putInts(entry.getKey(), arr);
+            double[] darr = doubles.toDoubleArray();
+            instance.putValues(entry.getKey(), darr);
+            int[] iarr = ints.toIntArray();
+            instance.putIndices(entry.getKey(), iarr);
         }
         return instance;
     }
@@ -172,21 +155,30 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         Map<String, IntBuffer> intBufferMap = new HashMap<>();
         for (LearningInstance instance : instances) {
             TensorFlowInstance tfins = (TensorFlowInstance) instance;
-            for (Map.Entry<String, double[]> entry : tfins.getName2Doubles().entrySet()) {
-                String name = entry.getKey();
-                double[] values = entry.getValue();
-                doubleBufferMap.putIfAbsent(name, DoubleBuffer.allocate(batch * values.length));
-                DoubleBuffer buffer = doubleBufferMap.get(name);
-                buffer.put(values);
-                numCols.putIfAbsent(name, values.length);
-            }
-            for (Map.Entry<String, int[]> entry : tfins.getName2Ints().entrySet()) {
+            for (Map.Entry<String, int[]> entry : tfins.getName2Indices().entrySet()) {
                 String name = entry.getKey();
                 int[] values = entry.getValue();
-                intBufferMap.putIfAbsent(name, IntBuffer.allocate(batch * values.length));
-                IntBuffer buffer = intBufferMap.get(name);
+                int cur = numCols.getOrDefault(name, 0);
+                if (values.length > cur) {
+                    numCols.put(name, values.length);
+                }
+            }
+        }
+        for (LearningInstance instance : instances) {
+            TensorFlowInstance tfins = (TensorFlowInstance) instance;
+            for (Map.Entry<String, double[]> entry : tfins.getName2Values().entrySet()) {
+                String name = entry.getKey();
+                double[] values = entry.getValue();
+                DoubleBuffer buffer = DoubleBuffer.allocate(batch * numCols.get(name));
                 buffer.put(values);
-                numCols.putIfAbsent(name, values.length);
+                doubleBufferMap.put(name, buffer);
+            }
+            for (Map.Entry<String, int[]> entry : tfins.getName2Indices().entrySet()) {
+                String name = entry.getKey();
+                int[] values = entry.getValue();
+                IntBuffer buffer = IntBuffer.allocate(batch * numCols.get(name));
+                buffer.put(values);
+                intBufferMap.put(name, buffer);
             }
         }
         Map<String, Tensor> tensorMap = new HashMap<>();
@@ -197,11 +189,12 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             if (doubleBufferMap.containsKey(name)) {
                 DoubleBuffer buffer = doubleBufferMap.get(name);
                 buffer.rewind();
-                tensorMap.put(name, Tensor.create(shape, buffer));
-            } else if (intBufferMap.containsKey(name)) {
+                tensorMap.put(name + "_val", Tensor.create(shape, buffer));
+            }
+            if (intBufferMap.containsKey(name)) {
                 IntBuffer buffer = intBufferMap.get(name);
                 buffer.rewind();
-                tensorMap.put(name, Tensor.create(shape, buffer));
+                tensorMap.put(name + "_idx", Tensor.create(shape, buffer));
             }
         }
         return tensorMap;

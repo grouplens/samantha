@@ -24,6 +24,7 @@ package org.grouplens.samantha.modeler.solver;
 
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.PredictiveModel;
+import org.grouplens.samantha.modeler.model.LearningModel;
 import org.grouplens.samantha.server.exception.BadRequestException;
 
 abstract public class AbstractOptimizationMethod implements OptimizationMethod {

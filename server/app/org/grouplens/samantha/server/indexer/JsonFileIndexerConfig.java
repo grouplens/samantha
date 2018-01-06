@@ -22,7 +22,6 @@
 
 package org.grouplens.samantha.server.indexer;
 
-import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.io.RequestContext;
@@ -30,19 +29,43 @@ import play.Configuration;
 import play.inject.Injector;
 
 public class JsonFileIndexerConfig implements IndexerConfig {
-    private final String filePathKey;
-    private final Injector injector;
-    private final String daoConfigKey;
-    private final Configuration daoConfigs;
     private final Configuration config;
+    private final String indexType;
+    private final Injector injector;
+    private final Configuration daoConfigs;
+    private final String daoConfigKey;
+    private final String timestampField;
+    private final String beginTimeKey;
+    private final String beginTime;
+    private final String endTimeKey;
+    private final String endTime;
+    private final String daoNameKey;
+    private final String daoName;
+    private final String filesKey;
+    private final String subDaoName;
+    private final String subDaoConfigKey;
 
-    private JsonFileIndexerConfig(Configuration config, Injector injector,
-                                  Configuration daoConfigs, String daoConfigKey, String filePathKey) {
-        this.filePathKey = filePathKey;
+    protected JsonFileIndexerConfig(Configuration config, Injector injector, Configuration daoConfigs,
+                                    String daoConfigKey, String timestampField,
+                                    String beginTimeKey, String beginTime, String endTimeKey, String endTime,
+                                    String daoNameKey, String daoName, String filesKey,
+                                    String indexType, String subDaoConfigKey,
+                                    String subDaoName) {
+        this.config = config;
+        this.indexType = indexType;
         this.injector = injector;
         this.daoConfigKey = daoConfigKey;
         this.daoConfigs = daoConfigs;
-        this.config = config;
+        this.timestampField = timestampField;
+        this.beginTime = beginTime;
+        this.beginTimeKey = beginTimeKey;
+        this.endTime = endTime;
+        this.endTimeKey = endTimeKey;
+        this.daoName = daoName;
+        this.daoNameKey = daoNameKey;
+        this.filesKey = filesKey;
+        this.subDaoConfigKey = subDaoConfigKey;
+        this.subDaoName = subDaoName;
     }
 
     public static IndexerConfig getIndexerConfig(Configuration indexerConfig,
@@ -50,13 +73,25 @@ public class JsonFileIndexerConfig implements IndexerConfig {
         return new JsonFileIndexerConfig(indexerConfig, injector,
                 indexerConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
                 indexerConfig.getString("daoConfigKey"),
-                indexerConfig.getString("filePathKey"));
+                indexerConfig.getString("timestampField"),
+                indexerConfig.getString("beginTime"),
+                indexerConfig.getString("beginTimeKey"),
+                indexerConfig.getString("endTime"),
+                indexerConfig.getString("endTimeKey"),
+                indexerConfig.getString("daoName"),
+                indexerConfig.getString("daoNameKey"),
+                indexerConfig.getString("filesKey"),
+                indexerConfig.getString("indexType"),
+                indexerConfig.getString("subDaoConfigKey"),
+                indexerConfig.getString("subDaoName"));
     }
 
     public Indexer getIndexer(RequestContext requestContext) {
-        String filePath = JsonHelpers.getRequiredString(requestContext.getRequestBody(), filePathKey);
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
-        return new JsonFileIndexer(config, configService, daoConfigs, daoConfigKey,
-                injector, filePath);
+        FileWriterService dataService = injector.instanceOf(FileWriterService.class);
+        return new JsonFileIndexer(configService, dataService, config, injector,
+                daoConfigs, daoConfigKey, timestampField, beginTime, beginTimeKey,
+                endTime, endTimeKey, daoName, daoNameKey, filesKey, indexType,
+                subDaoName, subDaoConfigKey);
     }
 }

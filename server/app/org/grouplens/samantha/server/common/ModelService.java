@@ -22,7 +22,7 @@
 
 package org.grouplens.samantha.server.common;
 
-import org.grouplens.samantha.modeler.space.UncollectableModel;
+import org.grouplens.samantha.modeler.model.UncollectableModel;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

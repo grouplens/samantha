@@ -2,29 +2,23 @@
 
 #### what is Samantha
 
-* A generic recommender and predictor server. Machine learning is the core, but much more than that, particularly for the purpose of recommendation/ranking/candidate generation/evaluation.
+* A generic recommender and predictor server for both offline machine learning and recommendation modeling and fast online production serving.
 * MIT licence, oriented to production use (online field experiments in research and typical industrial use)
 
-#### what Samantha can do in simple words: full-fledged, self-contained server that can be used in production right away with one configuration file
+#### what Samantha can do in simple words: full-fledged, self-contained server that can be used in production right away with one configuration file, including the following components
 
-* data management, including offline and online, in (indexing) and out (post-processing), bootstrap once for all
-* model management, abstracted model operations
-* data processing pipeline, data expanding and feature extraction framework
+* data management, including offline and online, in (indexing) and out (post-processing), through configurable backends of most relational databases (e.g. MySQL, PostresSQL, SQLServer etc.), ElasticSearch or Redis.
+* model management, including online updating, building, loading, dumping and serving.
+* data processing pipeline based on a data expanding and feature extraction framework
 * state-of-the-art models: collaborative filtering, matrix factorization, knn, trees, boosting and bandits/reinforcement learning
-* experimental framework for A/B and bucket testing
+* experimental framework for randomized A/B and bucket testing
 * feedback (for online learning/optimization) and evaluation (for experimenting) loops among application front-end, application back-end server and Samantha
-* abstracted model parameter server, i.e. extensible variable and index spaces
+* abstracted model parameter server (through extensible variable and index spaces)
 * generic oracle-based optimization framework/solver with classic solvers
 * flexible model dependency, e.g. model ensemble, stacking, boosting
 * schedulers for regular model rebuilding or backup
-* integration with other state-of-the-art systems, e.g. xgboost, TensorFlow etc.
+* integration with other state-of-the-art systems including XGBoost and TensorFlow.
 * control and customize all these components through one centralized configuration file
-
-#### why do I develop Samantha
-
-* user-centered/human-centered research
-* offline to online trend
-* many options out there but no ideal
 
 #### the targeted audience/users of Samantha (users in this doc refer to those who use Samantha; instead, end users is used to refer to the ultimate users of applications built using Samantha)
 
@@ -34,8 +28,8 @@
 #### what to support in the near future
 
 * text modeling
-* scale up to clusters: learning algorithm and offline data storage
 * web interface based creation and deployment of recommender/predictor engines
+* scale up to clusters including data storage and model learning
 
 [Detailed Documentation](docs/SamanthaDoc.pdf)
 

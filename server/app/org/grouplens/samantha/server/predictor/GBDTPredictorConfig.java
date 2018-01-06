@@ -29,7 +29,7 @@ import org.grouplens.samantha.modeler.boosting.StandardBoostingMethod;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractor;
 import org.grouplens.samantha.modeler.solver.ObjectiveFunction;
-import org.grouplens.samantha.modeler.space.SpaceMode;
+import org.grouplens.samantha.modeler.model.SpaceMode;
 import org.grouplens.samantha.modeler.tree.TreeLearningMethod;
 import org.grouplens.samantha.server.common.AbstractModelManager;
 import org.grouplens.samantha.server.common.ModelManager;
@@ -61,8 +61,6 @@ public class GBDTPredictorConfig implements PredictorConfig {
     private final StandardBoostingMethod boostingMethod;
     private final Configuration objectiveConfig;
     private final String daoConfigKey;
-    private final String serializedKey;
-    private final String insName;
     private final Configuration config;
 
     private GBDTPredictorConfig(String modelName, List<FeatureExtractorConfig> feaExtConfigs,
@@ -71,7 +69,7 @@ public class GBDTPredictorConfig implements PredictorConfig {
                                 Injector injector, TreeLearningMethod method,
                                 List<String> groupKeys, String modelFile, Configuration objectiveConfig,
                                 StandardBoostingMethod boostingMethod, String daoConfigKey,
-                                String insName, String serializedKey, Configuration config) {
+                                Configuration config) {
         this.modelName = modelName;
         this.feaExtConfigs = feaExtConfigs;
         this.features = features;
@@ -86,8 +84,6 @@ public class GBDTPredictorConfig implements PredictorConfig {
         this.objectiveConfig = objectiveConfig;
         this.boostingMethod = boostingMethod;
         this.daoConfigKey = daoConfigKey;
-        this.serializedKey = serializedKey;
-        this.insName = insName;
         this.config = config;
     }
 
@@ -110,8 +106,7 @@ public class GBDTPredictorConfig implements PredictorConfig {
                 predictorConfig.getString("modelFile"),
                 predictorConfig.getConfig("objectiveConfig"), boostingMethod,
                 predictorConfig.getString("daoConfigKey"),
-                predictorConfig.getString("instanceName"),
-                predictorConfig.getString("serializedKey"), predictorConfig);
+                predictorConfig);
     }
 
     private class GBDTModelManager extends AbstractModelManager {
@@ -137,13 +132,13 @@ public class GBDTPredictorConfig implements PredictorConfig {
             GBDT gbdt = (GBDT) model;
             JsonNode reqBody = requestContext.getRequestBody();
             LearningData data = PredictorUtilities.getLearningData(gbdt, requestContext,
-                    reqBody.get("learningDaoConfig"), daoConfigs, expandersConfig, injector, true,
-                    serializedKey, insName, labelName, weightName, groupKeys);
+                    reqBody.get("learningDaoConfig"), daoConfigs, expandersConfig,
+                    injector, true, groupKeys, 128);
             LearningData valid = null;
             if (reqBody.has("validationDaoConfig"))  {
                 valid = PredictorUtilities.getLearningData(gbdt, requestContext,
-                        reqBody.get("validationDaoConfig"), daoConfigs, expandersConfig, injector, false,
-                        serializedKey, insName, labelName, weightName, groupKeys);
+                        reqBody.get("validationDaoConfig"), daoConfigs, expandersConfig,
+                        injector, false, groupKeys, 128);
             }
             boostingMethod.learn(gbdt, data, valid);
             return model;

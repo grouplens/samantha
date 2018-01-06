@@ -23,7 +23,7 @@
 package org.grouplens.samantha.server.evaluator;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.grouplens.samantha.modeler.featurizer.GroupedEntityList;
+import org.grouplens.samantha.modeler.instance.GroupedEntityList;
 import org.grouplens.samantha.server.evaluator.metric.Metric;
 import org.grouplens.samantha.server.evaluator.metric.MetricResult;
 import org.grouplens.samantha.server.indexer.Indexer;
@@ -76,7 +76,7 @@ public class RecommendationEvaluator implements Evaluator {
 
     public Evaluation evaluate(RequestContext requestContext) {
         Logger.info("Note that the input evaluation data must be sorted by the group keys, e.g. groupId");
-        GroupedEntityList groupedEntityList = new GroupedEntityList(groupKeys, entityDAO);
+        GroupedEntityList groupedEntityList = new GroupedEntityList(groupKeys, null, entityDAO);
         List<ObjectNode> entityList;
         int cnt = 0;
         while ((entityList = groupedEntityList.getNextGroup()).size() > 0) {

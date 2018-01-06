@@ -22,7 +22,7 @@
 
 package org.grouplens.samantha.modeler.common;
 
-import org.grouplens.samantha.modeler.space.SpaceModel;
+import org.grouplens.samantha.modeler.model.SpaceModel;
 
 import java.util.List;
 

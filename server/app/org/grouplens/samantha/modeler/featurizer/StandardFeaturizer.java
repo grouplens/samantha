@@ -26,7 +26,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.instance.StandardLearningInstance;
+import org.grouplens.samantha.modeler.model.IndexSpace;
 
 import java.io.Serializable;
 import java.util.HashMap;

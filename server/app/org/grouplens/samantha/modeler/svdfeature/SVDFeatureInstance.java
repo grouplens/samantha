@@ -24,13 +24,10 @@ package org.grouplens.samantha.modeler.svdfeature;
 
 import org.apache.commons.lang3.StringUtils;
 
-import org.grouplens.samantha.modeler.featurizer.AbstractLearningInstance;
+import org.grouplens.samantha.modeler.instance.AbstractLearningInstance;
 import org.grouplens.samantha.modeler.featurizer.Feature;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 

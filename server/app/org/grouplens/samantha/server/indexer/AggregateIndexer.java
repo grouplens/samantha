@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
-import org.grouplens.samantha.modeler.featurizer.GroupedEntityList;
+import org.grouplens.samantha.modeler.instance.GroupedEntityList;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.exception.BadRequestException;
@@ -89,10 +89,10 @@ public class AggregateIndexer extends AbstractIndexer {
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
         EntityDAO data = indexer.getEntityDAO(requestContext);
-        GroupedEntityList groupDao = new GroupedEntityList(groupKeys, data);
+        GroupedEntityList groupDao = new GroupedEntityList(groupKeys, null, data);
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
-            IndexerUtilities.writeOutHeader(otherFields, writer, separator);
+            IndexerUtilities.writeCSVHeader(otherFields, writer, separator);
             List<ObjectNode> acts;
             while ((acts = groupDao.getNextGroup()).size() > 0) {
                 ObjectNode act = acts.get(0);
@@ -104,7 +104,7 @@ public class AggregateIndexer extends AbstractIndexer {
                 for (int i=0; i<aggFields.size(); i++) {
                     act.put(aggFields.get(i) + aggSumAppendix, sums[i]);
                 }
-                IndexerUtilities.writeOutJson(act, dataFields, writer, separator);
+                IndexerUtilities.writeCSVFields(act, dataFields, writer, separator);
                 acts.clear();
             }
             writer.close();

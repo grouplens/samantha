@@ -24,6 +24,7 @@ package org.grouplens.samantha.modeler.tensorflow;
 
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
+import org.grouplens.samantha.modeler.model.LearningModel;
 import org.grouplens.samantha.modeler.solver.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

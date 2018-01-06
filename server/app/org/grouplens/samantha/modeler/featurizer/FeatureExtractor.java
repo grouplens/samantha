@@ -23,7 +23,7 @@
 package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.grouplens.samantha.modeler.space.IndexSpace;
+import org.grouplens.samantha.modeler.model.IndexSpace;
 
 import java.io.Serializable;
 import java.util.List;
@@ -41,7 +41,7 @@ public interface FeatureExtractor extends Serializable {
     /**
      * Extract features from the given JSON data point. A feature is an integer index and a double value. The index
      * should come from {@link IndexSpace} by mapping the attribute/field/variable name into a consecutive index space,
-     * which will be further used to access {@link org.grouplens.samantha.modeler.space.VariableSpace VariableSpace}.
+     * which will be further used to access {@link org.grouplens.samantha.modeler.model.VariableSpace VariableSpace}.
      * The value could just be 1.0 which means the corresponding feature is hit by the data point. This usually happens
      * when a categorical feature is dealt with. It can be better understood if you think about the conversion from
      * factor variable to dummy variables in R if you know about data analysis in R. For numerical features, the value will
@@ -51,7 +51,7 @@ public interface FeatureExtractor extends Serializable {
      * @param update whether update the indexSpace if the variable name is not present. While learning a model, this should
      *               be true. While using a model to make predictions, this should be false.
      * @param indexSpace the index space used for variable name to integer index mapping. this usually is part of a
-     *                   {@link org.grouplens.samantha.modeler.space.SpaceModel SpaceModel}
+     *                   {@link org.grouplens.samantha.modeler.model.SpaceModel SpaceModel}
      * @return a map of feature lists from the feature name to the actual list of features.
      */
     Map<String, List<Feature>> extract(JsonNode entity, boolean update,
