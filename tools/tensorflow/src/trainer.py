@@ -22,10 +22,10 @@ class ModelTrainer(object):
         self.learning_rate = learning_rate
 
     def train(self, run_name=None):
-        session = tf.Session()
-        with session.as_default():
-            graph = tf.get_default_graph()
-            with graph.as_default():
+        graph = tf.Graph()
+        with graph.as_default():
+            session = tf.Session(graph=graph)
+            with session.as_default():
                 logging.info('Building the model graph.')
                 print 'Building the model graph.'
                 loss, updates = self.builder.build_model()
@@ -58,4 +58,4 @@ class ModelTrainer(object):
                             break
                     self.train_data.reset()
                 train_writer.close()
-        session.close()
+            session.close()

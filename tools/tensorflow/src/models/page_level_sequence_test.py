@@ -9,9 +9,13 @@ from page_level_sequence import PageLevelSequenceModelBuilder
 class PageLevelSequenceModelTest(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self._test_path = '/tmp/tflearn_logs/'
 
-    def test_model_builder_with_trainer(self):
+    def test_dump_graph(self):
+        model_builder = PageLevelSequenceModelBuilder()
+        model_builder.dump_graph(self._test_path + 'page_level_sequence_model.graph', 0.01)
+
+    def test_build_model_with_trainer(self):
         model_builder = PageLevelSequenceModelBuilder()
         item_events = {'click': 0.3, 'high_rate': 0.5, 'low_rate': 0.5, 'wishlist': 0.1}
         user_vocab_size = 10
@@ -45,7 +49,9 @@ class PageLevelSequenceModelTest(unittest.TestCase):
                             batch['%s_idx' % event][l].append(0)
             batches.append(batch)
         train_data = ListDataSet(batches)
-        model_trainer = ModelTrainer(train_data, builder=model_builder, max_steps=10)
+        model_trainer = ModelTrainer(
+            train_data, builder=model_builder, max_steps=10,
+            tensorboard_dir=self._test_path)
         model_trainer.train('page_level_sequence_test_run')
 
 if __name__ == '__main__':
