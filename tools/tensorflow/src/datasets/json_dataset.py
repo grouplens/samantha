@@ -1,7 +1,7 @@
 
 import json
 
-from src.dataset import DataSet
+from ..dataset import DataSet
 
 class JsonDataSet(DataSet):
 
