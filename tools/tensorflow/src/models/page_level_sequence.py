@@ -71,7 +71,8 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         used_output = tf.gather_nd(rnn_output, rnn_indices)
         logits = softmax(used_output)
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=valid_labels, logits=logits)
-        loss = tf.reduce_sum(losses) / tf.cast(tf.shape(valid_labels)[0], tf.float64)
+        num_labels = tf.maximum(tf.shape(valid_labels)[0], 1)
+        loss = tf.reduce_sum(losses) / tf.cast(num_labels, tf.float64)
         metric_update = []
         if metrics != None:
             for metric in metrics.split(' '):
