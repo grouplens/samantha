@@ -71,20 +71,24 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         used_output = tf.gather_nd(rnn_output, rnn_indices)
         logits = softmax(used_output)
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=valid_labels, logits=logits)
-        num_labels = tf.maximum(tf.shape(valid_labels)[0], 1)
-        loss = tf.reduce_sum(losses) / tf.cast(num_labels, tf.float64)
+        #num_labels = tf.maximum(tf.shape(valid_labels)[0], 1)
+        #loss = tf.reduce_sum(losses) / tf.cast(num_labels, tf.float64)
         metric_update = []
         if metrics != None:
             for metric in metrics.split(' '):
                 if 'MAP' in metric:
                     metric_update += self._compute_map_metrics(valid_labels, logits, metric)
-        return loss, metric_update
+        return losses, metric_update
 
     def _get_softmax_loss(self, sequence_length, rnn_output, label_by_event, softmax_by_event):
         length_limit = tf.reshape(sequence_length, [-1])
         split_limit = tf.cast(tf.cast(length_limit, tf.float64) * self._train_eval_split, tf.int32)
+        tf.summary.scalar('seqlen', tf.reduce_mean(length_limit))
+        tf.summary.scalar('split', tf.reduce_mean(split_limit))
         train_loss = 0
         eval_loss = 0
+        num_train_labels = 0
+        num_eval_labels = 0
         updates = []
         for key in self._item_events:
             non_zeros_indices = tf.cast(tf.where(label_by_event[key] > 0), tf.int32)
@@ -102,17 +106,23 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
                 non_zeros_indices, tf.logical_and(step_idx > 0, step_idx <= step_split_limit))
             eval_indices = tf.boolean_mask(
                 non_zeros_indices, tf.logical_and(step_idx > step_split_limit, step_idx < step_length_limit))
+            num_event_train_labels = tf.shape(train_indices)[0]
+            num_event_eval_labels = tf.shape(eval_indices)[0]
+            num_train_labels += num_event_train_labels
+            num_eval_labels += num_event_eval_labels
             with tf.variable_scope(key):
-                train_event_loss, _ = self._compute_event_loss(
+                tf.summary.scalar('num_train_labels', num_event_train_labels)
+                tf.summary.scalar('num_eval_labels', num_event_eval_labels)
+                train_event_losses, _ = self._compute_event_loss(
                     rnn_output, train_indices, label_by_event[key], softmax_by_event[key])
-                eval_event_loss, metric_update = self._compute_event_loss(
+                eval_event_losses, metric_update = self._compute_event_loss(
                     rnn_output, eval_indices, label_by_event[key],
                     softmax_by_event[key], metrics=self._eval_metrics)
-            train_loss += train_event_loss
-            eval_loss += eval_event_loss
+            train_loss += tf.reduce_sum(train_event_losses)
+            eval_loss += tf.reduce_sum(eval_event_losses)
             updates += metric_update
-        train_loss /= len(self._item_events)
-        eval_loss /= len(self._item_events)
+        train_loss = train_loss / tf.cast(tf.maximum(1, num_train_labels), tf.float64)
+        eval_loss = eval_loss / tf.cast(tf.maximum(1, num_eval_labels), tf.float64)
         tf.summary.scalar('train_loss', train_loss)
         tf.summary.scalar('eval_loss', eval_loss)
         return train_loss, updates
@@ -178,7 +188,10 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
 
             #get softmax prediction by taking into account all steps in the sequences excluding the zeros
             with tf.variable_scope('prediction'):
-                prediction = self._get_softmax_prediction(
+                self._get_softmax_prediction(
                     sequence_length, rnn_output, softmax_layer)
 
         return loss, updates
+
+    def build_optimizer(self, loss, learning_rate):
+        return tf.train.RMSPropOptimizer(learning_rate).minimize(loss, name='upate_op')
