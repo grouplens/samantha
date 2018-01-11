@@ -56,7 +56,7 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
                 map_value, map_update = tf.metrics.sparse_average_precision_at_k(
                     tf.cast(dense_labels, tf.int64), logits, int(k))
                 updates.append(map_update)
-            tf.summary.scalar('MAP@%s' % k, map_value)
+            tf.summary.scalar('MAP_K%s' % k, map_value)
         return updates
 
     def _compute_event_loss(self, rnn_output, indices, labels, softmax, metrics=None):
@@ -71,7 +71,7 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         used_output = tf.gather_nd(rnn_output, rnn_indices)
         logits = softmax(used_output)
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=valid_labels, logits=logits)
-        loss = tf.reduce_sum(losses) / tf.cast(tf.shape(valid_labels)[0], tf.float32)
+        loss = tf.reduce_sum(losses) / tf.cast(tf.shape(valid_labels)[0], tf.float64)
         metric_update = []
         if metrics != None:
             for metric in metrics.split(' '):
@@ -81,7 +81,7 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
 
     def _get_softmax_loss(self, sequence_length, rnn_output, label_by_event, softmax_by_event):
         length_limit = tf.reshape(sequence_length, [-1])
-        split_limit = tf.cast(tf.cast(length_limit, tf.float32) * self._train_eval_split, tf.int32)
+        split_limit = tf.cast(tf.cast(length_limit, tf.float64) * self._train_eval_split, tf.int32)
         train_loss = 0
         eval_loss = 0
         updates = []
