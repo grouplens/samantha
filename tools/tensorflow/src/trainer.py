@@ -5,7 +5,7 @@ import logging
 
 import tensorflow as tf
 
-from builder import ModelBuilder
+from src.builder import ModelBuilder
 
 class ModelTrainer(object):
 

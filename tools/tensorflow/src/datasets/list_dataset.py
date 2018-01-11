@@ -1,5 +1,5 @@
 
-from ..dataset import DataSet
+from src.dataset import DataSet
 
 class ListDataSet(DataSet):
 

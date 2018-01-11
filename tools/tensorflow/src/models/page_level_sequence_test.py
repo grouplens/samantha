@@ -2,9 +2,9 @@
 import unittest
 import random
 
-from ..trainer import ModelTrainer
-from ..datasets.list_dataset import ListDataSet
-from page_level_sequence import PageLevelSequenceModelBuilder
+from src.trainer import ModelTrainer
+from src.datasets.list_dataset import ListDataSet
+from src.models.page_level_sequence import PageLevelSequenceModelBuilder
 
 class PageLevelSequenceModelTest(unittest.TestCase):
 
