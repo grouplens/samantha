@@ -13,7 +13,9 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
                  item_events=['display', 'click', 'high_rate', 'low_rate', 'wishlist'],
                  predicted_event='click',
                  train_eval_split=0.8,
-                 eval_metrics='MAP@8'):
+                 eval_metrics='MAP@8',
+                 batch_size=128, #Note that tha actually input may not exactly be this size, this is the max
+                 loss_batch_size=128):
         self._page_size = page_size
         self._user_vocab_size = user_vocab_size
         self._item_vocab_size = item_vocab_size
@@ -22,6 +24,8 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         self._predicted_event = predicted_event
         self._train_eval_split = train_eval_split
         self._eval_metrics = eval_metrics
+        self._batch_size = batch_size
+        self._loss_batch_size = loss_batch_size
         self._test_tensors = {}
 
     def test_tensors(self):
@@ -42,25 +46,32 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         rnn_layer = tf.keras.layers.GRU(self._rnn_size, return_sequences=True)
         return rnn_layer(input)
 
-    def _compute_map_metrics(self, labels, logits, metric):
-        K = metric.split('@')[1].split(',')
+    def _compute_map_metrics(self, labels_arr, logits_arr, metric):
         updates = []
-        expand_labels = tf.expand_dims(labels, 1)
-        label_idx = tf.expand_dims(tf.range(tf.shape(labels)[0]), 1)
-        dense_labels = tf.sparse_to_dense(
-            sparse_indices=tf.concat([label_idx, expand_labels], 1),
-            output_shape=[tf.shape(labels)[0], self._item_vocab_size],
-            sparse_values=1)
-        for k in K:
-            with tf.variable_scope('MAP_K%s' % k):
-                map_value, map_update = tf.metrics.sparse_average_precision_at_k(
-                    tf.cast(dense_labels, tf.int64), logits, int(k))
-                updates.append(map_update)
-            tf.summary.scalar('MAP_K%s' % k, map_value)
+        for i in range(len(labels_arr)):
+            labels = labels_arr[i]
+            logits = logits_arr[i]
+            K = metric.split('@')[1].split(',')
+            expand_labels = tf.expand_dims(labels, 1)
+            label_idx = tf.expand_dims(tf.range(tf.shape(labels)[0]), 1)
+            dense_labels = tf.sparse_to_dense(
+                sparse_indices=tf.concat([label_idx, expand_labels], 1),
+                output_shape=[tf.shape(labels)[0], self._item_vocab_size],
+                sparse_values=1)
+            if i == 0:
+                reuse = False
+            else:
+                reuse = True
+            with tf.variable_scope('metric', reuse=reuse):
+                for k in K:
+                    with tf.variable_scope('MAP_K%s' % k):
+                        map_value, map_update = tf.metrics.sparse_average_precision_at_k(
+                            tf.cast(dense_labels, tf.int64), logits, int(k))
+                        updates.append(map_update)
+                        tf.summary.scalar('MAP_K%s' % k, map_value)
         return updates
 
     def _compute_event_loss(self, rnn_output, indices, labels, softmax, metrics=None):
-        valid_labels = tf.gather_nd(labels, indices)
         batch_idx = tf.reshape(tf.slice(indices,
             begin=[0, 0],
             size=[tf.shape(indices)[0], 1]), [tf.shape(indices)[0], 1])
@@ -69,13 +80,37 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
             size=[tf.shape(indices)[0], 1]) - 1, [tf.shape(indices)[0], 1])
         rnn_indices = tf.concat([batch_idx, step_idx], 1)
         used_output = tf.gather_nd(rnn_output, rnn_indices)
-        logits = softmax(used_output)
-        losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=valid_labels, logits=logits)
+        valid_labels = tf.gather_nd(labels, indices)
+        if self._loss_batch_size < self._batch_size:
+            mask_idx = tf.reshape(
+                tf.slice(indices,
+                         begin=[0, 0],
+                         size=[tf.shape(indices)[0], 1]), [-1])
+            loss_arr = []
+            logits_arr = []
+            labels_arr = []
+            with tf.variable_scope('mask'):
+                for i in range(0, self._batch_size, self._loss_batch_size):
+                    loss_mask = tf.logical_and(mask_idx >= i, mask_idx < i + self._loss_batch_size)
+                    masked_labels = tf.boolean_mask(valid_labels, loss_mask)
+                    masked_output = tf.boolean_mask(used_output, loss_mask)
+                    masked_logits = softmax(masked_output)
+                    logits_arr.append(masked_logits)
+                    labels_arr.append(masked_labels)
+                    masked_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
+                        labels=masked_labels, logits=masked_logits)
+                    loss_arr.append(masked_losses)
+            losses = tf.concat(loss_arr, axis=0)
+        else:
+            logits = softmax(used_output)
+            losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=valid_labels, logits=logits)
+            logits_arr = [logits]
+            labels_arr = [valid_labels]
         metric_update = []
         if metrics != None:
             for metric in metrics.split(' '):
                 if 'MAP' in metric:
-                    metric_update += self._compute_map_metrics(valid_labels, logits, metric)
+                    metric_update += self._compute_map_metrics(labels_arr, logits_arr, metric)
         return losses, metric_update
 
     def _get_softmax_loss(self, sequence_length, rnn_output, label_by_event, softmax_by_event):
