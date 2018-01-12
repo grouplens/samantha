@@ -52,7 +52,7 @@ class PageLevelSequenceModelTest(unittest.TestCase):
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
             tensorboard_dir=self._test_path)
-        model_trainer.train('page_level_sequence_test_run')
+        model_trainer.train('page_level_sequence_test_run0')
 
 if __name__ == '__main__':
     unittest.main()

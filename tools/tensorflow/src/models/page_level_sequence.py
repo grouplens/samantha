@@ -47,11 +47,11 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         return rnn_layer(input)
 
     def _compute_map_metrics(self, labels_arr, logits_arr, metric):
+        K = metric.split('@')[1].split(',')
         updates = []
         for i in range(len(labels_arr)):
             labels = labels_arr[i]
             logits = logits_arr[i]
-            K = metric.split('@')[1].split(',')
             expand_labels = tf.expand_dims(labels, 1)
             label_idx = tf.expand_dims(tf.range(tf.shape(labels)[0]), 1)
             dense_labels = tf.sparse_to_dense(
