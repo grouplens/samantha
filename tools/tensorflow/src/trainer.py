@@ -2,6 +2,8 @@
 import random
 import string
 import logging
+import sys
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 import tensorflow as tf
 
@@ -27,7 +29,6 @@ class ModelTrainer(object):
             session = tf.Session(graph=graph)
             with session.as_default():
                 logging.info('Building the model graph.')
-                print 'Building the model graph.'
                 loss, updates = self.builder.build_model()
                 run_tensors = self.builder.test_tensors()
                 update_op = tf.train.AdagradOptimizer(self.learning_rate).minimize(loss)
@@ -42,10 +43,8 @@ class ModelTrainer(object):
                         random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
                 train_writer = tf.summary.FileWriter(self.tensorboard_dir + run_name, graph)
                 logging.info('Initializing the model graph.')
-                print 'Initializing the model graph.'
                 session.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
                 logging.info('Training the model.')
-                print 'Training the model.'
                 step = 0
                 while step < self.max_steps:
                     for train_batch in self.train_data.next_batch():
@@ -53,7 +52,6 @@ class ModelTrainer(object):
                         train_writer.add_summary(train_vals['merged_summary'], step)
                         step += 1
                         logging.info('Step %s, training loss: %s', step, train_vals['train_loss'])
-                        print 'Step %s, training loss: %s' % (step, train_vals['train_loss'])
                         if step >= self.max_steps:
                             break
                     self.train_data.reset()
