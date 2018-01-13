@@ -16,7 +16,9 @@ class PageLevelSequenceModelTest(unittest.TestCase):
         model_builder.dump_graph(self._test_path + 'page_level_sequence_model.graph', 0.01)
 
     def test_build_model_with_trainer(self):
-        model_builder = PageLevelSequenceModelBuilder()
+        model_builder = PageLevelSequenceModelBuilder(
+                item_events=['display', 'click', 'high_rate', 'low_rate', 'wishlist'],
+                predicted_event='click')
         item_events = {'click': 0.3, 'high_rate': 0.5, 'low_rate': 0.5, 'wishlist': 0.1}
         user_vocab_size = 10
         item_vocab_size = 10

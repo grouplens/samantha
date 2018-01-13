@@ -10,23 +10,24 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
                  user_vocab_size=10,
                  item_vocab_size=10,
                  rnn_size=5,
-                 item_events=['display', 'click', 'high_rate', 'low_rate', 'wishlist'],
-                 predicted_event='click',
-                 train_eval_split=0.8,
-                 eval_metrics='MAP@8',
-                 batch_size=128, #Note that tha actually input may not exactly be this size, this is the max
-                 loss_batch_size=128,
-                 eval_pages=1):
+                 item_events=['display', 'action'],
+                 predicted_event='action',
+                 eval_metrics='MAP@1',
+                 loss_split_steps=10,
+                 max_train_steps=500,
+                 train_steps=500,
+                 eval_steps=1):
         self._page_size = page_size
         self._user_vocab_size = user_vocab_size
         self._item_vocab_size = item_vocab_size
         self._rnn_size = rnn_size
         self._item_events = item_events
         self._predicted_event = predicted_event
-        self._train_eval_split = train_eval_split
         self._eval_metrics = eval_metrics
-        self._batch_size = batch_size
-        self._loss_batch_size = loss_batch_size
+        self._loss_split_steps = loss_split_steps
+        self._max_train_steps = max_train_steps
+        self._train_steps = train_steps
+        self._eval_steps = eval_steps
         self._test_tensors = {}
 
     def test_tensors(self):
@@ -37,6 +38,8 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
             tf.int32, shape=(None, None), name='%s_idx' % name)
         max_sequence_len = tf.shape(event)[1] / self._page_size
         recognized_item = event * tf.cast(event < self._item_vocab_size, tf.int32)
+        #return tf.reshape(
+        #    recognized_item, [tf.shape(recognized_item)[0], max_sequence_len, self._page_size])
         return tf.reshape(event, [tf.shape(recognized_item)[0], max_sequence_len, self._page_size])
 
     def _step_wise_relu(self, input):
@@ -75,38 +78,48 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         used_output = tf.gather_nd(rnn_output, rnn_indices)
         valid_labels = tf.gather_nd(labels, indices)
         metric_update = []
-        if self._loss_batch_size < self._batch_size and metrics == None:
-            mask_idx = tf.reshape(
-                tf.slice(indices,
-                         begin=[0, 0],
-                         size=[tf.shape(indices)[0], 1]), [-1])
-            loss_arr = []
+        if self._loss_split_steps < self._max_train_steps and metrics == None:
+            mask_idx = tf.reshape(tf.slice(indices,
+                begin=[0, 1],
+                size=[tf.shape(indices)[0], 1]) - 1, [-1])
+            mask_idx = tf.Print(mask_idx, [tf.shape(mask_idx)], 'mask_idx')
+            loss = 0
             with tf.variable_scope('mask'):
-                for i in range(0, self._batch_size, self._loss_batch_size):
-                    loss_mask = tf.logical_and(mask_idx >= i, mask_idx < i + self._loss_batch_size)
+                for i in range(0, self._max_train_steps, self._loss_split_steps):
+                    loss_mask = tf.logical_and(mask_idx >= i, mask_idx < i + self._loss_split_steps)
+                    loss_mask = tf.Print(loss_mask, [tf.shape(loss_mask)], 'loss_mask' + str(i))
                     masked_labels = tf.boolean_mask(valid_labels, loss_mask)
+                    masked_labels = tf.Print(masked_labels, [tf.shape(masked_labels)], 'masked_labels' + str(i))
                     masked_output = tf.boolean_mask(used_output, loss_mask)
+                    masked_output = tf.Print(masked_output, [tf.shape(masked_output)], 'masked_output' + str(i))
                     masked_logits = softmax(masked_output)
+                    masked_logits = tf.Print(masked_logits, [tf.shape(masked_logits)], 'masked_logits' + str(i))
                     masked_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
                         labels=masked_labels, logits=masked_logits)
-                    loss_arr.append(masked_losses)
-            losses = tf.concat(loss_arr, axis=0)
+                    masked_losses = tf.Print(masked_losses, [tf.shape(masked_losses)], 'masked_losses' + str(i))
+                    loss += tf.reduce_sum(masked_losses)
         else:
+            used_output = tf.Print(used_output, [tf.shape(used_output)], 'used_output')
             logits = softmax(used_output)
+            logits = tf.Print(logits, [tf.shape(logits)], 'logits')
             losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=valid_labels, logits=logits)
+            losses = tf.Print(losses, [tf.shape(losses)], 'losses')
+            loss = tf.reduce_sum(losses)
             if metrics != None:
                 for metric in metrics.split(' '):
                     if 'MAP' in metric:
                         metric_update += self._compute_map_metrics(valid_labels, logits, metric)
-        return losses, metric_update
+        return loss, metric_update
 
     def _get_softmax_loss(self, sequence_length, rnn_output, label_by_event, softmax_by_event):
-        length_limit = tf.reshape(sequence_length, [-1])
-        split_limit = tf.cast(tf.cast(length_limit, tf.float64) * self._train_eval_split, tf.int32)
-        length_limit = tf.Print(length_limit, [length_limit, split_limit], 'limit: ')
-        tf.summary.scalar('seqlen', tf.reduce_mean(length_limit))
-        tf.summary.scalar('split', tf.reduce_mean(split_limit))
+        length_limit = tf.minimum(
+                tf.reshape(sequence_length, [-1]),
+                self._max_train_steps)
+        length_limit = tf.Print(length_limit, [length_limit], 'length_limit: ', summarize=128)
+        tf.summary.scalar('max_sequence_length', tf.reduce_max(length_limit))
+        split_limit = tf.maximum(length_limit - self._eval_steps, 2)
+        start_limit = tf.maximum(split_limit - self._train_steps - 1, 0)
         train_loss = 0
         eval_loss = 0
         num_train_labels = 0
@@ -114,7 +127,6 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         updates = []
         for key in self._item_events:
             non_zeros_indices = tf.cast(tf.where(label_by_event[key] > 0), tf.int32)
-            non_zeros_indices = tf.Print(non_zeros_indices, [tf.shape(non_zeros_indices)], 'non_zeros: ')
             batch_idx = tf.reshape(tf.slice(
                 non_zeros_indices,
                 begin=[0, 0],
@@ -125,13 +137,15 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
                 size=[tf.shape(non_zeros_indices)[0], 1]), [-1])
             step_split_limit = tf.gather(split_limit, batch_idx)
             step_length_limit = tf.gather(length_limit, batch_idx)
+            step_start_limit = tf.gather(start_limit, batch_idx)
             train_indices = tf.boolean_mask(
-                non_zeros_indices, tf.logical_and(step_idx > 0, step_idx <= step_split_limit))
+                non_zeros_indices, tf.logical_and(
+                    step_idx > step_start_limit, step_idx < step_split_limit))
             eval_indices = tf.boolean_mask(
                 non_zeros_indices, tf.logical_and(
-                    step_idx > step_split_limit, step_idx < step_length_limit))
+                    step_idx >= step_split_limit, step_idx < step_length_limit))
             train_indices = tf.Print(train_indices,
-                    [tf.shape(train_indices), tf.shape(eval_indices)], 'train, eval: ')
+                    [tf.shape(train_indices), tf.shape(eval_indices)], key + ' - train, eval: ')
             num_event_train_labels = tf.shape(train_indices)[0]
             num_event_eval_labels = tf.shape(eval_indices)[0]
             num_train_labels += num_event_train_labels
@@ -139,13 +153,13 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
             with tf.variable_scope(key):
                 tf.summary.scalar('num_train_labels', num_event_train_labels)
                 tf.summary.scalar('num_eval_labels', num_event_eval_labels)
-                train_event_losses, _ = self._compute_event_loss(
+                train_event_loss, _ = self._compute_event_loss(
                     rnn_output, train_indices, label_by_event[key], softmax_by_event[key])
-                eval_event_losses, metric_update = self._compute_event_loss(
+                eval_event_loss, metric_update = self._compute_event_loss(
                     rnn_output, eval_indices, label_by_event[key],
                     softmax_by_event[key], metrics=self._eval_metrics)
-            train_loss += tf.reduce_sum(train_event_losses)
-            eval_loss += tf.reduce_sum(eval_event_losses)
+            train_loss += train_event_loss
+            eval_loss += eval_event_loss
             updates += metric_update
         train_loss = train_loss / tf.cast(tf.maximum(1, num_train_labels), tf.float64)
         eval_loss = eval_loss / tf.cast(tf.maximum(1, num_eval_labels), tf.float64)
@@ -169,9 +183,11 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         item_idx = {}
         for key in self._item_events:
             item_idx[key] = self._event_item(key)
+        #TODO: get recognized user just as item
         user_idx = tf.placeholder(tf.int32, shape=(None, 1), name='user_idx')
         #get sequence length as input for each sequence in the batch
         sequence_length = tf.placeholder(tf.int32, shape=(None, 1), name='sequence_length_val')
+        sequence_length = tf.Print(sequence_length, [tf.shape(sequence_length)], 'batch: ')
 
         with tf.variable_scope('embedding'):
             #create item input embeddings
