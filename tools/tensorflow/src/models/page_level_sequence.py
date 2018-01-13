@@ -13,7 +13,7 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
                  item_events=['display', 'action'],
                  predicted_event='action',
                  eval_metrics='MAP@1',
-                 loss_split_steps=10,
+                 loss_split_steps=500,
                  max_train_steps=500,
                  train_steps=500,
                  eval_steps=1):
@@ -53,16 +53,10 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
     def _compute_map_metrics(self, labels, logits, metric):
         K = metric.split('@')[1].split(',')
         updates = []
-        expand_labels = tf.expand_dims(labels, 1)
-        label_idx = tf.expand_dims(tf.range(tf.shape(labels)[0]), 1)
-        dense_labels = tf.sparse_to_dense(
-            sparse_indices=tf.concat([label_idx, expand_labels], 1),
-            output_shape=[tf.shape(labels)[0], self._item_vocab_size],
-            sparse_values=1)
         for k in K:
             with tf.variable_scope('MAP_K%s' % k):
                 map_value, map_update = tf.metrics.sparse_average_precision_at_k(
-                    tf.cast(dense_labels, tf.int64), logits, int(k))
+                    tf.cast(labels, tf.int64), logits, int(k))
                 updates.append(map_update)
                 tf.summary.scalar('MAP_K%s' % k, map_value)
         return updates

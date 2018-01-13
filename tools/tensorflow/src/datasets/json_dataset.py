@@ -15,7 +15,7 @@ class JsonDataSet(DataSet):
                     obj = json.loads(line.strip())
                     feed_dict = {}
                     for key, val in obj.iteritems():
-                        if key in ['display_idx', 'user_idx', 'sequence_length_val']:
+                        if key in ['display_idx', 'user_idx', 'sequence_length_val', 'click_idx']:
                             feed_dict['%s:0' % key] = val
                     yield feed_dict
 

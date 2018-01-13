@@ -9,7 +9,8 @@ from src.models.page_level_sequence import PageLevelSequenceModelBuilder
 class PageLevelSequenceModelTest(unittest.TestCase):
 
     def setUp(self):
-        self._test_path = '/tmp/tflearn_logs/'
+        #self._test_path = '/tmp/tflearn_logs/'
+        self._test_path = '/opt/pyml/UserInaction/data/tensorboard/'
 
     def test_dump_graph(self):
         model_builder = PageLevelSequenceModelBuilder()
