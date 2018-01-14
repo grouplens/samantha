@@ -23,7 +23,7 @@ class PageLevelSequenceModelTest(unittest.TestCase):
         item_events = {'click': 0.3, 'high_rate': 0.5, 'low_rate': 0.5, 'wishlist': 0.1}
         user_vocab_size = 10
         item_vocab_size = 10
-        batches = []
+        bat
         batch_size = 4
         page_size = 3
         for i in range(10):

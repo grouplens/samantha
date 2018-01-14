@@ -3,15 +3,12 @@ import tensorflow as tf
 
 from src.builder import ModelBuilder
 
-class PageLevelSequenceModelBuilder(ModelBuilder):
+class BaseSequenceModelBuilder(ModelBuilder):
 
     def __init__(self,
                  page_size=3,
-                 user_vocab_size=10,
-                 item_vocab_size=10,
-                 rnn_size=5,
-                 item_events=['display', 'action'],
-                 predicted_event='action',
+                 attr2config=None,
+                 target2config=None,
                  eval_metrics='MAP@1',
                  loss_split_steps=500,
                  max_train_steps=500,
@@ -19,11 +16,31 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
                  eval_steps=1,
                  filter_unrecognized=False):
         self._page_size = page_size
-        self._user_vocab_size = user_vocab_size
-        self._item_vocab_size = item_vocab_size
-        self._rnn_size = rnn_size
-        self._item_events = item_events
-        self._predicted_event = predicted_event
+        # this configures each input
+        #   vocab_size
+        #   is_numerical
+        #   embedding_dim
+        #   level: user|item
+        if attr2config is None:
+            self._attr2config = {
+                'action': {
+                    'vocab_size': 10,
+                    'is_numerical': False,
+                    'embedding_dim': 10,
+                    'level': 'item'
+                }
+            }
+        else:
+            self._attr2config = attr2config
+        # this configures which input and how to predict
+        if target2config is None:
+            self._target2config = {
+                'action': {
+                    'weight': 1.0,
+                }
+            }
+        else:
+            self._target2config = target2config
         self._eval_metrics = eval_metrics
         self._loss_split_steps = loss_split_steps
         self._max_train_steps = max_train_steps
@@ -35,24 +52,13 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
     def test_tensors(self):
         return self._test_tensors
 
-    def _event_item(self, name):
-        event = tf.placeholder(
-            tf.int32, shape=(None, None), name='%s_idx' % name)
-        max_sequence_len = tf.shape(event)[1] / self._page_size
-        if self._filter_unrecognized:
-            recognized_item = event * tf.cast(event < self._item_vocab_size, tf.int32)
-            return tf.reshape(
-                recognized_item, [tf.shape(recognized_item)[0], max_sequence_len, self._page_size])
-        else:
-            return tf.reshape(event, [tf.shape(event)[0], max_sequence_len, self._page_size])
-
-    def _step_wise_relu(self, input):
+    def _step_wise_relu(self, inputs):
         relu_layer = tf.keras.layers.Dense(self._rnn_size, activation='relu')
-        return relu_layer(input)
+        return relu_layer(inputs)
 
-    def _get_rnn_output(self, input):
+    def _get_rnn_output(self, inputs):
         rnn_layer = tf.keras.layers.GRU(self._rnn_size, return_sequences=True)
-        return rnn_layer(input)
+        return rnn_layer(inputs)
 
     def _compute_map_metrics(self, labels, logits, metric):
         K = metric.split('@')[1].split(',')
@@ -67,19 +73,19 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
 
     def _compute_event_loss(self, rnn_output, indices, labels, softmax, metrics=None):
         batch_idx = tf.reshape(tf.slice(indices,
-            begin=[0, 0],
-            size=[tf.shape(indices)[0], 1]), [tf.shape(indices)[0], 1])
+                                        begin=[0, 0],
+                                        size=[tf.shape(indices)[0], 1]), [tf.shape(indices)[0], 1])
         step_idx = tf.reshape(tf.slice(indices,
-            begin=[0, 1],
-            size=[tf.shape(indices)[0], 1]) - 1, [tf.shape(indices)[0], 1])
+                                       begin=[0, 1],
+                                       size=[tf.shape(indices)[0], 1]) - 1, [tf.shape(indices)[0], 1])
         rnn_indices = tf.concat([batch_idx, step_idx], 1)
         used_output = tf.gather_nd(rnn_output, rnn_indices)
         valid_labels = tf.gather_nd(labels, indices)
         metric_update = []
         if self._loss_split_steps < self._max_train_steps and metrics == None:
             mask_idx = tf.reshape(tf.slice(indices,
-                begin=[0, 1],
-                size=[tf.shape(indices)[0], 1]) - 1, [-1])
+                                           begin=[0, 1],
+                                           size=[tf.shape(indices)[0], 1]) - 1, [-1])
             loss = 0
             with tf.variable_scope('mask'):
                 for i in range(0, self._max_train_steps, self._loss_split_steps):
@@ -102,9 +108,14 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         return loss, metric_update
 
     def _get_softmax_loss(self, sequence_length, rnn_output, label_by_event, softmax_by_event):
+        with tf.variable_scope('softmax'):
+            softmax_layer = {}
+            for key in self._item_events:
+                softmax_layer[key] = tf.keras.layers.Dense(self._item_vocab_size)
+
         length_limit = tf.minimum(
-                tf.reshape(sequence_length, [-1]),
-                self._max_train_steps)
+            tf.reshape(sequence_length, [-1]),
+            self._max_train_steps)
         tf.summary.scalar('max_sequence_length', tf.reduce_max(length_limit))
         split_limit = tf.maximum(length_limit - self._eval_steps, 2)
         start_limit = tf.maximum(split_limit - self._train_steps - 1, 0)
@@ -153,78 +164,77 @@ class PageLevelSequenceModelBuilder(ModelBuilder):
         tf.summary.scalar('eval_loss', eval_loss)
         return train_loss, updates
 
-    def _get_softmax_prediction(self, sequence_length, rnn_output, softmax_by_event):
+    def _get_inputs(self):
+        attr2input = {}
+        max_seq_len = None
+        for attr, config in self._attr2config.iteritems():
+            with tf.variable_scope(attr):
+                size = None
+                if config['level'] == 'user':
+                    size = 1
+                inputs = tf.placeholder(
+                    tf.int32, shape=(None, size), name='%s_idx' % attr)
+                if config['level'] == 'item':
+                    max_seq_len = tf.shape(attr)[1] / self._page_size
+                if self._filter_unrecognized:
+                    inputs = inputs * tf.cast(inputs < config['vocab_size'], tf.int32)
+                attr2input[attr] = inputs
+        if max_seq_len is None:
+            raise Exception('There must be an item level attribute in attr2config.')
+        sequence_length = tf.placeholder(tf.int32, shape=(None, 1), name='sequence_length_val')
+        return max_seq_len, sequence_length, attr2input
+
+    def _get_embedders(self):
+        attr2embedder = {}
+        for attr, config in self._attr2config.iteritems:
+            attr2embedder[attr] = tf.keras.layers.Embedding(config['vocab_size'], config['embedding_dim'])
+        return attr2embedder
+
+    def _get_embeddings(self, max_seq_len, attr2input, attr2embedder):
+        attr2embedding = {}
+        for attr, config in self._attr2config.iteritems():
+            if config['level'] == 'item':
+                inputs = tf.reshape(attr2input[attr], [tf.shape(attr)[0], max_seq_len, self._page_size])
+                embedding = attr2embedder[attr](inputs)
+                embedding = tf.reshape(
+                    tf.shape(embedding)[0], tf.shape(embedding)[1], self._page_size * config['embedding_dim'])
+            else:
+                inputs = attr2input[attr]
+                embedding = attr2embedder[attr](inputs)
+            attr2embedding[attr] = embedding
+        return attr2embedding
+
+    def _get_user_model(self, attr2embedding):
+        pass
+
+    def _get_loss(self, sequence_length, user_model, attr2input):
+        pass
+
+    def _get_prediction(self, sequence_length, user_model, output_paras):
+        return self._get_softmax_prediction(sequence_length, user_model, output_paras)
+
+    def _get_softmax_prediction(self, sequence_length, user_model, target2softmax):
         seq_idx = sequence_length - 1
         batch_idx = tf.expand_dims(tf.range(tf.shape(sequence_length)[0]), 1)
         output_idx = tf.concat([batch_idx, seq_idx], 1)
-        sequence_output = tf.gather_nd(rnn_output, output_idx)
-        probs_by_event = {}
-        for key in self._item_events:
-            logits = softmax_by_event[key](sequence_output)
-            probs_by_event[key] = tf.nn.softmax(logits, name='%s_prob' % key)
-        return probs_by_event[self._predicted_event]
-
-    def _get_input(self, item_idx):
-        user_idx = tf.placeholder(tf.int32, shape=(None, 1), name='user_idx')
-        if self._filter_unrecognized:
-            user_idx = user_idx * tf.cast(user_idx < self._user_vocab_size, tf.int32)
-        #create item input embeddings
-        event_embedder = {}
-        for key in self._item_events:
-            event_embedder[key] = tf.keras.layers.Embedding(self._item_vocab_size, self._rnn_size)
-        #get embeddings for each event
-        event_embedding = []
-        for key in self._item_events:
-            event_embedding.append(event_embedder[key](item_idx[key]))
-        concated_event_embedding = tf.concat(event_embedding, 3)
-        item_input = tf.reshape(concated_event_embedding,
-                                [tf.shape(concated_event_embedding)[0],
-                                 tf.shape(concated_event_embedding)[1],
-                                 len(self._item_events) * self._page_size * self._rnn_size])
-        #create user input embedding
-        user_embedder = tf.keras.layers.Embedding(self._user_vocab_size, self._rnn_size)
-        expanded_user = tf.tile(user_idx, [1, tf.shape(item_input)[1]])
-        expanded_user_embedding = user_embedder(expanded_user)
-        all_input = tf.concat([item_input, expanded_user_embedding], 2)
-        return all_input
-
+        sequence_output = tf.gather_nd(user_model, output_idx)
+        target2preds = {}
+        for target in self._target2config:
+            logits = target2softmax[target](sequence_output)
+            target2preds[target] = tf.nn.softmax(logits, name='%s_prob' % target)
+        return target2preds
 
     def build_model(self):
-        #get sequence length as input for each sequence in the batch
-        sequence_length = tf.placeholder(tf.int32, shape=(None, 1), name='sequence_length_val')
-
-        #get other inputs
-        item_idx = {}
-        for key in self._item_events:
-            item_idx[key] = self._event_item(key)
-        with tf.variable_scope('embedding'):
-            all_input = self._get_input(item_idx)
-
-        #go through relu to have [batch, sequence_length, relu_output]
-        with tf.variable_scope('relu'):
-            relu_output = self._step_wise_relu(all_input)
-
-        #go through rnn and get all the states output [batch, sequence_length, rnn_state]
-        with tf.variable_scope('rnn'):
-            rnn_output = self._get_rnn_output(relu_output)
-
-        #create item softmax weights and biases
-        with tf.variable_scope('softmax'):
-            softmax_layer = {}
-            for key in self._item_events:
-                softmax_layer[key] = tf.keras.layers.Dense(self._item_vocab_size)
-
-            #get softmax losses for all steps excluding the zeros
-            with tf.variable_scope('loss'):
-                loss, updates = self._get_softmax_loss(
-                    sequence_length, rnn_output, item_idx, softmax_layer)
-
-            #get softmax prediction by taking into account all steps in the sequences excluding the zeros
-            with tf.variable_scope('prediction'):
-                self._get_softmax_prediction(
-                    sequence_length, rnn_output, softmax_layer)
-
+        with tf.variable_scope('inputs'):
+            max_seq_len, sequence_length, attr2input = self._get_inputs()
+        with tf.variable_scope('embeddings'):
+            attr2embedder = self._get_embedders()
+            attr2embedding = self._get_embeddings(max_seq_len, attr2input, attr2embedder)
+        with tf.variable_scope('user_model'):
+            user_model = self._get_user_model(attr2embedding)
+        with tf.variable_scope('loss'):
+            loss, updates, output_paras = self._get_loss(
+                sequence_length, user_model, attr2input)
+        with tf.variable_scope('prediction'):
+            self._get_prediction(sequence_length, user_model, output_paras)
         return loss, updates
-
-    def build_optimizer(self, loss, learning_rate):
-        return tf.train.RMSPropOptimizer(learning_rate).minimize(loss, name='upate_op')
