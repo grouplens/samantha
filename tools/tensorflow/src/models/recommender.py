@@ -3,9 +3,12 @@ import tensorflow as tf
 
 from src.builder import ModelBuilder
 
-class BaseModelBuilder(ModelBuilder):
+
+class RecommenderBuilder(ModelBuilder):
 
     def __init__(self,
+                 user_model,
+                 prediction_model,
                  page_size=3,
                  attr2config=None,
                  target2config=None,
@@ -14,13 +17,10 @@ class BaseModelBuilder(ModelBuilder):
                  max_train_steps=500,
                  train_steps=500,
                  eval_steps=1,
-                 filter_unrecognized=False, **kwargs):
+                 filter_unrecognized=False):
+        self._user_model = user_model
+        self._prediction_model = prediction_model
         self._page_size = page_size
-        # this configures each input
-        #   vocab_size
-        #   is_numerical
-        #   embedding_dim
-        #   level: user|item
         if attr2config is None:
             self._attr2config = {
                 'action': {
@@ -32,7 +32,6 @@ class BaseModelBuilder(ModelBuilder):
             }
         else:
             self._attr2config = attr2config
-        # this configures which input and how to predict
         if target2config is None:
             self._target2config = {
                 'action': {
@@ -47,28 +46,10 @@ class BaseModelBuilder(ModelBuilder):
         self._train_steps = train_steps
         self._eval_steps = eval_steps
         self._filter_unrecognized = filter_unrecognized
-        self._kwargs = kwargs
         self._test_tensors = {}
 
     def test_tensors(self):
         return self._test_tensors
-
-    def _step_wise_relu(self, inputs, relu_size):
-        relu_layer = tf.keras.layers.Dense(relu_size, activation='relu', dtype=tf.float32)
-        return relu_layer(inputs)
-
-    def _get_rnn_output(self, inputs, rnn_size):
-        rnn_layer = tf.keras.layers.GRU(rnn_size, return_sequences=True, dtype=tf.float32)
-        return rnn_layer(inputs)
-
-    def _get_sequence_user_model(self, max_seq_len, attr2embedding):
-        concatenated = self._get_concat_embeddings(max_seq_len, attr2embedding)
-        relu_output = self._step_wise_relu(concatenated, self._kwargs['rnn_size'])
-        rnn_output = self._get_rnn_output(relu_output, self._kwargs['rnn_size'])
-        return rnn_output
-
-    def _get_user_model(self, max_seq_len, attr2embedding):
-        return self._get_sequence_user_model(max_seq_len, attr2embedding)
 
     def _compute_map_metrics(self, labels, logits, metric):
         K = metric.split('@')[1].split(',')
@@ -81,32 +62,7 @@ class BaseModelBuilder(ModelBuilder):
                 tf.summary.scalar('MAP_K%s' % k, map_value)
         return updates
 
-    def _get_target_softmax_paras(self, target):
-        softmax = tf.keras.layers.Dense(
-            self._attr2config[target]['vocab_size'], dtype=tf.float32)
-        return softmax
-
-    def _get_target_softmax_prediction_loss(self, user_model, labels, softmax):
-        logits = softmax(user_model)
-        losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=labels, logits=logits)
-        loss = tf.reduce_sum(losses)
-        return logits, loss
-
-    def _get_target_softmax_prediction(self, model_output, target, target2softmax, target2preds):
-        logits = target2softmax[target](model_output)
-        target2preds[target] = tf.nn.softmax(logits, name='%s_prob' % target)
-
-    def _get_target_paras(self, target):
-        return self._get_target_softmax_paras(target)
-
-    def _get_target_prediction_loss(self, user_model, labels, paras):
-        return self._get_target_softmax_prediction_loss(user_model, labels, paras)
-
-    def _get_target_prediction(self, model_output, target, output_paras, target2preds):
-        return self._get_target_softmax_prediction(model_output, target, output_paras, target2preds)
-
-    def _compute_target_loss(self, user_model, indices, labels, paras, metrics=None):
+    def _compute_target_loss(self, user_model, indices, labels, paras, target, config, metrics=None):
         batch_idx = tf.reshape(tf.slice(indices,
                                         begin=[0, 0],
                                         size=[tf.shape(indices)[0], 1]), [tf.shape(indices)[0], 1])
@@ -127,10 +83,12 @@ class BaseModelBuilder(ModelBuilder):
                     loss_mask = tf.logical_and(mask_idx >= i, mask_idx < i + self._loss_split_steps)
                     masked_labels = tf.boolean_mask(valid_labels, loss_mask)
                     masked_output = tf.boolean_mask(used_output, loss_mask)
-                    _, masked_loss = self._get_target_prediction_loss(masked_output, masked_labels, paras)
+                    _, masked_loss = self._prediction_model.get_target_prediction_loss(
+                        masked_output, masked_labels, paras, target, config)
                     loss += masked_loss
         else:
-            predictions, loss = self._get_target_prediction_loss(used_output, valid_labels, paras)
+            predictions, loss = self._prediction_model.get_target_prediction_loss(
+                used_output, valid_labels, paras, target, config)
             if metrics is not None:
                 for metric in metrics.split(' '):
                     if 'MAP' in metric:
@@ -176,12 +134,13 @@ class BaseModelBuilder(ModelBuilder):
             with tf.variable_scope(target):
                 tf.summary.scalar('num_train_labels', num_target_train_labels)
                 tf.summary.scalar('num_eval_labels', num_target_eval_labels)
-                target2paras[target] = self._get_target_paras(target)
+                target2paras[target] = self._prediction_model.get_target_paras(target, config)
                 train_target_loss, _ = self._compute_target_loss(
-                    user_model, train_indices, target2label[target], target2paras[target])
+                    user_model, train_indices, target2label[target], target2paras[target],
+                    target, config)
                 eval_target_loss, metric_update = self._compute_target_loss(
                     user_model, eval_indices, target2label[target], target2paras[target],
-                    metrics=self._eval_metrics)
+                    target, config, metrics=self._eval_metrics)
             train_loss += config['weight'] * train_target_loss
             eval_loss += config['weight'] * eval_target_loss
             updates += metric_update
@@ -238,26 +197,15 @@ class BaseModelBuilder(ModelBuilder):
             attr2embedding[attr] = embedding
         return attr2embedding
 
-    def _get_concat_embeddings(self, max_seq_len, attr2embedding):
-        embeddings = []
-        for attr, embedding in attr2embedding.iteritems():
-            config = self._attr2config[attr]
-            if config['level'] == 'user':
-                embedding = tf.tile(
-                    embedding, [1, max_seq_len, 1])
-            embeddings.append(embedding)
-        concatenated = tf.concat(embeddings, 2)
-        return concatenated
-
-    def _get_prediction(self, sequence_length, user_model, output_paras):
+    def _get_prediction(self, sequence_length, user_model, target2paras):
         seq_idx = sequence_length - 1
         batch_idx = tf.expand_dims(tf.range(tf.shape(sequence_length)[0]), 1)
         output_idx = tf.concat([batch_idx, seq_idx], 1)
         model_output = tf.gather_nd(user_model, output_idx)
         target2preds = {}
-        for target in self._target2config:
-            return self._get_target_prediction(
-                model_output, target, output_paras, target2preds)
+        for target, config in self._target2config.iteritems():
+            return self._prediction_model.get_target_prediction(
+                model_output, target2paras[target], target2preds, target, config)
         return target2preds
 
     def build_model(self):
@@ -266,10 +214,11 @@ class BaseModelBuilder(ModelBuilder):
             attr2embedder = self._get_embedders()
             attr2embedding = self._get_embeddings(max_seq_len, attr2input, attr2embedder)
         with tf.variable_scope('user_model'):
-            user_model = self._get_user_model(max_seq_len, attr2embedding)
+            user_model = self._user_model.get_user_model(
+                max_seq_len, sequence_length, attr2embedding, self._attr2config)
         with tf.variable_scope('loss'):
-            loss, updates, output_paras = self._get_loss(
+            loss, updates, target2paras = self._get_loss(
                 sequence_length, user_model, attr2input)
         with tf.variable_scope('prediction'):
-            self._get_prediction(sequence_length, user_model, output_paras)
+            self._get_prediction(sequence_length, user_model, target2paras)
         return loss, updates

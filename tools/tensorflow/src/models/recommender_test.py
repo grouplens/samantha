@@ -4,25 +4,33 @@ import random
 
 from src.trainer import ModelTrainer
 from src.datasets.list_dataset import ListDataSet
-from src.models.base import BaseModelBuilder
+from src.models.sequence_user_model import SequenceUserModel
+from src.models.softmax_prediction_model import SoftmaxPredictionModel
+from src.models.recommender import RecommenderBuilder
 
 
-class BaseModelTest(unittest.TestCase):
+class RecommenderTest(unittest.TestCase):
 
     def setUp(self):
         # self._test_path = '/tmp/tflearn_logs/'
         self._test_path = '/opt/pyml/UserInaction/data/tensorboard/'
 
     def test_dump_graph(self):
-        model_builder = BaseModelBuilder()
-        model_builder.dump_graph(self._test_path + 'base_model.graph', 0.01)
+        model_builder = RecommenderBuilder()
+        model_builder.dump_graph(self._test_path + 'test_recommender.graph', 0.01)
 
     def test_build_model_with_trainer(self):
+        softmax_dim = 10
         embedding_dim = 10
         user_vocab_size = 10
         item_vocab_size = 10
+        rnn_size = 10
         page_size = 3
-        model_builder = BaseModelBuilder(
+        user_model = SequenceUserModel(rnn_size)
+        softmax_model = SoftmaxPredictionModel(softmax_dim)
+        model_builder = RecommenderBuilder(
+            user_model, softmax_model,
+            page_size=page_size,
             attr2config={
                 'action': {
                     'vocab_size': item_vocab_size,
@@ -37,13 +45,11 @@ class BaseModelTest(unittest.TestCase):
                     'level': 'user'
                 }
             },
-            targets={
+            target2config={
                 'action': {
                     'weight': 1.0
                 }
             },
-            page_size=page_size,
-            rnn_size=embedding_dim,
         )
         batches = []
         batch_size = 4
@@ -65,7 +71,7 @@ class BaseModelTest(unittest.TestCase):
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
             tensorboard_dir=self._test_path)
-        model_trainer.train('base_test_run0')
+        model_trainer.train('recommender_test_run0')
 
 if __name__ == '__main__':
     unittest.main()
