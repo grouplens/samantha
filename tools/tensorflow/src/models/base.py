@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from src.builder import ModelBuilder
 
-class BaseSequenceModelBuilder(ModelBuilder):
+class BaseModelBuilder(ModelBuilder):
 
     def __init__(self,
                  page_size=3,

@@ -6,6 +6,7 @@ from src.trainer import ModelTrainer
 from src.datasets.list_dataset import ListDataSet
 from src.models.page_level_sequence import PageLevelSequenceModelBuilder
 
+
 class PageLevelSequenceModelTest(unittest.TestCase):
 
     def setUp(self):
@@ -23,7 +24,7 @@ class PageLevelSequenceModelTest(unittest.TestCase):
         item_events = {'click': 0.3, 'high_rate': 0.5, 'low_rate': 0.5, 'wishlist': 0.1}
         user_vocab_size = 10
         item_vocab_size = 10
-        bat
+        batches = {}
         batch_size = 4
         page_size = 3
         for i in range(10):
