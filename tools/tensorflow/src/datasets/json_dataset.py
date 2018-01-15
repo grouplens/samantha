@@ -1,5 +1,6 @@
 
 import json
+import numpy as np
 
 from src.dataset import DataSet
 
@@ -15,8 +16,7 @@ class JsonDataSet(DataSet):
                     obj = json.loads(line.strip())
                     feed_dict = {}
                     for key, val in obj.iteritems():
-                        if key in ['display_idx', 'user_idx', 'sequence_length_val', 'click_idx']:
-                            feed_dict['%s:0' % key] = val
+                        feed_dict['%s:0' % key] = np.array(val)
                     yield feed_dict
 
     def reset(self):

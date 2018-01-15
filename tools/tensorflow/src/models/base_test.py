@@ -35,15 +35,15 @@ class BaseModelTest(unittest.TestCase):
                     'embedding_dim': embedding_dim,
                     'is_numerical': False,
                     'level': 'user'
-                },
-                'page_size': page_size,
+                }
             },
             targets={
                 'action': {
                     'weight': 1.0
                 }
             },
-            rnn_size=embedding_dim
+            page_size=page_size,
+            rnn_size=embedding_dim,
         )
         batches = []
         batch_size = 4
@@ -61,7 +61,6 @@ class BaseModelTest(unittest.TestCase):
                         else:
                             batch['action_idx'][l].append(0)
             batches.append(batch)
-            print batch
         train_data = ListDataSet(batches)
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,

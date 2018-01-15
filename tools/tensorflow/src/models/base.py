@@ -54,11 +54,11 @@ class BaseModelBuilder(ModelBuilder):
         return self._test_tensors
 
     def _step_wise_relu(self, inputs, relu_size):
-        relu_layer = tf.keras.layers.Dense(relu_size, activation='relu')
+        relu_layer = tf.keras.layers.Dense(relu_size, activation='relu', dtype=tf.float32)
         return relu_layer(inputs)
 
     def _get_rnn_output(self, inputs, rnn_size):
-        rnn_layer = tf.keras.layers.GRU(rnn_size, return_sequences=True)
+        rnn_layer = tf.keras.layers.GRU(rnn_size, return_sequences=True, dtype=tf.float32)
         return rnn_layer(inputs)
 
     def _get_sequence_user_model(self, max_seq_len, attr2embedding):
@@ -83,7 +83,7 @@ class BaseModelBuilder(ModelBuilder):
 
     def _get_target_softmax_paras(self, target):
         softmax = tf.keras.layers.Dense(
-            self._attr2config[target]['vocab_size'])
+            self._attr2config[target]['vocab_size'], dtype=tf.float32)
         return softmax
 
     def _get_target_softmax_prediction_loss(self, user_model, labels, softmax):
@@ -171,13 +171,12 @@ class BaseModelBuilder(ModelBuilder):
                     step_idx >= step_split_limit, step_idx < step_length_limit))
             num_target_train_labels = tf.shape(train_indices)[0]
             num_target_eval_labels = tf.shape(eval_indices)[0]
-            # TODO: change everything to float32
-            num_train_labels += config['weight'] * tf.cast(num_target_train_labels, tf.float64)
-            num_eval_labels += config['weight'] * tf.cast(num_target_eval_labels, tf.float64)
+            num_train_labels += config['weight'] * tf.cast(num_target_train_labels, tf.float32)
+            num_eval_labels += config['weight'] * tf.cast(num_target_eval_labels, tf.float32)
             with tf.variable_scope(target):
                 tf.summary.scalar('num_train_labels', num_target_train_labels)
                 tf.summary.scalar('num_eval_labels', num_target_eval_labels)
-                target2paras[target] = self._get_target_paras()
+                target2paras[target] = self._get_target_paras(target)
                 train_target_loss, _ = self._compute_target_loss(
                     user_model, train_indices, target2label[target], target2paras[target])
                 eval_target_loss, metric_update = self._compute_target_loss(
@@ -186,8 +185,8 @@ class BaseModelBuilder(ModelBuilder):
             train_loss += config['weight'] * train_target_loss
             eval_loss += config['weight'] * eval_target_loss
             updates += metric_update
-        train_loss = train_loss / tf.cast(tf.maximum(1, num_train_labels), tf.float64)
-        eval_loss = eval_loss / tf.cast(tf.maximum(1, num_eval_labels), tf.float64)
+        train_loss = train_loss / tf.maximum(1.0, num_train_labels)
+        eval_loss = eval_loss / tf.maximum(1.0, num_eval_labels)
         tf.summary.scalar('train_loss', train_loss)
         tf.summary.scalar('eval_loss', eval_loss)
         return train_loss, updates, target2paras
@@ -196,17 +195,17 @@ class BaseModelBuilder(ModelBuilder):
         attr2input = {}
         max_seq_len = None
         for attr, config in self._attr2config.iteritems():
-            with tf.variable_scope(attr):
-                size = None
-                if config['level'] == 'user':
-                    size = 1
-                inputs = tf.placeholder(
-                    tf.int32, shape=(None, size), name='%s_idx' % attr)
-                if config['level'] == 'item':
-                    max_seq_len = tf.shape(attr)[1] / self._page_size
-                if self._filter_unrecognized:
-                    inputs = inputs * tf.cast(inputs < config['vocab_size'], tf.int32)
-                attr2input[attr] = inputs
+            print attr, config
+            size = None
+            if config['level'] == 'user':
+                size = 1
+            inputs = tf.placeholder(
+                tf.int32, shape=(None, size), name='%s_idx' % attr)
+            if config['level'] == 'item':
+                max_seq_len = tf.shape(inputs)[1] / self._page_size
+            if self._filter_unrecognized:
+                inputs = inputs * tf.cast(inputs < config['vocab_size'], tf.int32)
+            attr2input[attr] = inputs
         if max_seq_len is None:
             raise Exception('There must be an item level attribute in attr2config.')
         sequence_length = tf.placeholder(tf.int32, shape=(None, 1), name='sequence_length_val')
@@ -214,21 +213,27 @@ class BaseModelBuilder(ModelBuilder):
 
     def _get_embedders(self):
         attr2embedder = {}
-        for attr, config in self._attr2config.iteritems:
-            attr2embedder[attr] = tf.keras.layers.Embedding(config['vocab_size'], config['embedding_dim'])
+        for attr, config in self._attr2config.iteritems():
+            attr2embedder[attr] = tf.keras.layers.Embedding(
+                    config['vocab_size'], config['embedding_dim'], dtype=tf.float32)
         return attr2embedder
 
     def _get_embeddings(self, max_seq_len, attr2input, attr2embedder):
         attr2embedding = {}
         for attr, config in self._attr2config.iteritems():
+            inputs = attr2input[attr]
             if config['level'] == 'item':
-                inputs = tf.reshape(attr2input[attr], [tf.shape(attr)[0], max_seq_len, self._page_size])
+                inputs = tf.reshape(inputs, [tf.shape(inputs)[0], max_seq_len, self._page_size])
                 attr2input[attr] = inputs
                 embedding = attr2embedder[attr](inputs)
-                embedding = tf.reshape(
-                    tf.shape(embedding)[0], tf.shape(embedding)[1], self._page_size * config['embedding_dim'])
+                embedding = tf.reshape(embedding,
+                    [
+                        tf.shape(embedding)[0],
+                        tf.shape(embedding)[1],
+                        self._page_size * config['embedding_dim']
+                    ]
+                )
             else:
-                inputs = attr2input[attr]
                 embedding = attr2embedder[attr](inputs)
             attr2embedding[attr] = embedding
         return attr2embedding
@@ -256,8 +261,7 @@ class BaseModelBuilder(ModelBuilder):
         return target2preds
 
     def build_model(self):
-        with tf.variable_scope('inputs'):
-            max_seq_len, sequence_length, attr2input = self._get_inputs()
+        max_seq_len, sequence_length, attr2input = self._get_inputs()
         with tf.variable_scope('embeddings'):
             attr2embedder = self._get_embedders()
             attr2embedding = self._get_embeddings(max_seq_len, attr2input, attr2embedder)
