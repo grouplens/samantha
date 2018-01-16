@@ -33,21 +33,21 @@ class HierarchicalPredictionModel(PredictionModel):
     def get_target_paras(self, target, config):
         softmax = {}
         item2cluster = {}
-        for i in range(len(self._hierarchies)):
+        hierarchy = self._hierarchies[target]
+        for i in range(len(hierarchy)):
             level = hierarchy[i]
-            softmax[level['attr']] = tf.keras.layers.Dense(level['vocab_size'], dtype=tf.float32)
+            softmax[level['attr']] = tf.keras.layers.Dense(
+                level['vocab_size'], dtype=tf.float32)
             if i == 1:
                 item2cluster[level['attr']] = tf.constant(level['item2cluster'])
         paras = {'softmax': softmax, 'item2cluster': item2cluster}
         return paras
 
-    def get_target_prediction_loss(self, user_model, labels, softmax, target, config):
-        logits = softmax(user_model)
-        losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=labels, logits=logits)
-        loss = tf.reduce_sum(losses)
-        return logits, loss
+    def get_target_prediction_loss(self, user_model, labels, paras, target, config):
+        preds = None
+        loss = None
+        return preds, loss
 
-    def get_target_prediction(self, user_model, softmax, target2preds, target, config):
-        logits = softmax(user_model)
-        target2preds[target] = tf.nn.softmax(logits, name='%s_prob' % target)
+    def get_target_prediction(self, user_model, paras, target2preds, target, config):
+        preds = None
+        target2preds[target] = preds
