@@ -12,22 +12,17 @@ from src.models.recommender import RecommenderBuilder
 class RecommenderTest(unittest.TestCase):
 
     def setUp(self):
-        # self._test_path = '/tmp/tflearn_logs/'
-        self._test_path = '/opt/pyml/UserInaction/data/tensorboard/'
+        self._test_path = '/tmp/tflearn_logs/'
+        #self._test_path = '/opt/pyml/UserInaction/data/tensorboard/'
 
-    def test_dump_graph(self):
-        model_builder = RecommenderBuilder()
-        model_builder.dump_graph(self._test_path + 'test_recommender.graph', 0.01)
-
-    def test_build_model_with_trainer(self):
-        softmax_dim = 10
+    def test_sequence_softmax_model(self):
         embedding_dim = 10
-        user_vocab_size = 10
-        item_vocab_size = 10
-        rnn_size = 10
+        user_vocab_size = 15
+        item_vocab_size = 20
+        rnn_size = 5
         page_size = 3
         user_model = SequenceUserModel(rnn_size)
-        softmax_model = SoftmaxPredictionModel(softmax_dim)
+        softmax_model = SoftmaxPredictionModel(item_vocab_size)
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             page_size=page_size,

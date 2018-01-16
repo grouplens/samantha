@@ -28,7 +28,7 @@ class SequenceUserModel(UserModel):
         concatenated = tf.concat(embeddings, 2)
         return concatenated
 
-    def _get_user_model(self, max_seq_len, sequence_length, attr2embedding, attr2config):
+    def get_user_model(self, max_seq_len, sequence_length, attr2embedding, attr2config):
         concatenated = self._get_concat_embeddings(max_seq_len, attr2embedding, attr2config)
         relu_output = self._step_wise_relu(concatenated, self._rnn_size)
         rnn_output = self._get_rnn_output(relu_output, self._rnn_size)

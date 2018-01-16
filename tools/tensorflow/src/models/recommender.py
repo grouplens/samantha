@@ -154,7 +154,6 @@ class RecommenderBuilder(ModelBuilder):
         attr2input = {}
         max_seq_len = None
         for attr, config in self._attr2config.iteritems():
-            print attr, config
             size = None
             if config['level'] == 'user':
                 size = 1
