@@ -13,7 +13,6 @@ class RecommenderTest(unittest.TestCase):
 
     def setUp(self):
         self._test_path = '/tmp/tflearn_logs/'
-        #self._test_path = '/opt/pyml/UserInaction/data/tensorboard/'
 
     def test_sequence_softmax_model(self):
         embedding_dim = 10
@@ -22,7 +21,7 @@ class RecommenderTest(unittest.TestCase):
         rnn_size = 5
         page_size = 3
         user_model = SequenceUserModel(rnn_size)
-        softmax_model = SoftmaxPredictionModel(item_vocab_size)
+        softmax_model = SoftmaxPredictionModel({'action': item_vocab_size})
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             page_size=page_size,

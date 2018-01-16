@@ -6,11 +6,16 @@ from src.models.prediction_model import PredictionModel
 
 class SoftmaxPredictionModel(PredictionModel):
 
-    def __init__(self, vocab_size):
-        self._vocab_size = vocab_size
+    def __init__(self, vocab_sizes=None):
+        if vocab_sizes is None:
+            self._vocab_sizes = {
+                'item': 10
+            }
+        else:
+            self._vocab_sizes = vocab_sizes
 
     def get_target_paras(self, target, config):
-        softmax = tf.keras.layers.Dense(self._vocab_size, dtype=tf.float32)
+        softmax = tf.keras.layers.Dense(self._vocab_sizes[target], dtype=tf.float32)
         return softmax
 
     def get_target_prediction_loss(self, user_model, labels, softmax, target, config):
