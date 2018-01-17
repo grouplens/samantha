@@ -8,7 +8,7 @@ from src.models.prediction_model import PredictionModel
 class HierarchicalPredictionModel(PredictionModel):
 
     def __init__(self, hierarchies=None, metrics='MAP@1'):
-        if hierarchies is None:
+        if hierarchies is not None:
             self._hierarchies = hierarchies
         else:
             self._hierarchies = {
@@ -30,12 +30,13 @@ class HierarchicalPredictionModel(PredictionModel):
     def _layer_wise_loss(self, cluster_vocab_size,
                          cluster_labels, item_labels, item2cluster,
                          weights, biases, user_model):
-        uniq_clusters = tf.unique(cluster_labels)
+        uniq_clusters, _ = tf.unique(cluster_labels)
         whether_include_clusters = tf.sparse_to_dense(
             uniq_clusters, [cluster_vocab_size],
-            tf.ones_like(uniq_clusters, dtype=tf.bool), default_value=False)
+            tf.ones_like(uniq_clusters, dtype=tf.bool),
+            default_value=False, validate_indices=False)
         whether_include_items = tf.gather(whether_include_clusters, item2cluster)
-        included_items = tf.where(whether_include_items)
+        included_items = tf.reshape(tf.where(whether_include_items), [-1])
         included_clusters = tf.gather(item2cluster, included_items)
         included_weights = tf.gather(weights, included_items)
         included_biases = tf.gather(biases, included_items)
@@ -49,7 +50,7 @@ class HierarchicalPredictionModel(PredictionModel):
             tf.slice(
                 cluster_included_indices,
                 begin=[0, 0],
-                size=[tf.shape(cluster_included_indices[0]), 1]
+                size=[tf.shape(cluster_included_indices)[0], 1]
             ),
             [-1]
         )
@@ -57,7 +58,7 @@ class HierarchicalPredictionModel(PredictionModel):
             tf.slice(
                 cluster_included_indices,
                 begin=[0, 1],
-                size=[tf.shape(cluster_included_indices[0]), 1]
+                size=[tf.shape(cluster_included_indices)[0], 1]
             ),
             [-1]
         )
@@ -82,7 +83,7 @@ class HierarchicalPredictionModel(PredictionModel):
         exp_logits = tf.exp(logits)
         sum_exp_logits = tf.unsorted_segment_sum(exp_logits, item2cluster, cluster_vocab_size)
         item_sum_exp_logits = tf.gather(sum_exp_logits, item2cluster)
-        item_cluster_probs = tf.gather(cluster_probs, item2cluster)
+        item_cluster_probs = tf.transpose(tf.gather(cluster_probs, item2cluster, axis=1))
         within_cluster_probs = exp_logits / item_sum_exp_logits
         item_probs = item_cluster_probs * within_cluster_probs
         return item_probs
@@ -95,10 +96,10 @@ class HierarchicalPredictionModel(PredictionModel):
         for i in range(len(hierarchy)):
             level = hierarchy[i]
             weights[level['attr']] = tf.get_variable(
-                '%s_weights' % level['attr'], [level['vocab_size'], level['softmax_dim']],
+                '%s_weights' % level['attr'], shape=[level['vocab_size'], level['softmax_dim']],
                 dtype=tf.float32, initializer=tf.truncated_normal_initializer)
             biases[level['attr']] = tf.get_variable(
-                '%s_biases' % level['attr'], [level['vocab_size']],
+                '%s_biases' % level['attr'], shape=[level['vocab_size']],
                 dtype=tf.float32, initializer=tf.zeros_initializer)
             if i >= 1:
                 item2cluster[level['attr']] = tf.constant(level['item2cluster'])
@@ -129,16 +130,20 @@ class HierarchicalPredictionModel(PredictionModel):
             child_level = hierarchy[i+1]
             hierarchical_labels[level['attr']] = tf.gather(
                 item2cluster[child_level['attr']], hierarchical_labels[child_level['attr']])
-        losses = 0
-        preds = None
+        losses = 0.0
+        preds = 1.0
         updates = []
         for i in range(len(hierarchy)):
             level = hierarchy[i]
             if i == 0:
                 logits = tf.matmul(user_model, tf.transpose(weights[level['attr']])) + biases[level['attr']]
-                preds = tf.nn.softmax(logits)
-                losses += tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    labels=hierarchical_labels[level['attr']], logits=logits)
+                exp_logits = tf.exp(logits)
+                sum_exp_logits = tf.reduce_sum(exp_logits, axis=1)
+                vocab_idx = tf.expand_dims(hierarchical_labels[level['attr']], axis=1)
+                label_idx = tf.expand_dims(tf.range(tf.shape(exp_logits)[0]), axis=1)
+                label_exp_logits = tf.gather_nd(exp_logits, tf.concat([label_idx, vocab_idx], axis=1))
+                preds = label_exp_logits / sum_exp_logits
+                losses = -tf.log(tf.maximum(preds, 1e-07))
             else:
                 parent_level = hierarchy[i-1]
                 layer_preds, layer_losses = self._layer_wise_loss(
@@ -154,7 +159,7 @@ class HierarchicalPredictionModel(PredictionModel):
                             updates += self._compute_map_metrics(
                                 hierarchical_labels[level['attr']], preds, metric)
         loss = tf.reduce_sum(losses)
-        return preds, loss
+        return preds, loss, updates
 
     def get_target_prediction(self, user_model, paras, target, config):
         weights = paras['weights']
