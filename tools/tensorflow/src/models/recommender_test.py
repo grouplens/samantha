@@ -21,7 +21,7 @@ class RecommenderTest(unittest.TestCase):
         rnn_size = 5
         page_size = 3
         user_model = SequenceUserModel(rnn_size)
-        softmax_model = SoftmaxPredictionModel({'action': item_vocab_size})
+        softmax_model = SoftmaxPredictionModel(vocab_sizes={'action': item_vocab_size})
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             page_size=page_size,

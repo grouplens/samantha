@@ -24,8 +24,8 @@ class HierarchicalPredictionModel(PredictionModel):
                 ]
             }
 
-    def _layer_wise_loss(self):
-        pass
+    def _layer_wise_loss(self, cluster_labels, item_labels, item2cluster):
+        uniq_clusters = tf.unique(cluster_labels)
 
     def _layer_wise_inference(self):
         pass

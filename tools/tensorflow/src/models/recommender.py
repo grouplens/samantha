@@ -11,6 +11,7 @@ class RecommenderBuilder(ModelBuilder):
                  prediction_model,
                  page_size=3,
                  attr2config=None,
+                 embedding_attrs=None,
                  target2config=None,
                  eval_metrics='MAP@1',
                  loss_split_steps=500,
@@ -27,11 +28,15 @@ class RecommenderBuilder(ModelBuilder):
                     'vocab_size': 10,
                     'is_numerical': False,
                     'embedding_dim': 10,
-                    'level': 'item'
+                    'level': 'item',
                 }
             }
         else:
             self._attr2config = attr2config
+        if embedding_attrs is None:
+            self._embedding_attrs = self._attr2config.keys()
+        else:
+            self._embedding_attrs = embedding_attrs
         if target2config is None:
             self._target2config = {
                 'action': {
@@ -62,38 +67,40 @@ class RecommenderBuilder(ModelBuilder):
                 tf.summary.scalar('MAP_K%s' % k, map_value)
         return updates
 
-    def _compute_target_loss(self, user_model, indices, labels, paras, target, config, metrics=None):
-        batch_idx = tf.reshape(tf.slice(indices,
-                                        begin=[0, 0],
-                                        size=[tf.shape(indices)[0], 1]), [tf.shape(indices)[0], 1])
-        step_idx = tf.reshape(tf.slice(indices,
-                                       begin=[0, 1],
-                                       size=[tf.shape(indices)[0], 1]) - 1, [tf.shape(indices)[0], 1])
-        rnn_indices = tf.concat([batch_idx, step_idx], 1)
-        used_output = tf.gather_nd(user_model, rnn_indices)
-        valid_labels = tf.gather_nd(labels, indices)
-        metric_update = []
+    def _compute_target_loss(self, user_model, indices, labels,
+            paras, target, config, metrics=None):
+        batch_idx = tf.reshape(
+                tf.slice(indices,
+                         begin=[0, 0],
+                         size=[tf.shape(indices)[0], 1]),
+                [tf.shape(indices)[0], 1])
+        step_idx = tf.slice(indices,
+                            begin=[0, 1],
+                            size=[tf.shape(indices)[0], 1])
+        shifted_step_idx = tf.reshape(step_idx - 1, [tf.shape(indices)[0], 1])
+        used_indices = tf.concat([batch_idx, shifted_step_idx], 1)
+        used_model = tf.gather_nd(user_model, used_indices)
+        used_labels = tf.gather_nd(labels, indices)
+        metric_updates = []
         if self._loss_split_steps < self._max_train_steps and metrics is None:
-            mask_idx = tf.reshape(tf.slice(indices,
-                                           begin=[0, 1],
-                                           size=[tf.shape(indices)[0], 1]) - 1, [-1])
+            mask_idx = tf.reshape(step_idx, [-1])
             loss = 0
             with tf.variable_scope('mask'):
                 for i in range(0, self._max_train_steps, self._loss_split_steps):
                     loss_mask = tf.logical_and(mask_idx >= i, mask_idx < i + self._loss_split_steps)
-                    masked_labels = tf.boolean_mask(valid_labels, loss_mask)
-                    masked_output = tf.boolean_mask(used_output, loss_mask)
+                    masked_labels = tf.boolean_mask(used_labels, loss_mask)
+                    masked_output = tf.boolean_mask(used_model, loss_mask)
                     _, masked_loss = self._prediction_model.get_target_prediction_loss(
                         masked_output, masked_labels, paras, target, config)
                     loss += masked_loss
         else:
             predictions, loss = self._prediction_model.get_target_prediction_loss(
-                used_output, valid_labels, paras, target, config)
+                used_model, used_labels, paras, target, config)
             if metrics is not None:
                 for metric in metrics.split(' '):
                     if 'MAP' in metric:
-                        metric_update += self._compute_map_metrics(valid_labels, predictions, metric)
-        return loss, metric_update
+                        metric_updates += self._compute_map_metrics(used_labels, predictions, metric)
+        return loss, metric_updates
 
     def _get_loss(self, sequence_length, user_model, target2label):
         length_limit = tf.minimum(
@@ -138,12 +145,12 @@ class RecommenderBuilder(ModelBuilder):
                 train_target_loss, _ = self._compute_target_loss(
                     user_model, train_indices, target2label[target], target2paras[target],
                     target, config)
-                eval_target_loss, metric_update = self._compute_target_loss(
+                eval_target_loss, metric_updates = self._compute_target_loss(
                     user_model, eval_indices, target2label[target], target2paras[target],
                     target, config, metrics=self._eval_metrics)
             train_loss += config['weight'] * train_target_loss
             eval_loss += config['weight'] * eval_target_loss
-            updates += metric_update
+            updates += metric_updates
         train_loss = train_loss / tf.maximum(1.0, num_train_labels)
         eval_loss = eval_loss / tf.maximum(1.0, num_eval_labels)
         tf.summary.scalar('train_loss', train_loss)
@@ -171,14 +178,16 @@ class RecommenderBuilder(ModelBuilder):
 
     def _get_embedders(self):
         attr2embedder = {}
-        for attr, config in self._attr2config.iteritems():
+        for attr in self._embedding_attrs:
+            config = self._attr2config[attr]
             attr2embedder[attr] = tf.keras.layers.Embedding(
                     config['vocab_size'], config['embedding_dim'], dtype=tf.float32)
         return attr2embedder
 
     def _get_embeddings(self, max_seq_len, attr2input, attr2embedder):
         attr2embedding = {}
-        for attr, config in self._attr2config.iteritems():
+        for attr in self._embedding_attrs:
+            config = self._attr2config[attr]
             inputs = attr2input[attr]
             if config['level'] == 'item':
                 inputs = tf.reshape(inputs, [tf.shape(inputs)[0], max_seq_len, self._page_size])

@@ -2,12 +2,12 @@
 import random
 import string
 import logging
-import sys
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 import tensorflow as tf
 
 from src.builder import ModelBuilder
+
+logger = logging.getLogger('trainer')
 
 class ModelTrainer(object):
 
@@ -28,7 +28,7 @@ class ModelTrainer(object):
         with graph.as_default():
             session = tf.Session(graph=graph)
             with session.as_default():
-                logging.info('Building the model graph.')
+                logger.info('Building the model graph.')
                 loss, updates = self.builder.build_model()
                 run_tensors = self.builder.test_tensors()
                 update_op = tf.train.AdagradOptimizer(self.learning_rate).minimize(loss)
@@ -42,16 +42,16 @@ class ModelTrainer(object):
                     run_name = ''.join(
                         random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
                 train_writer = tf.summary.FileWriter(self.tensorboard_dir + run_name, graph)
-                logging.info('Initializing the model graph.')
+                logger.info('Initializing the model graph.')
                 session.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-                logging.info('Training the model.')
+                logger.info('Training the model.')
                 step = 0
                 while step < self.max_steps:
                     for train_batch in self.train_data.next_batch():
                         train_vals = session.run(run_tensors, feed_dict=train_batch)
                         train_writer.add_summary(train_vals['merged_summary'], step)
                         step += 1
-                        logging.info('Step %s, training loss: %s', step, train_vals['train_loss'])
+                        logger.info('Step %s, training loss: %s', step, train_vals['train_loss'])
                         if step >= self.max_steps:
                             break
                     self.train_data.reset()
