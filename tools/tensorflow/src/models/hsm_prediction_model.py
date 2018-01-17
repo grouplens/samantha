@@ -16,9 +16,11 @@ class HierarchicalPredictionModel(PredictionModel):
                     {
                         'attr': 'cluster',
                         'vocab_size': 10,
+                        'softmax_dim': 10,
                     }, {
                         'attr': 'item',
                         'vocab_size': 20,
+                        'softmax_dim': 10,
                         'item2cluster': [random.randint(0, 9) for _ in range(20)]
                     }
                 ]
