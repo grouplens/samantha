@@ -24,8 +24,11 @@ package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.grouplens.samantha.modeler.dao.CSVFileDAO;
+import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import play.Logger;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 
@@ -38,7 +41,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static java.io.File.separator;
 
 @Singleton
 public class IndexerUtilities {
@@ -102,5 +108,20 @@ public class IndexerUtilities {
         writer.write(line);
         writer.newLine();
         writer.flush();
+    }
+
+    public static void loadUsedGroups(String usedGroupsFilePath,
+                                      String separator,
+                                      List<String> groupKeys,
+                                      Map<String, Boolean> usedGroups) {
+        if (usedGroupsFilePath != null) {
+            CSVFileDAO csvFileDAO = new CSVFileDAO(separator, usedGroupsFilePath);
+            while (csvFileDAO.hasNextEntity()) {
+                ObjectNode grp = csvFileDAO.getNextEntity();
+                String grpStr = FeatureExtractorUtilities.composeConcatenatedKey(grp, groupKeys);
+                usedGroups.put(grpStr, true);
+            }
+            csvFileDAO.close();
+        }
     }
 }

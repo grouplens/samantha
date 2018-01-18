@@ -109,15 +109,7 @@ public class UserReturnIndexer extends AbstractIndexer {
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
         Map<String, Boolean> usedGroups = new HashMap<>();
-        if (usedGroupsFilePath != null) {
-            CSVFileDAO csvFileDAO = new CSVFileDAO(separator, usedGroupsFilePath);
-            while (csvFileDAO.hasNextEntity()) {
-                ObjectNode grp = csvFileDAO.getNextEntity();
-                String grpStr = FeatureExtractorUtilities.composeConcatenatedKey(grp, groupKeys);
-                usedGroups.put(grpStr, true);
-            }
-            csvFileDAO.close();
-        }
+        IndexerUtilities.loadUsedGroups(usedGroupsFilePath, separator, groupKeys, usedGroups);
         EntityDAO data = indexer.getEntityDAO(requestContext);
         GroupedEntityList userDao = new GroupedEntityList(groupKeys, null, data);
         try {
