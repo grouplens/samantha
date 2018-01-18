@@ -148,11 +148,10 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         return instance;
     }
 
-    private Map<String, Tensor> getFeedDict(List<LearningInstance> instances) {
+    public int getFeatureBuffer(List<LearningInstance> instances, Map<String, Integer> numCols,
+                                 Map<String, DoubleBuffer> doubleBufferMap,
+                                 Map<String, IntBuffer> intBufferMap) {
         int batch = instances.size();
-        Map<String, Integer> numCols = new HashMap<>();
-        Map<String, DoubleBuffer> doubleBufferMap = new HashMap<>();
-        Map<String, IntBuffer> intBufferMap = new HashMap<>();
         for (LearningInstance instance : instances) {
             TensorFlowInstance tfins = (TensorFlowInstance) instance;
             for (Map.Entry<String, int[]> entry : tfins.getName2Indices().entrySet()) {
@@ -181,6 +180,14 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                 intBufferMap.put(name, buffer);
             }
         }
+        return batch;
+    }
+
+    private Map<String, Tensor> getFeedDict(List<LearningInstance> instances) {
+        Map<String, Integer> numCols = new HashMap<>();
+        Map<String, DoubleBuffer> doubleBufferMap = new HashMap<>();
+        Map<String, IntBuffer> intBufferMap = new HashMap<>();
+        int batch = getFeatureBuffer(instances, numCols, doubleBufferMap, intBufferMap);
         Map<String, Tensor> tensorMap = new HashMap<>();
         for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
             String name = entry.getKey();

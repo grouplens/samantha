@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.sequence;
+package org.grouplens.samantha.server.tensorflow;
 
 public class UserSequenceIndexerConfig {
 }
