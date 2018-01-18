@@ -90,12 +90,13 @@ class RecommenderBuilder(ModelBuilder):
                     loss_mask = tf.logical_and(mask_idx >= i, mask_idx < i + self._loss_split_steps)
                     masked_labels = tf.boolean_mask(used_labels, loss_mask)
                     masked_output = tf.boolean_mask(used_model, loss_mask)
-                    _, masked_loss = self._prediction_model.get_target_prediction_loss(
-                        masked_output, masked_labels, paras, target, config)
+                    _, masked_loss, _ = self._prediction_model.get_target_prediction_loss(
+                        masked_output, masked_labels, paras, target, config, 'train')
                     loss += masked_loss
         else:
-            predictions, loss = self._prediction_model.get_target_prediction_loss(
-                used_model, used_labels, paras, target, config)
+            predictions, loss, model_updates = self._prediction_model.get_target_prediction_loss(
+                used_model, used_labels, paras, target, config, 'eval')
+            metric_updates += model_updates
             if metrics is not None:
                 for metric in metrics.split(' '):
                     if 'MAP' in metric:
@@ -212,8 +213,8 @@ class RecommenderBuilder(ModelBuilder):
         model_output = tf.gather_nd(user_model, output_idx)
         target2preds = {}
         for target, config in self._target2config.iteritems():
-            return self._prediction_model.get_target_prediction(
-                model_output, target2paras[target], target2preds, target, config)
+            target2preds[target] = self._prediction_model.get_target_prediction(
+                model_output, target2paras[target], target, config)
         return target2preds
 
     def build_model(self):
