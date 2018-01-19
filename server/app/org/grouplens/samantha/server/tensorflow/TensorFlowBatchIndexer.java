@@ -23,7 +23,9 @@
 package org.grouplens.samantha.server.tensorflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
@@ -90,14 +92,10 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
         ObjectNode jsonTensors = Json.newObject();
         for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
             String name = entry.getKey();
-            if (doubleBufferMap.containsKey(name)) {
-                DoubleBuffer buffer = doubleBufferMap.get(name);
-                jsonTensors.set(name + "_val", Json.toJson(buffer.array()));
-            }
-            if (intBufferMap.containsKey(name)) {
-                IntBuffer buffer = intBufferMap.get(name);
-                jsonTensors.set(name + "_idx", Json.toJson(buffer.array()));
-            }
+            DoubleBuffer doubleBuffer = doubleBufferMap.get(name);
+            jsonTensors.put(name + "_val", StringUtils.join(doubleBuffer.array(), ","));
+            IntBuffer intBuffer = intBufferMap.get(name);
+            jsonTensors.put(name + "_idx", StringUtils.join(intBuffer.array(), ","));
         }
         jsonTensors.put(timestampField, timestamp);
         indexer.index(jsonTensors, requestContext);

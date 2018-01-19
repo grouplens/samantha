@@ -80,7 +80,7 @@ public class UserSequenceIndexerConfig implements IndexerConfig {
         return new UserSequenceIndexerConfig(indexerConfig, injector,
                 indexerConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
                 indexerConfig.getString("daoConfigKey"),
-                indexerConfig.getStringList("dataFields"),
+                indexerConfig.getStringList("otherDataFields"),
                 indexerConfig.getString("daoNameKey"),
                 indexerConfig.getString("daoName"),
                 indexerConfig.getString("filesKey"),

@@ -32,25 +32,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SeparatedStringExtractor implements FeatureExtractor {
+public class SeparatedStringSizeExtractor implements FeatureExtractor {
     private static final long serialVersionUID = 1L;
-    private static Logger logger = LoggerFactory.getLogger(SeparatedStringExtractor.class);
+    private static Logger logger = LoggerFactory.getLogger(SeparatedStringSizeExtractor.class);
     private final String indexName;
     private final String attrName;
     private final String feaName;
     private final String separator;
-    private final boolean normalize;
 
-    public SeparatedStringExtractor(String indexName,
-                                    String attrName,
-                                    String feaName,
-                                    String separator,
-                                    boolean normalize) {
+    public SeparatedStringSizeExtractor(String indexName,
+                                        String attrName,
+                                        String feaName,
+                                        String separator) {
         this.indexName = indexName;
         this.attrName = attrName;
         this.feaName = feaName;
         this.separator = separator;
-        this.normalize = normalize;
     }
 
     public Map<String, List<Feature>> extract(JsonNode entity, boolean update,
@@ -60,15 +57,9 @@ public class SeparatedStringExtractor implements FeatureExtractor {
             List<Feature> features = new ArrayList<>();
             String attr = entity.get(attrName).asText();
             String[] fields = attr.split(separator);
-            double val = 1.0;
-            if (fields.length > 0 && normalize) {
-                val = 1.0 / Math.sqrt(fields.length);
-            }
-            for (String field : fields) {
-                String key = FeatureExtractorUtilities.composeKey(attrName, field);
-                FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                        indexSpace, indexName, key, val);
-            }
+            String key = FeatureExtractorUtilities.composeKey(attrName, "size");
+            FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
+                    indexSpace, indexName, key, fields.length);
             feaMap.put(feaName, features);
         } else {
             logger.warn("{} is not present in {}", attrName, entity);

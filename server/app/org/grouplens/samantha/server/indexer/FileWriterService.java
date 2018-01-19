@@ -25,8 +25,9 @@ package org.grouplens.samantha.server.indexer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import org.grouplens.samantha.server.config.ConfigKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.Configuration;
-import play.Logger;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -39,6 +40,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Singleton
 public class FileWriterService {
+    private static Logger logger = LoggerFactory.getLogger(FileWriterService.class);
     private final int maxWriter;
     private final String separator;
     private final List<String> dataDirs;
@@ -84,7 +86,7 @@ public class FileWriterService {
                         activeFiles.get(type).remove(keys[i]);
                         activeSchemas.get(type).remove(keys[i]);
                     } catch (IOException e) {
-                        Logger.error(e.getMessage());
+                        logger.error(e.getMessage());
                     } finally {
                         activeLocks.get(type).get(keys[i]).unlock();
                         activeLocks.get(type).remove(keys[i]);
@@ -108,7 +110,7 @@ public class FileWriterService {
         for (int i=0; i<Integer.MAX_VALUE; i++) {
             String file = directory + Integer.valueOf(i) + appendix;
             if (actSchemas.containsKey(file)) {
-                if (dataFields.equals(actSchemas.get(file))) {
+                if (dataFields == null || dataFields.equals(actSchemas.get(file))) {
                     actLocks.get(file).lock();
                     return file;
                 }
@@ -179,7 +181,7 @@ public class FileWriterService {
                 writer = getWriter(type, file);
                 curFields = getSchema(type, file);
             } catch (Exception e) {
-                Logger.error(e.getMessage());
+                logger.error(e.getMessage());
                 curDirIdx = (idx + 1) % dataDirs.size();
                 unlockFile(type, file);
                 continue;
@@ -194,7 +196,7 @@ public class FileWriterService {
                 }
                 break;
             } catch (Exception e) {
-                Logger.error(e.getMessage());
+                logger.error(e.getMessage());
             } finally {
                 unlockFile(type, file);
             }

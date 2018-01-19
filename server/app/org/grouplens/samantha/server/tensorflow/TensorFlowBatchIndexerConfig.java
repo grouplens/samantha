@@ -87,7 +87,7 @@ public class TensorFlowBatchIndexerConfig implements IndexerConfig {
         }
         String timestampField = indexerConfig.getString("timestampField");
         if (timestampField == null) {
-            timestampField = "tstamp";
+            timestampField = "timestamp";
         }
         String daoConfigKey = indexerConfig.getString("daoConfigKey");
         if (daoConfigKey == null) {

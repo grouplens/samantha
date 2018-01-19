@@ -163,22 +163,19 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                 }
             }
         }
-        for (LearningInstance instance : instances) {
-            TensorFlowInstance tfins = (TensorFlowInstance) instance;
-            for (Map.Entry<String, double[]> entry : tfins.getName2Values().entrySet()) {
-                String name = entry.getKey();
-                double[] values = entry.getValue();
-                DoubleBuffer buffer = DoubleBuffer.allocate(batch * numCols.get(name));
-                buffer.put(values);
-                doubleBufferMap.put(name, buffer);
+        for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
+            String name = entry.getKey();
+            DoubleBuffer doubleBuffer = DoubleBuffer.allocate(batch * numCols.get(name));
+            IntBuffer intBuffer = IntBuffer.allocate(batch * numCols.get(name));
+            for (LearningInstance instance : instances) {
+                TensorFlowInstance tfins = (TensorFlowInstance) instance;
+                double[] doubleValues = tfins.getName2Values().get(name);
+                doubleBuffer.put(doubleValues);
+                int[] intValues = tfins.getName2Indices().get(name);
+                intBuffer.put(intValues);
             }
-            for (Map.Entry<String, int[]> entry : tfins.getName2Indices().entrySet()) {
-                String name = entry.getKey();
-                int[] values = entry.getValue();
-                IntBuffer buffer = IntBuffer.allocate(batch * numCols.get(name));
-                buffer.put(values);
-                intBufferMap.put(name, buffer);
-            }
+            doubleBufferMap.put(name, doubleBuffer);
+            intBufferMap.put(name, intBuffer);
         }
         return batch;
     }
