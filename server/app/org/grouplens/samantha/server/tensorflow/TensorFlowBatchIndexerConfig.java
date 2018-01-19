@@ -46,12 +46,13 @@ public class TensorFlowBatchIndexerConfig implements IndexerConfig {
     private final boolean update;
     private final String batchSizeKey;
     private final String updateKey;
+    private final String timestampField;
 
     private TensorFlowBatchIndexerConfig(Injector injector, Configuration config,
                                          Configuration daoConfigs, String daoConfigKey,
                                          String indexerName, String predictorName, String modelName,
                                          int batchSize, boolean update, String batchSizeKey,
-                                         String updateKey) {
+                                         String updateKey, String timestampField) {
         this.injector = injector;
         this.config = config;
         this.daoConfigKey = daoConfigKey;
@@ -63,6 +64,7 @@ public class TensorFlowBatchIndexerConfig implements IndexerConfig {
         this.update = update;
         this.batchSizeKey = batchSizeKey;
         this.updateKey = updateKey;
+        this.timestampField = timestampField;
     }
 
     public static IndexerConfig getIndexerConfig(Configuration indexerConfig,
@@ -83,13 +85,21 @@ public class TensorFlowBatchIndexerConfig implements IndexerConfig {
         if (updateKey == null) {
             updateKey = "update";
         }
+        String timestampField = indexerConfig.getString("timestampField");
+        if (timestampField == null) {
+            timestampField = "tstamp";
+        }
+        String daoConfigKey = indexerConfig.getString("daoConfigKey");
+        if (daoConfigKey == null) {
+            daoConfigKey = "daoConfig";
+        }
         return new TensorFlowBatchIndexerConfig(injector, indexerConfig,
                 indexerConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
-                indexerConfig.getString("daoConfigKey"),
+                daoConfigKey,
                 indexerConfig.getString("dependedIndexer"),
                 indexerConfig.getString("tensorFlowPredictor"),
                 indexerConfig.getString("tensorFlowModel"),
-                batchSize, update, batchSizeKey, updateKey);
+                batchSize, update, batchSizeKey, updateKey, timestampField);
     }
 
     public Indexer getIndexer(RequestContext requestContext) {
@@ -103,6 +113,6 @@ public class TensorFlowBatchIndexerConfig implements IndexerConfig {
         int batchSize = JsonHelpers.getOptionalInt(reqBody, batchSizeKey, this.batchSize);
         boolean update = JsonHelpers.getOptionalBoolean(reqBody, updateKey, this.update);
         return new TensorFlowBatchIndexer(configService, config, injector,
-                daoConfigs, daoConfigKey, indexer, model, batchSize, update);
+                daoConfigs, daoConfigKey, indexer, model, batchSize, update, timestampField);
     }
 }

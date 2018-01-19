@@ -47,17 +47,19 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
     //this overrides the parent member
     private final int batchSize;
     private final boolean update;
+    private final String timestampField;
 
     public TensorFlowBatchIndexer(SamanthaConfigService configService,
                                   Configuration config, Injector injector,
                                   Configuration daoConfigs, String daoConfigKey,
                                   Indexer indexer, TensorFlowModel model,
-                                  int batchSize, boolean update) {
+                                  int batchSize, boolean update, String timestampField) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
         this.indexer = indexer;
         this.model = model;
         this.batchSize = batchSize;
         this.update = update;
+        this.timestampField = timestampField;
     }
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
@@ -65,14 +67,21 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
     }
 
     public void index(JsonNode documents, RequestContext requestContext) {
+        int timestamp = (int) (System.currentTimeMillis() / 1000);
         List<LearningInstance> instances = new ArrayList<>();
-        if (documents.isArray()) {
+        JsonNode last;
+        if (documents.isArray() && documents.size() > 0) {
             for (JsonNode document : documents) {
                 LearningInstance instance = model.featurize(document, update);
                 instances.add(instance);
             }
+            last = documents.get(documents.size() - 1);
         } else {
             instances.add(model.featurize(documents, update));
+            last = documents;
+        }
+        if (last.has(timestampField)) {
+            timestamp = last.get(timestampField).asInt();
         }
         Map<String, Integer> numCols = new HashMap<>();
         Map<String, DoubleBuffer> doubleBufferMap = new HashMap<>();
@@ -90,6 +99,7 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
                 jsonTensors.set(name + "_idx", Json.toJson(buffer.array()));
             }
         }
+        jsonTensors.put(timestampField, timestamp);
         indexer.index(jsonTensors, requestContext);
     }
 }
