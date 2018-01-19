@@ -86,9 +86,9 @@ public class TensorFlowBatchIndexerConfig implements IndexerConfig {
         return new TensorFlowBatchIndexerConfig(injector, indexerConfig,
                 indexerConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
                 indexerConfig.getString("daoConfigKey"),
-                indexerConfig.getString("indexerName"),
-                indexerConfig.getString("predictorName"),
-                indexerConfig.getString("modelName"),
+                indexerConfig.getString("dependedIndexer"),
+                indexerConfig.getString("tensorFlowPredictor"),
+                indexerConfig.getString("tensorFlowModel"),
                 batchSize, update, batchSizeKey, updateKey);
     }
 
