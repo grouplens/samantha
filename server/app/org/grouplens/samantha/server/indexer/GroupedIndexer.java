@@ -48,6 +48,8 @@ public class GroupedIndexer extends AbstractIndexer {
     private final String dataDir;
     private final int numBuckets;
     private final List<String> groupKeys;
+    private final List<String> groupKeysTypes;
+    private final List<String> orderFieldsTypes;
     private final List<String> dataFields;
     private final List<String> orderFields;
     private final Boolean descending;
@@ -66,7 +68,8 @@ public class GroupedIndexer extends AbstractIndexer {
                           List<String> dataFields, String separator,
                           List<String> orderFields, Boolean descending,
                           String filesKey, String daoName, String daoNameKey,
-                          String separatorKey, int usedBuckets) {
+                          String separatorKey, int usedBuckets,
+                          List<String> groupKeysTypes, List<String> orderFieldsTypes) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
         this.indexer = indexer;
         this.dataDir = dataDir;
@@ -81,6 +84,8 @@ public class GroupedIndexer extends AbstractIndexer {
         this.daoNameKey = daoNameKey;
         this.separatorKey = separatorKey;
         this.usedBuckets = usedBuckets;
+        this.groupKeysTypes = groupKeysTypes;
+        this.orderFieldsTypes = orderFieldsTypes;
     }
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
@@ -121,12 +126,15 @@ public class GroupedIndexer extends AbstractIndexer {
                     tmpFile.delete();
                     Comparator<ObjectNode> comparator;
                     if (orderFields == null || orderFields.size() == 0) {
-                        comparator = RetrieverUtilities.jsonStringFieldsComparator(groupKeys);
+                        comparator = RetrieverUtilities.jsonTypedFieldsComparator(groupKeys, groupKeysTypes);
                     } else {
                         List<String> sortFields = new ArrayList<>();
                         sortFields.addAll(groupKeys);
                         sortFields.addAll(orderFields);
-                        comparator = RetrieverUtilities.jsonStringFieldsComparator(sortFields);
+                        List<String> sortFieldsTypes = new ArrayList<>();
+                        sortFieldsTypes.addAll(groupKeysTypes);
+                        sortFieldsTypes.addAll(orderFieldsTypes);
+                        comparator = RetrieverUtilities.jsonTypedFieldsComparator(sortFields, sortFieldsTypes);
                         if (descending != null && descending) {
                             comparator = comparator.reversed();
                         }

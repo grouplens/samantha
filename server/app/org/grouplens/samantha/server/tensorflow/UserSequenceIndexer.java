@@ -37,7 +37,6 @@ import org.grouplens.samantha.server.indexer.GroupedIndexer;
 import org.grouplens.samantha.server.indexer.IndexerUtilities;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
-import org.grouplens.samantha.server.retriever.RetrieverUtilities;
 import play.Configuration;
 import play.inject.Injector;
 import play.libs.Json;
@@ -49,7 +48,6 @@ import java.util.*;
 
 public class UserSequenceIndexer extends AbstractIndexer {
     private final GroupedIndexer indexer;
-    private final String timestampField;
     private final List<String> dataFields;
     private final String daoNameKey;
     private final String daoName;
@@ -65,14 +63,13 @@ public class UserSequenceIndexer extends AbstractIndexer {
     public UserSequenceIndexer(SamanthaConfigService configService,
                                Configuration config, Injector injector, Configuration daoConfigs,
                                String daoConfigKey, String filePathKey,
-                               String timestampField, List<String> dataFields, String separator,
+                               List<String> dataFields, String separator,
                                String daoNameKey, String daoName, String filesKey,
                                List<String> groupKeys, String filePath, String innerFieldSeparator,
                                String separatorKey, GroupedIndexer indexer, String usedGroupsFilePath) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
         this.indexer = indexer;
         this.filePathKey = filePathKey;
-        this.timestampField = timestampField;
         this.dataFields = dataFields;
         this.daoName = daoName;
         this.daoNameKey = daoNameKey;
@@ -104,8 +101,6 @@ public class UserSequenceIndexer extends AbstractIndexer {
                         continue;
                     }
                 }
-                Comparator<ObjectNode> comparator = RetrieverUtilities.jsonFieldOrdering(timestampField);
-                acts.sort(comparator);
                 Map<String, List<String>> field2val = new HashMap<>();
                 for (String field : dataFields) {
                     List<String> newVals = new ArrayList<>();

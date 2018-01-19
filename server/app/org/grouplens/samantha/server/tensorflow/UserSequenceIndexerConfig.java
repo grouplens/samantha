@@ -35,7 +35,6 @@ import java.util.List;
 
 public class UserSequenceIndexerConfig implements IndexerConfig {
     private final String indexerName;
-    private final String timestampField;
     private final List<String> dataFields;
     private final String daoNameKey;
     private final String daoName;
@@ -53,7 +52,7 @@ public class UserSequenceIndexerConfig implements IndexerConfig {
     private final String usedGroupsFilePath;
 
     private UserSequenceIndexerConfig(Configuration config, Injector injector, Configuration daoConfigs,
-                                    String daoConfigKey, String timestampField, List<String> dataFields,
+                                    String daoConfigKey, List<String> dataFields,
                                     String daoNameKey, String daoName, String filesKey, String filePathKey,
                                     String separatorKey, String indexerName, String innerFieldSeparator,
                                     List<String> groupKeys, String filePath, String separator,
@@ -61,7 +60,6 @@ public class UserSequenceIndexerConfig implements IndexerConfig {
         this.groupKeys = groupKeys;
         this.filePathKey = filePathKey;
         this.filePath = filePath;
-        this.timestampField = timestampField;
         this.dataFields = dataFields;
         this.daoName = daoName;
         this.daoNameKey = daoNameKey;
@@ -82,7 +80,6 @@ public class UserSequenceIndexerConfig implements IndexerConfig {
         return new UserSequenceIndexerConfig(indexerConfig, injector,
                 indexerConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
                 indexerConfig.getString("daoConfigKey"),
-                indexerConfig.getString("timestampField"),
                 indexerConfig.getStringList("dataFields"),
                 indexerConfig.getString("daoNameKey"),
                 indexerConfig.getString("daoName"),
@@ -101,7 +98,7 @@ public class UserSequenceIndexerConfig implements IndexerConfig {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         GroupedIndexer indexer = (GroupedIndexer) configService.getIndexer(indexerName, requestContext);
         return new UserSequenceIndexer(configService, config, injector, daoConfigs, daoConfigKey,
-                filePathKey, timestampField, dataFields, separator, daoNameKey, daoName, filesKey,
+                filePathKey, dataFields, separator, daoNameKey, daoName, filesKey,
                 groupKeys, filePath, innerFieldSeparator, separatorKey, indexer, usedGroupsFilePath);
     }
 }
