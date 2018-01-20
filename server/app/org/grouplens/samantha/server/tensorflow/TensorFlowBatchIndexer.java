@@ -23,9 +23,7 @@
 package org.grouplens.samantha.server.tensorflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
@@ -36,10 +34,7 @@ import play.Configuration;
 import play.inject.Injector;
 import play.libs.Json;
 
-import java.nio.DoubleBuffer;
-import java.nio.IntBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -85,17 +80,10 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
         if (last.has(timestampField)) {
             timestamp = last.get(timestampField).asInt();
         }
-        Map<String, Integer> numCols = new HashMap<>();
-        Map<String, DoubleBuffer> doubleBufferMap = new HashMap<>();
-        Map<String, IntBuffer> intBufferMap = new HashMap<>();
-        model.getFeatureBuffer(instances, numCols, doubleBufferMap, intBufferMap);
+        Map<String, String> tensorMap = model.getStringifiedTensor(instances);
         ObjectNode jsonTensors = Json.newObject();
-        for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
-            String name = entry.getKey();
-            DoubleBuffer doubleBuffer = doubleBufferMap.get(name);
-            jsonTensors.put(name + "_val", StringUtils.join(doubleBuffer.array(), ","));
-            IntBuffer intBuffer = intBufferMap.get(name);
-            jsonTensors.put(name + "_idx", StringUtils.join(intBuffer.array(), ","));
+        for (Map.Entry<String, String> entry : tensorMap.entrySet()) {
+            jsonTensors.put(entry.getKey(), entry.getValue());
         }
         jsonTensors.put(timestampField, timestamp);
         indexer.index(jsonTensors, requestContext);

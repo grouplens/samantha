@@ -70,7 +70,7 @@ public class TensorFlowModelProducer {
         IndexSpace indexSpace = getIndexSpace(modelName, spaceMode);
         for (String indexKey : indexKeys) {
             indexSpace.requestKeyMap(indexKey);
-            indexSpace.setKey(indexKey, "__OOV__");
+            indexSpace.setKey(indexKey, TensorFlowModel.OOV);
         }
         VariableSpace variableSpace = getVariableSpace(modelName, spaceMode);
         byte[] graphDef;

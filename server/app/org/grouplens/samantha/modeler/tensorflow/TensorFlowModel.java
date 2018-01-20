@@ -27,6 +27,7 @@ import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.featurizer.*;
 import org.grouplens.samantha.modeler.model.AbstractLearningModel;
@@ -62,6 +63,9 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     protected final String initOperationName;
     protected final List<String> groupKeys;
     protected final List<String> indexKeys;
+    public static final String OOV = "";
+    public static final String INDEX_APPENDIX = "_idx";
+    public static final String VALUE_APPENDIX = "_val";
 
     public TensorFlowModel(Graph graph,
                            IndexSpace indexSpace, VariableSpace variableSpace,
@@ -106,7 +110,8 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         }
         Tensor<?> tensorOutput = results.get(0);
         if (tensorOutput.numDimensions() != 2) {
-            throw new BadRequestException("The TensorFlow model should always predict with a two dimensional tensor.");
+            throw new BadRequestException(
+                    "The TensorFlow model should always predict with a two dimensional tensor.");
         }
         long[] outputShape = tensorOutput.shape();
         double[][] preds = new double[(int)outputShape[0]][(int)outputShape[1]];
@@ -148,10 +153,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         return instance;
     }
 
-    public int getFeatureBuffer(List<LearningInstance> instances, Map<String, Integer> numCols,
-                                 Map<String, DoubleBuffer> doubleBufferMap,
-                                 Map<String, IntBuffer> intBufferMap) {
-        int batch = instances.size();
+    private void getNumCols(List<LearningInstance> instances, Map<String, Integer> numCols) {
         for (LearningInstance instance : instances) {
             TensorFlowInstance tfins = (TensorFlowInstance) instance;
             for (Map.Entry<String, int[]> entry : tfins.getName2Indices().entrySet()) {
@@ -163,6 +165,45 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                 }
             }
         }
+    }
+
+    public Map<String, String> getStringifiedTensor(List<LearningInstance> instances) {
+        Map<String, Integer> numCols = new HashMap<>();
+        int batch = instances.size();
+        getNumCols(instances, numCols);
+        Map<String, String> tensorMap = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
+            String name = entry.getKey();
+            int numCol = entry.getValue();
+            String[] valStrArr = new String[numCol * batch];
+            String[] idxStrArr = new String[numCol * batch];
+            int iter = 0;
+            for (LearningInstance instance : instances) {
+                TensorFlowInstance tfins = (TensorFlowInstance) instance;
+                double[] doubleValues = tfins.getName2Values().get(name);
+                int[] intValues = tfins.getName2Indices().get(name);
+                for (int i=0; i<numCol; i++) {
+                    if (i < doubleValues.length) {
+                        valStrArr[iter] = Double.toString(doubleValues[i]);
+                        idxStrArr[iter] = Integer.toString(intValues[i]);
+                    } else {
+                        valStrArr[iter] = OOV;
+                        idxStrArr[iter] = OOV;
+                    }
+                    iter++;
+                }
+            }
+            tensorMap.put(name + INDEX_APPENDIX, StringUtils.join(idxStrArr, ","));
+            tensorMap.put(name + VALUE_APPENDIX, StringUtils.join(valStrArr, ","));
+        }
+        return tensorMap;
+    }
+
+    private int getFeatureBuffer(List<LearningInstance> instances, Map<String, Integer> numCols,
+                                 Map<String, DoubleBuffer> doubleBufferMap,
+                                 Map<String, IntBuffer> intBufferMap) {
+        int batch = instances.size();
+        getNumCols(instances, numCols);
         for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
             String name = entry.getKey();
             DoubleBuffer doubleBuffer = DoubleBuffer.allocate(batch * numCols.get(name));
@@ -193,12 +234,12 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             if (doubleBufferMap.containsKey(name)) {
                 DoubleBuffer buffer = doubleBufferMap.get(name);
                 buffer.rewind();
-                tensorMap.put(name + "_val", Tensor.create(shape, buffer));
+                tensorMap.put(name + VALUE_APPENDIX, Tensor.create(shape, buffer));
             }
             if (intBufferMap.containsKey(name)) {
                 IntBuffer buffer = intBufferMap.get(name);
                 buffer.rewind();
-                tensorMap.put(name + "_idx", Tensor.create(shape, buffer));
+                tensorMap.put(name + INDEX_APPENDIX, Tensor.create(shape, buffer));
             }
         }
         return tensorMap;
