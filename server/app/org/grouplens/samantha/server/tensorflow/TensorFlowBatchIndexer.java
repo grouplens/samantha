@@ -35,6 +35,7 @@ import play.inject.Injector;
 import play.libs.Json;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -90,9 +91,9 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
         for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
             String name = entry.getKey();
             jsonTensors.put(name + TensorFlowModel.INDEX_APPENDIX,
-                    new String(idxBufferMap.get(name).array()));
+                    new String(idxBufferMap.get(name).array(), StandardCharsets.UTF_8));
             jsonTensors.put(name + TensorFlowModel.VALUE_APPENDIX,
-                    new String(valBufferMap.get(name).array()));
+                    new String(valBufferMap.get(name).array(), StandardCharsets.UTF_8));
         }
         jsonTensors.put(timestampField, timestamp);
         indexer.index(jsonTensors, requestContext);
