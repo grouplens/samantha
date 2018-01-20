@@ -35,7 +35,6 @@ import play.inject.Injector;
 import play.libs.Json;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,10 +43,10 @@ import java.util.Map;
 public class TensorFlowBatchIndexer extends AbstractIndexer {
     private final Indexer indexer;
     private final TensorFlowModel model;
-    //this overrides the parent member
-    private final int batchSize;
     private final boolean update;
     private final String timestampField;
+    //this overrides the parent member
+    protected final int batchSize;
 
     public TensorFlowBatchIndexer(SamanthaConfigService configService,
                                   Configuration config, Injector injector,
@@ -91,9 +90,9 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
         for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
             String name = entry.getKey();
             jsonTensors.put(name + TensorFlowModel.INDEX_APPENDIX,
-                    new String(idxBufferMap.get(name).array(), StandardCharsets.UTF_8));
+                    idxBufferMap.get(name).array());
             jsonTensors.put(name + TensorFlowModel.VALUE_APPENDIX,
-                    new String(valBufferMap.get(name).array(), StandardCharsets.UTF_8));
+                    valBufferMap.get(name).array());
         }
         jsonTensors.put(timestampField, timestamp);
         indexer.index(jsonTensors, requestContext);
