@@ -64,6 +64,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     protected final List<String> groupKeys;
     protected final List<String> indexKeys;
     public static final String OOV = "";
+    public static final int OOV_INDEX = 0;
     public static final String INDEX_APPENDIX = "_idx";
     public static final String VALUE_APPENDIX = "_val";
 
@@ -199,21 +200,26 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         return tensorMap;
     }
 
-    private int getFeatureBuffer(List<LearningInstance> instances, Map<String, Integer> numCols,
-                                 Map<String, DoubleBuffer> doubleBufferMap,
-                                 Map<String, IntBuffer> intBufferMap) {
+    public int getFeatureBuffer(List<LearningInstance> instances, Map<String, Integer> numCols,
+                                Map<String, DoubleBuffer> doubleBufferMap,
+                                Map<String, IntBuffer> intBufferMap) {
         int batch = instances.size();
         getNumCols(instances, numCols);
         for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
             String name = entry.getKey();
-            DoubleBuffer doubleBuffer = DoubleBuffer.allocate(batch * numCols.get(name));
-            IntBuffer intBuffer = IntBuffer.allocate(batch * numCols.get(name));
+            int numCol = entry.getValue();
+            DoubleBuffer doubleBuffer = DoubleBuffer.allocate(batch * numCol);
+            IntBuffer intBuffer = IntBuffer.allocate(batch * numCol);
             for (LearningInstance instance : instances) {
                 TensorFlowInstance tfins = (TensorFlowInstance) instance;
                 double[] doubleValues = tfins.getName2Values().get(name);
                 doubleBuffer.put(doubleValues);
                 int[] intValues = tfins.getName2Indices().get(name);
                 intBuffer.put(intValues);
+                for (int i=0; i<numCol - intValues.length; i++) {
+                    doubleBuffer.put(1.0);
+                    intBuffer.put(OOV_INDEX);
+                }
             }
             doubleBufferMap.put(name, doubleBuffer);
             intBufferMap.put(name, intBuffer);
