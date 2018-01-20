@@ -23,6 +23,7 @@
 package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.modeler.model.IndexSpace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +57,7 @@ public class SeparatedIdentityExtractor implements FeatureExtractor {
         if (entity.has(attrName)) {
             List<Feature> features = new ArrayList<>();
             String attr = entity.get(attrName).asText();
-            String[] fields = attr.split(separator);
+            String[] fields = StringUtils.split(attr, separator);
             for (String field : fields) {
                 double value = Double.parseDouble(field);
                 FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,

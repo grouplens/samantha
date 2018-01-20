@@ -23,6 +23,7 @@
 package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.modeler.model.IndexSpace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +63,8 @@ public class SeparatedStringExtractor implements FeatureExtractor {
         if (entity.has(attrName)) {
             List<Feature> features = new ArrayList<>();
             String attr = entity.get(attrName).asText();
-            String[] fields = attr.split(separator);
+            //TODO: note that if separators are adjacent, they are merged here, fix this; similarly for others
+            String[] fields = StringUtils.split(attr, separator);
             int start = 0;
             if (maxFeatures != null && fields.length > maxFeatures) {
                 start = fields.length - maxFeatures;
