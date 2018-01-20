@@ -24,7 +24,6 @@ package org.grouplens.samantha.server.tensorflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
@@ -35,8 +34,7 @@ import play.Configuration;
 import play.inject.Injector;
 import play.libs.Json;
 
-import java.nio.DoubleBuffer;
-import java.nio.IntBuffer;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -85,22 +83,14 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
             timestamp = last.get(timestampField).asInt();
         }
         ObjectNode jsonTensors = Json.newObject();
-        /*
-        Map<String, String> tensorMap = model.getStringifiedTensor(instances);
-        for (Map.Entry<String, String> entry : tensorMap.entrySet()) {
-            jsonTensors.put(entry.getKey(), entry.getValue());
-        }
-        */
         Map<String, Integer> numCols = new HashMap<>();
-        Map<String, DoubleBuffer> doubleBufferMap = new HashMap<>();
-        Map<String, IntBuffer> intBufferMap = new HashMap<>();
-        model.getFeatureBuffer(instances, numCols, doubleBufferMap, intBufferMap);
+        Map<String, ByteBuffer> valBufferMap = new HashMap<>();
+        Map<String, ByteBuffer> idxBufferMap = new HashMap<>();
+        model.getFeatureBuffer(instances, numCols, valBufferMap, idxBufferMap);
         for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
             String name = entry.getKey();
-            jsonTensors.put(name + TensorFlowModel.INDEX_APPENDIX,
-                    StringUtils.join(intBufferMap.get(name).array(), ','));
-            jsonTensors.put(name + TensorFlowModel.VALUE_APPENDIX,
-                    StringUtils.join(doubleBufferMap.get(name).array(), ','));
+            jsonTensors.put(name + TensorFlowModel.INDEX_APPENDIX, idxBufferMap.get(name).array());
+            jsonTensors.put(name + TensorFlowModel.VALUE_APPENDIX, valBufferMap.get(name).array());
         }
         jsonTensors.put(timestampField, timestamp);
         indexer.index(jsonTensors, requestContext);

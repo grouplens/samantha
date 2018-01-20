@@ -45,6 +45,7 @@ import org.tensorflow.Tensor;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -168,82 +169,53 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         }
     }
 
-    public Map<String, String> getStringifiedTensor(List<LearningInstance> instances) {
-        Map<String, Integer> numCols = new HashMap<>();
+    public int getFeatureBuffer(List<LearningInstance> instances, Map<String, Integer> numCols,
+                                Map<String, ByteBuffer> valBufferMap,
+                                Map<String, ByteBuffer> idxBufferMap) {
         int batch = instances.size();
         getNumCols(instances, numCols);
-        Map<String, String> tensorMap = new HashMap<>();
         for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
             String name = entry.getKey();
             int numCol = entry.getValue();
-            String[] valStrArr = new String[numCol * batch];
-            String[] idxStrArr = new String[numCol * batch];
-            int iter = 0;
+            ByteBuffer valBuffer = ByteBuffer.allocate(batch * numCol * Double.BYTES);
+            ByteBuffer idxBuffer = ByteBuffer.allocate(batch * numCol * Integer.BYTES);
             for (LearningInstance instance : instances) {
                 TensorFlowInstance tfins = (TensorFlowInstance) instance;
                 double[] doubleValues = tfins.getName2Values().get(name);
                 int[] intValues = tfins.getName2Indices().get(name);
                 for (int i=0; i<numCol; i++) {
-                    if (i < doubleValues.length) {
-                        valStrArr[iter] = Double.toString(doubleValues[i]);
-                        idxStrArr[iter] = Integer.toString(intValues[i]);
+                    if (i < intValues.length) {
+                        valBuffer.putDouble(doubleValues[i]);
+                        idxBuffer.putInt(intValues[i]);
                     } else {
-                        valStrArr[iter] = OOV;
-                        idxStrArr[iter] = OOV;
+                        valBuffer.putDouble(1.0);
+                        idxBuffer.putInt(OOV_INDEX);
                     }
-                    iter++;
                 }
             }
-            tensorMap.put(name + INDEX_APPENDIX, StringUtils.join(idxStrArr, ","));
-            tensorMap.put(name + VALUE_APPENDIX, StringUtils.join(valStrArr, ","));
-        }
-        return tensorMap;
-    }
-
-    public int getFeatureBuffer(List<LearningInstance> instances, Map<String, Integer> numCols,
-                                Map<String, DoubleBuffer> doubleBufferMap,
-                                Map<String, IntBuffer> intBufferMap) {
-        int batch = instances.size();
-        getNumCols(instances, numCols);
-        for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
-            String name = entry.getKey();
-            int numCol = entry.getValue();
-            DoubleBuffer doubleBuffer = DoubleBuffer.allocate(batch * numCol);
-            IntBuffer intBuffer = IntBuffer.allocate(batch * numCol);
-            for (LearningInstance instance : instances) {
-                TensorFlowInstance tfins = (TensorFlowInstance) instance;
-                double[] doubleValues = tfins.getName2Values().get(name);
-                doubleBuffer.put(doubleValues);
-                int[] intValues = tfins.getName2Indices().get(name);
-                intBuffer.put(intValues);
-                for (int i=0; i<numCol - intValues.length; i++) {
-                    doubleBuffer.put(1.0);
-                    intBuffer.put(OOV_INDEX);
-                }
-            }
-            doubleBufferMap.put(name, doubleBuffer);
-            intBufferMap.put(name, intBuffer);
+            valBufferMap.put(name, valBuffer);
+            idxBufferMap.put(name, idxBuffer);
         }
         return batch;
     }
 
     private Map<String, Tensor> getFeedDict(List<LearningInstance> instances) {
         Map<String, Integer> numCols = new HashMap<>();
-        Map<String, DoubleBuffer> doubleBufferMap = new HashMap<>();
-        Map<String, IntBuffer> intBufferMap = new HashMap<>();
-        int batch = getFeatureBuffer(instances, numCols, doubleBufferMap, intBufferMap);
+        Map<String, ByteBuffer> valBufferMap = new HashMap<>();
+        Map<String, ByteBuffer> idxBufferMap = new HashMap<>();
+        int batch = getFeatureBuffer(instances, numCols, valBufferMap, idxBufferMap);
         Map<String, Tensor> tensorMap = new HashMap<>();
         for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
             String name = entry.getKey();
             int numCol = entry.getValue();
             long[] shape = {batch, numCol};
-            if (doubleBufferMap.containsKey(name)) {
-                DoubleBuffer buffer = doubleBufferMap.get(name);
+            if (valBufferMap.containsKey(name)) {
+                DoubleBuffer buffer = valBufferMap.get(name).asDoubleBuffer();
                 buffer.rewind();
                 tensorMap.put(name + VALUE_APPENDIX, Tensor.create(shape, buffer));
             }
-            if (intBufferMap.containsKey(name)) {
-                IntBuffer buffer = intBufferMap.get(name);
+            if (idxBufferMap.containsKey(name)) {
+                IntBuffer buffer = idxBufferMap.get(name).asIntBuffer();
                 buffer.rewind();
                 tensorMap.put(name + INDEX_APPENDIX, Tensor.create(shape, buffer));
             }
