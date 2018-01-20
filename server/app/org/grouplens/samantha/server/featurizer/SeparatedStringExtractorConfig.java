@@ -34,21 +34,25 @@ public class SeparatedStringExtractorConfig implements FeatureExtractorConfig {
     private final String attrName;
     private final String separator;
     private final boolean normalize;
+    private final Integer maxFeatures;
 
     private SeparatedStringExtractorConfig(String indexName,
                                            String attrName,
                                            String feaName,
                                            String separator,
-                                           boolean normalize) {
+                                           boolean normalize,
+                                           Integer maxFeatures) {
         this.indexName = indexName;
         this.attrName = attrName;
         this.feaName = feaName;
         this.separator = separator;
         this.normalize = normalize;
+        this.maxFeatures = maxFeatures;
     }
 
     public FeatureExtractor getFeatureExtractor(RequestContext requestContext) {
-        return new SeparatedStringExtractor(indexName, attrName, feaName, separator, normalize);
+        return new SeparatedStringExtractor(indexName, attrName, feaName, separator,
+                normalize, maxFeatures);
     }
 
     public static FeatureExtractorConfig
@@ -63,6 +67,6 @@ public class SeparatedStringExtractorConfig implements FeatureExtractorConfig {
                 extractorConfig.getString("attrName"),
                 extractorConfig.getString("feaName"),
                 extractorConfig.getString("separator"),
-                normalize);
+                normalize, extractorConfig.getInt("maxFeatures"));
     }
 }

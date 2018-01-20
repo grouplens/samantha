@@ -40,17 +40,20 @@ public class SeparatedStringExtractor implements FeatureExtractor {
     private final String feaName;
     private final String separator;
     private final boolean normalize;
+    private final Integer maxFeatures;
 
     public SeparatedStringExtractor(String indexName,
                                     String attrName,
                                     String feaName,
                                     String separator,
-                                    boolean normalize) {
+                                    boolean normalize,
+                                    Integer maxFeatures) {
         this.indexName = indexName;
         this.attrName = attrName;
         this.feaName = feaName;
         this.separator = separator;
         this.normalize = normalize;
+        this.maxFeatures = maxFeatures;
     }
 
     public Map<String, List<Feature>> extract(JsonNode entity, boolean update,
@@ -60,11 +63,16 @@ public class SeparatedStringExtractor implements FeatureExtractor {
             List<Feature> features = new ArrayList<>();
             String attr = entity.get(attrName).asText();
             String[] fields = attr.split(separator);
+            int start = 0;
+            if (maxFeatures != null && fields.length > maxFeatures) {
+                start = fields.length - maxFeatures;
+            }
             double val = 1.0;
             if (fields.length > 0 && normalize) {
-                val = 1.0 / Math.sqrt(fields.length);
+                val = 1.0 / Math.sqrt(fields.length - start);
             }
-            for (String field : fields) {
+            for (int i=start; i<fields.length; i++) {
+                String field = fields[i];
                 String key = FeatureExtractorUtilities.composeKey(attrName, field);
                 FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
                         indexSpace, indexName, key, val);

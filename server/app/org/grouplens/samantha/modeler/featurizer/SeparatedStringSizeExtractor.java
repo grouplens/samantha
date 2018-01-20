@@ -23,6 +23,7 @@
 package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.modeler.model.IndexSpace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,15 +40,18 @@ public class SeparatedStringSizeExtractor implements FeatureExtractor {
     private final String attrName;
     private final String feaName;
     private final String separator;
+    private final Integer maxFeatures;
 
     public SeparatedStringSizeExtractor(String indexName,
                                         String attrName,
                                         String feaName,
-                                        String separator) {
+                                        String separator,
+                                        Integer maxFeatures) {
         this.indexName = indexName;
         this.attrName = attrName;
         this.feaName = feaName;
         this.separator = separator;
+        this.maxFeatures = maxFeatures;
     }
 
     public Map<String, List<Feature>> extract(JsonNode entity, boolean update,
@@ -56,10 +60,13 @@ public class SeparatedStringSizeExtractor implements FeatureExtractor {
         if (entity.has(attrName)) {
             List<Feature> features = new ArrayList<>();
             String attr = entity.get(attrName).asText();
-            String[] fields = attr.split(separator);
+            int size = StringUtils.countMatches(attr, separator) + 1;
+            if (maxFeatures != null && size > maxFeatures) {
+                size = maxFeatures;
+            }
             String key = FeatureExtractorUtilities.composeKey(attrName, "size");
             FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                    indexSpace, indexName, key, fields.length);
+                    indexSpace, indexName, key, size);
             feaMap.put(feaName, features);
         } else {
             logger.warn("{} is not present in {}", attrName, entity);
