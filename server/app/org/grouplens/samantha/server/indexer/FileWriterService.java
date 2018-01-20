@@ -117,16 +117,18 @@ public class FileWriterService {
             } else {
                 BufferedWriter writer;
                 try {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(
-                            new FileInputStream(file), StandardCharsets.UTF_8));
-                    String line = reader.readLine();
-                    if (line != null && dataFields != null) {
-                        List<String> curFields = Lists.newArrayList(line.split(separator));
-                        if (!dataFields.equals(curFields)) {
-                            continue;
+                    if (dataFields != null) {
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(
+                                new FileInputStream(file), StandardCharsets.UTF_8));
+                        String line = reader.readLine();
+                        if (line != null) {
+                            List<String> curFields = Lists.newArrayList(line.split(separator));
+                            if (!dataFields.equals(curFields)) {
+                                continue;
+                            }
                         }
+                        reader.close();
                     }
-                    reader.close();
                     writer = new BufferedWriter(new OutputStreamWriter(
                             new FileOutputStream(file, true), StandardCharsets.UTF_8));
                 } catch (FileNotFoundException e) {
