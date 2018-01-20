@@ -22,6 +22,8 @@
 
 package org.grouplens.samantha.server.indexer;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -38,10 +40,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static java.io.File.separator;
@@ -90,8 +89,28 @@ public class IndexerUtilities {
         }
     }
 
-    public static void writeJson(JsonNode entity, BufferedWriter writer) throws IOException {
+    public static void writeJson1(JsonNode entity, BufferedWriter writer) throws IOException {
         writer.write(entity.toString());
+        writer.newLine();
+        writer.flush();
+    }
+
+    public static void writeJson(JsonNode entity, BufferedWriter writer) throws IOException {
+        JsonFactory jfactory = new JsonFactory();
+        JsonGenerator jGenerator = jfactory.createGenerator(writer);
+        jGenerator.writeStartObject();
+        Iterator<Map.Entry<String, JsonNode>> fields = entity.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            jGenerator.writeFieldName(field.getKey());
+            JsonNode value = field.getValue();
+            if (value.isBinary()) {
+                jGenerator.writeBinary(value.binaryValue());
+            } else {
+                jGenerator.writeTree(value);
+            }
+        }
+        jGenerator.writeEndObject();
         writer.newLine();
         writer.flush();
     }
