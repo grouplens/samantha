@@ -89,13 +89,13 @@ public class IndexerUtilities {
         }
     }
 
-    public static void writeJson1(JsonNode entity, BufferedWriter writer) throws IOException {
+    public static void writeJson(JsonNode entity, BufferedWriter writer) throws IOException {
         writer.write(entity.toString());
         writer.newLine();
         writer.flush();
     }
 
-    public static void writeJson(JsonNode entity, BufferedWriter writer) throws IOException {
+    public static void writeJson1(JsonNode entity, BufferedWriter writer) throws IOException {
         JsonFactory jfactory = new JsonFactory();
         JsonGenerator jGenerator = jfactory.createGenerator(writer);
         jGenerator.writeStartObject();

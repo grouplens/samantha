@@ -83,16 +83,9 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
             timestamp = last.get(timestampField).asInt();
         }
         ObjectNode jsonTensors = Json.newObject();
-        Map<String, Integer> numCols = new HashMap<>();
-        Map<String, ByteBuffer> valBufferMap = new HashMap<>();
-        Map<String, ByteBuffer> idxBufferMap = new HashMap<>();
-        model.getFeatureBuffer(instances, numCols, valBufferMap, idxBufferMap);
-        for (Map.Entry<String, Integer> entry : numCols.entrySet()) {
-            String name = entry.getKey();
-            jsonTensors.put(name + TensorFlowModel.INDEX_APPENDIX,
-                    idxBufferMap.get(name).array());
-            jsonTensors.put(name + TensorFlowModel.VALUE_APPENDIX,
-                    valBufferMap.get(name).array());
+        Map<String, String> tensorMap = model.getStringifiedSparseTensor(instances);
+        for (Map.Entry<String, String> entry : tensorMap.entrySet()) {
+            jsonTensors.put(entry.getKey(), entry.getValue());
         }
         jsonTensors.put(timestampField, timestamp);
         indexer.index(jsonTensors, requestContext);
