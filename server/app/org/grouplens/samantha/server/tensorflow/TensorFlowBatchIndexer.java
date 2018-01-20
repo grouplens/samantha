@@ -91,8 +91,8 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
             String name = entry.getKey();
             jsonTensors.put(name + TensorFlowModel.INDEX_APPENDIX,
                     idxBufferMap.get(name).array());
-            jsonTensors.put(name + TensorFlowModel.VALUE_APPENDIX,
-                    valBufferMap.get(name).array());
+            //jsonTensors.put(name + TensorFlowModel.VALUE_APPENDIX,
+            //        valBufferMap.get(name).array());
         }
         jsonTensors.put(timestampField, timestamp);
         indexer.index(jsonTensors, requestContext);
