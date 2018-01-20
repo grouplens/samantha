@@ -1,7 +1,7 @@
 
 from src.dataset import DataSet
 
-class ListDataSet(DataSet):
+class JsonListDataSet(DataSet):
 
     def __init__(self, batches):
         self._batches = batches

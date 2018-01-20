@@ -5,9 +5,9 @@ import logging
 
 from src.dataset import DataSet
 
-logger = logging.getLogger('json_dataset')
+logger = logging.getLogger('json_files')
 
-class JsonDataSet(DataSet):
+class JsonFilesDataSet(DataSet):
 
     def __init__(self, files=None, includes=None, excludes=None):
         if files is None:

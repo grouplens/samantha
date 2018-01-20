@@ -3,7 +3,7 @@ import unittest
 import random
 
 from src.trainer import ModelTrainer
-from src.datasets.list_dataset import ListDataSet
+from src.datasets.json_list import JsonListDataSet
 from src.models.sequence_user_model import SequenceUserModel
 from src.models.softmax_prediction_model import SoftmaxPredictionModel
 from src.models.hsm_prediction_model import HierarchicalPredictionModel
@@ -77,7 +77,7 @@ class RecommenderTest(unittest.TestCase):
                         else:
                             batch['item_idx'][l].append(0)
             batches.append(batch)
-        train_data = ListDataSet(batches)
+        train_data = JsonListDataSet(batches)
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
             tensorboard_dir=self._test_path)
@@ -130,7 +130,7 @@ class RecommenderTest(unittest.TestCase):
                         else:
                             batch['item_idx'][l].append(0)
             batches.append(batch)
-        train_data = ListDataSet(batches)
+        train_data = JsonListDataSet(batches)
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
             tensorboard_dir=self._test_path)
