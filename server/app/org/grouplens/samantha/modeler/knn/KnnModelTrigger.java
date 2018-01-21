@@ -29,6 +29,7 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import org.apache.commons.math3.linear.RealVector;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
+import org.grouplens.samantha.modeler.model.IndexedVectorModel;
 import org.grouplens.samantha.modeler.tree.SortingUtilities;
 import play.libs.Json;
 
@@ -36,12 +37,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class KnnModelFeatureTrigger {
+public class KnnModelTrigger {
     final private List<String> feaAttrs;
     final private String weightAttr;
     final private String scoreAttr;
-    final private FeatureKnnModel featureKnnModel;
-    final private FeatureKnnModel featureKdnModel;
+    final private IndexedVectorModel featureKnnModel;
+    final private IndexedVectorModel featureKdnModel;
     final private int maxInter = 2000;
 
     /**
@@ -51,8 +52,8 @@ public class KnnModelFeatureTrigger {
      *                   if value >= 0.5, featureKnnModel is used.
      *                   if value < 0.5, featureKdnModel is used.
      */
-    public KnnModelFeatureTrigger(FeatureKnnModel featureKnnModel, FeatureKnnModel featureKdnModel,
-                                  List<String> feaAttrs, String weightAttr, String scoreAttr) {
+    public KnnModelTrigger(IndexedVectorModel featureKnnModel, IndexedVectorModel featureKdnModel,
+                           List<String> feaAttrs, String weightAttr, String scoreAttr) {
         this.feaAttrs = feaAttrs;
         this.weightAttr = weightAttr;
         this.scoreAttr = scoreAttr;
@@ -60,7 +61,7 @@ public class KnnModelFeatureTrigger {
         this.featureKdnModel = featureKdnModel;
     }
 
-    private void getNeighbors(Object2DoubleMap<String> item2score, FeatureKnnModel knnModel,
+    private void getNeighbors(Object2DoubleMap<String> item2score, IndexedVectorModel knnModel,
                               String key, double weight) {
         if (knnModel.hasKey(key)) {
             RealVector sims = knnModel.getKeyVector(key);
@@ -74,7 +75,7 @@ public class KnnModelFeatureTrigger {
         }
     }
 
-    private void getNeighbors(ObjectSet<String> items, FeatureKnnModel knnModel,
+    private void getNeighbors(ObjectSet<String> items, IndexedVectorModel knnModel,
                               String key) {
         if (knnModel.hasKey(key)) {
             RealVector sims = knnModel.getKeyVector(key);

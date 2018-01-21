@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Ordering;
 
 import java.util.Comparator;
+import java.util.Map;
 
 public class SortingUtilities {
 
@@ -37,6 +38,15 @@ public class SortingUtilities {
         } else {
             return 0;
         }
+    }
+
+    static public Comparator<Map.Entry<String, Double>> mapEntryValueComparator() {
+        return new Comparator<Map.Entry<String, Double>>() {
+            @Override
+            public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
+                return compareValues(o1.getValue(), o2.getValue());
+            }
+        };
     }
 
     static public Comparator<double[]> pairDoubleSecondComparator() {

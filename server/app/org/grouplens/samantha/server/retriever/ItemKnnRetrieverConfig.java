@@ -23,7 +23,7 @@
 package org.grouplens.samantha.server.retriever;
 
 import org.grouplens.samantha.modeler.knn.FeatureKnnModel;
-import org.grouplens.samantha.modeler.knn.KnnModelFeatureTrigger;
+import org.grouplens.samantha.modeler.knn.KnnModelTrigger;
 import org.grouplens.samantha.server.common.*;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.expander.EntityExpander;
@@ -105,7 +105,7 @@ public class ItemKnnRetrieverConfig extends AbstractComponentConfig implements R
         ModelManager kdnModelManager = new FeatureKnnModelManager(kdnModelName, kdnModelFile, injector,
                 svdfeaPredictorName, svdfeaModelName, itemAttrs, numMatch, numNeighbors, true, minSupport);
         FeatureKnnModel kdnModel = (FeatureKnnModel) kdnModelManager.manage(requestContext);
-        KnnModelFeatureTrigger trigger = new KnnModelFeatureTrigger(knnModel, kdnModel,
+        KnnModelTrigger trigger = new KnnModelTrigger(knnModel, kdnModel,
                 itemAttrs, weightAttr, scoreAttr);
         return new ItemKnnRetriever(retriever, trigger, expanders, config);
     }

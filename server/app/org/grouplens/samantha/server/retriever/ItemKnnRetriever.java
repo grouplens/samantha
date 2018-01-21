@@ -23,7 +23,7 @@
 package org.grouplens.samantha.server.retriever;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.grouplens.samantha.modeler.knn.KnnModelFeatureTrigger;
+import org.grouplens.samantha.modeler.knn.KnnModelTrigger;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
@@ -34,11 +34,11 @@ import java.util.List;
 
 public class ItemKnnRetriever extends AbstractRetriever {
     private final Retriever retriever;
-    private final KnnModelFeatureTrigger trigger;
+    private final KnnModelTrigger trigger;
     private final List<EntityExpander> expanders;
 
     public ItemKnnRetriever(Retriever retriever,
-                            KnnModelFeatureTrigger trigger,
+                            KnnModelTrigger trigger,
                             List<EntityExpander> expanders, Configuration config) {
         super(config);
         this.retriever = retriever;

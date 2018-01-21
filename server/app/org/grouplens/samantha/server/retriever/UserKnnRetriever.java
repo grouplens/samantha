@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.modeler.knn.KnnModelFeatureTrigger;
+import org.grouplens.samantha.modeler.knn.KnnModelTrigger;
 import org.grouplens.samantha.modeler.tree.SortingUtilities;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
@@ -42,7 +42,7 @@ import java.util.List;
 
 public class UserKnnRetriever extends AbstractRetriever {
     private final Retriever retriever;
-    private final KnnModelFeatureTrigger trigger;
+    private final KnnModelTrigger trigger;
     private final List<EntityExpander> expanders;
     private final String weightAttr;
     private final String scoreAttr;
@@ -54,7 +54,7 @@ public class UserKnnRetriever extends AbstractRetriever {
                             List<String> userAttrs,
                             List<String> itemAttrs,
                             Retriever retriever,
-                            KnnModelFeatureTrigger trigger,
+                            KnnModelTrigger trigger,
                             List<EntityExpander> expanders,
                             Configuration config) {
         super(config);
