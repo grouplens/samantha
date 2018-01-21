@@ -27,8 +27,10 @@ class JsonStringFilesDataSet(DataSet):
             with open(afile) as fin:
                 logger.info('Reading from %s.' % afile)
                 for line in fin:
+                    logger.info('Loading one batch.')
                     obj = json.loads(line.strip())
-                    sizes = [int(x) for x in obj[self._size_name].split(self._separator)]
+                    logger.info('One batch loaded.')
+                    sizes = [int(float(x)) for x in obj[self._size_name].split(self._separator)]
                     max_size = max(sizes)
                     sum_size = sum(sizes)
                     feed_dict = {}
@@ -50,12 +52,14 @@ class JsonStringFilesDataSet(DataSet):
                             batch = []
                             start = 0
                             for size in sizes:
-                                ins = vals[start:size] + [default] * (max_size - size)
+                                ins = vals[start:(start + size)] + [default] * (max_size - size)
                                 batch.append(ins)
                                 start += size
                         else:
                             batch = [[x] for x in vals]
-                        feed_dict['%s:0' % key] = np.array(batch)
+                        np_batch = np.array(batch)
+                        logger.info("batch.shape: %s", np_batch.shape)
+                        feed_dict['%s:0' % key] = np_batch
                     yield feed_dict
 
     def reset(self):
