@@ -111,8 +111,8 @@ public class GroupedIndexer extends AbstractIndexer {
                 }
                 while (entityDAO.hasNextEntity()) {
                     ObjectNode entity = entityDAO.getNextEntity();
-                    int idx = FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys)
-                            .hashCode() % numBuckets;
+                    int idx = Math.floorMod(FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys)
+                            .hashCode(), numBuckets);
                     if (idx < usedBuckets) {
                         IndexerUtilities.writeCSVFields(entity, dataFields, writers.get(idx), separator);
                     }

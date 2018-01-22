@@ -49,12 +49,14 @@ public class TFIDFKnnExpander implements EntityExpander {
     private final int numUsedNeighbors;
     final private String scoreAttr;
     final private List<String> itemAttrs;
+    final private List<String> feaAttrs;
 
     public TFIDFKnnExpander(TFIDFKnnModel tfidfKnnModel, int numUsedNeighbors,
-                            List<String> itemAttrs, String scoreAttr) {
+                            List<String> itemAttrs, List<String> feaAttrs, String scoreAttr) {
         this.tfidfKnnModel = tfidfKnnModel;
         this.numUsedNeighbors = numUsedNeighbors;
         this.itemAttrs = itemAttrs;
+        this.feaAttrs = feaAttrs;
         this.scoreAttr = scoreAttr;
     }
 
@@ -113,13 +115,14 @@ public class TFIDFKnnExpander implements EntityExpander {
             numUsedNeighbors = numNeighbors;
         }
         List<String> itemAttrs = expanderConfig.getStringList("itemAttrs");
+        List<String> feaAttrs = expanderConfig.getStringList("feaAttrs");
         Configuration daoConfigs = expanderConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get());
         ModelManager modelManager = new TFIDFKnnModelManager(modelName, modelFile, injector,
-                itemAttrs, expanderConfig.getStringList("feaAttrs"),
-                numNeighbors, expanderConfig,
+                itemAttrs, feaAttrs, numNeighbors, expanderConfig,
                 expanderConfig.getString("daoConfigKey"), daoConfigs);
         TFIDFKnnModel model = (TFIDFKnnModel) modelManager.manage(requestContext);
-        return new TFIDFKnnExpander(model, numUsedNeighbors, itemAttrs, expanderConfig.getString("scoreAttr"));
+        return new TFIDFKnnExpander(model, numUsedNeighbors, itemAttrs, feaAttrs,
+                expanderConfig.getString("scoreAttr"));
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
@@ -147,7 +150,7 @@ public class TFIDFKnnExpander implements EntityExpander {
                     }
                 }
             } else {
-                logger.warn("{} does not exist in the TFIDFKnnModel.", key);
+                logger.warn("{} does not exist in the {} to {} TFIDFKnnModel.", key, itemAttrs, feaAttrs);
             }
         }
         return initialResult;
