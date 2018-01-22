@@ -107,7 +107,7 @@ class RecommenderBuilder(ModelBuilder):
         length_limit = tf.minimum(
             tf.reshape(sequence_length, [-1]),
             self._max_train_steps)
-        tf.summary.scalar('max_sequence_length', tf.reduce_max(length_limit))
+        tf.summary.histogram('batch_sequence_length', length_limit)
         split_limit = tf.maximum(length_limit - self._eval_steps, 2)
         start_limit = tf.maximum(split_limit - self._train_steps - 1, 0)
         train_loss = 0.0
@@ -231,3 +231,4 @@ class RecommenderBuilder(ModelBuilder):
         with tf.variable_scope('prediction'):
             self._get_prediction(sequence_length, user_model, target2paras)
         return loss, updates
+

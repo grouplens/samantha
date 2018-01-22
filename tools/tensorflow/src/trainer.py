@@ -17,11 +17,11 @@ class ModelTrainer(object):
                  builder=ModelBuilder(),
                  max_steps=1e7,
                  learning_rate=0.01):
-        self.train_data = train_data
-        self.tensorboard_dir = tensorboard_dir
-        self.builder = builder
-        self.max_steps = max_steps
-        self.learning_rate = learning_rate
+        self._train_data = train_data
+        self._tensorboard_dir = tensorboard_dir
+        self._builder = builder
+        self._max_steps = max_steps
+        self._learning_rate = learning_rate
 
     def train(self, run_name=None):
         graph = tf.Graph()
@@ -29,9 +29,9 @@ class ModelTrainer(object):
             session = tf.Session(graph=graph)
             with session.as_default():
                 logger.info('Building the model graph.')
-                loss, updates = self.builder.build_model()
-                run_tensors = self.builder.test_tensors()
-                update_op = tf.train.AdagradOptimizer(self.learning_rate).minimize(loss)
+                loss, updates = self._builder.build_model()
+                run_tensors = self._builder.test_tensors()
+                update_op = self._builder.build_optimizer(loss, self._learning_rate)
                 for update in updates:
                     update_op = tf.group(update_op, update)
                 merged_summary = tf.summary.merge_all()
@@ -41,19 +41,19 @@ class ModelTrainer(object):
                 if run_name is None:
                     run_name = ''.join(
                         random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-                train_writer = tf.summary.FileWriter(self.tensorboard_dir + run_name, graph)
+                train_writer = tf.summary.FileWriter(self._tensorboard_dir + run_name, graph)
                 logger.info('Initializing the model graph.')
                 session.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
                 logger.info('Training the model.')
                 step = 0
-                while step < self.max_steps:
-                    for train_batch in self.train_data.next_batch():
+                while step < self._max_steps:
+                    for train_batch in self._train_data.next_batch():
                         train_vals = session.run(run_tensors, feed_dict=train_batch)
                         train_writer.add_summary(train_vals['merged_summary'], step)
                         step += 1
                         logger.info('Step %s, training loss: %s', step, train_vals['train_loss'])
-                        if step >= self.max_steps:
+                        if step >= self._max_steps:
                             break
-                    self.train_data.reset()
+                    self._train_data.reset()
                 train_writer.close()
             session.close()
