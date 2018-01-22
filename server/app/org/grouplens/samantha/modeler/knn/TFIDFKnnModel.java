@@ -88,6 +88,7 @@ public class TFIDFKnnModel extends IndexedVectorModel {
                     break;
                 }
             }
+            setKeyVector(item, features);
         });
         return this;
     }
