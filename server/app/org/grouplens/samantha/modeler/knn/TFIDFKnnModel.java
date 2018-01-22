@@ -58,8 +58,10 @@ public class TFIDFKnnModel extends IndexedVectorModel {
             Map<String, Double> feas = tfidf.getOrDefault(item, new HashMap<>());
             double freq = feas.getOrDefault(feature, 0.0);
             feas.put(feature, freq + 1.0);
+            tfidf.putIfAbsent(item, feas);
             Set<String> items = feaItems.getOrDefault(feature, new HashSet<>());
             items.add(item);
+            feaItems.putIfAbsent(feature, items);
         }
         double numItems = tfidf.size();
         for (Map.Entry<String, Map<String, Double>> entry : tfidf.entrySet()) {
