@@ -239,6 +239,7 @@ public class EngineHandlers extends Controller {
         JsonNode body = request().body().asJson();
         RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
         String indexerName = JsonHelpers.getRequiredString(body, "indexer");
+        //TODO: expanders are not initialized here. Fix this.
         samanthaConfigService.getIndexer(indexerName, requestContext);
         ObjectNode resp = JsonHelpers.successJson();
         return ok(resp);
