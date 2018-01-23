@@ -59,7 +59,7 @@ public class DirectoryBackupQuartzJob implements Job {
             }
             String reserveStr = taskConfig.getString("reserve");
             if (reserveStr != null) {
-                String[] fields = reserveStr.split(" ");
+                String[] fields = reserveStr.split(" ", -1);
                 Date cutDate = new Date(now.getTime() - TimeUnit
                         .valueOf(fields[1]).toMillis(Long.parseLong(fields[0])));
                 File[] prevDirs = new File(destDir).listFiles(File::isDirectory);

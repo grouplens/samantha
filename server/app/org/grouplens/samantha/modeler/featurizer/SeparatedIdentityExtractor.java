@@ -56,7 +56,7 @@ public class SeparatedIdentityExtractor implements FeatureExtractor {
         if (entity.has(attrName)) {
             List<Feature> features = new ArrayList<>();
             String attr = entity.get(attrName).asText();
-            String[] fields = attr.split(separator);
+            String[] fields = attr.split(separator, -1);
             for (String field : fields) {
                 double value = Double.parseDouble(field);
                 FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,

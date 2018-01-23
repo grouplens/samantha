@@ -57,7 +57,7 @@ public class IndexerUtilities {
         try {
             Date date;
             if (timeStr.startsWith("now") || timeStr.startsWith("today")) {
-                String[] fields = timeStr.split(" ");
+                String[] fields = timeStr.split(" ", -1);
                 long mul = Long.parseLong(fields[2]);
                 String unit = fields[3];
                 long current = new Date().getTime();
@@ -67,7 +67,7 @@ public class IndexerUtilities {
                 }
                 long minus = TimeUnit.valueOf(unit).toMillis(mul);
                 date = new Date(current - minus);
-            } else if (timeStr.split("-").length > 1) {
+            } else if (timeStr.split("-", -1).length > 1) {
                 DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:SS");
                 date = format.parse(timeStr);
             } else {

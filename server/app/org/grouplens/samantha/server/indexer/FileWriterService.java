@@ -122,7 +122,7 @@ public class FileWriterService {
                                 new FileInputStream(file), StandardCharsets.UTF_8));
                         String line = reader.readLine();
                         if (line != null) {
-                            List<String> curFields = Lists.newArrayList(line.split(separator));
+                            List<String> curFields = Lists.newArrayList(line.split(separator, -1));
                             if (!dataFields.equals(curFields)) {
                                 continue;
                             }

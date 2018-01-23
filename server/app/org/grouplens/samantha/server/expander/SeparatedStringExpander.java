@@ -53,7 +53,7 @@ public class SeparatedStringExpander implements EntityExpander {
         List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
             List<ObjectNode> oneExpanded = new ArrayList<>();
-            String[] values = entity.get(nameAttr).asText().split(separator);
+            String[] values = entity.get(nameAttr).asText().split(separator, -1);
             for (String value : values) {
                 ObjectNode newEntity = entity.deepCopy();
                 newEntity.put(valueAttr, value);

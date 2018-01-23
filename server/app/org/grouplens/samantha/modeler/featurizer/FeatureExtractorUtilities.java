@@ -89,9 +89,9 @@ public class FeatureExtractorUtilities {
 
     static public Map<String, String> decomposeKey(String key) {
         Map<String, String> attrVals = new HashMap<>();
-        String[] multiples = key.split("\t");
+        String[] multiples = key.split("\t", -1);
         for (String multiple : multiples) {
-            String[] attrVal = multiple.split("\1");
+            String[] attrVal = multiple.split("\1", -1);
             if (attrVal.length == 2) {
                 attrVals.put(attrVal[0], attrVal[1]);
             }
