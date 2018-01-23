@@ -34,9 +34,7 @@ import play.Configuration;
 import play.inject.Injector;
 import play.libs.Json;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,8 +43,6 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
     private final TensorFlowModel model;
     private final boolean update;
     private final String timestampField;
-    //this overrides the parent member
-    protected final int batchSize;
 
     public TensorFlowBatchIndexer(SamanthaConfigService configService,
                                   Configuration config, Injector injector,
@@ -56,8 +52,9 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
         super(config, configService, daoConfigs, daoConfigKey, injector);
         this.indexer = indexer;
         this.model = model;
-        this.batchSize = batchSize;
         this.update = update;
+        //TODO: change this into AbstractIndexer constructor
+        this.batchSize = batchSize;
         this.timestampField = timestampField;
     }
 

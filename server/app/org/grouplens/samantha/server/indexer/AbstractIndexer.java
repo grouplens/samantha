@@ -52,7 +52,8 @@ abstract public class AbstractIndexer implements Indexer {
     protected final Injector injector;
     protected final List<Configuration> expandersConfig;
     protected final List<Configuration> subscribers;
-    protected final int batchSize = 128;
+    //TODO: change this to take value from constructor and final
+    protected int batchSize = 128;
 
     public AbstractIndexer(Configuration config, SamanthaConfigService configService,
                            Configuration daoConfigs, String daoConfigKey, Injector injector) {
@@ -100,7 +101,7 @@ abstract public class AbstractIndexer implements Indexer {
         ExpandedEntityDAO expandedEntityDAO = new ExpandedEntityDAO(entityExpanders, entityDAO, requestContext);
         while (expandedEntityDAO.hasNextEntity()) {
             toIndex.add(expandedEntityDAO.getNextEntity());
-            if (toIndex.size() >= this.batchSize) {
+            if (toIndex.size() >= batchSize) {
                 index(toIndex, requestContext);
                 notifyDataSubscribers(toIndex, requestContext);
                 toIndex.removeAll();
