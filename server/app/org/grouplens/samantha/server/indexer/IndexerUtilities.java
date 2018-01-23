@@ -120,6 +120,7 @@ public class IndexerUtilities {
         ObjectMapper mapper = new ObjectMapper();
         List<String> fields = new ArrayList<>(curFields.size());
         for (String field : curFields) {
+            //TODO: this might produce null when field is not in entity.
             String value = mapper.writeValueAsString(entity.get(field));
             fields.add(StringEscapeUtils.unescapeCsv(value));
         }

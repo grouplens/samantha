@@ -42,6 +42,16 @@ public class SeparatedStringSizeExtractor implements FeatureExtractor {
     private final String separator;
     private final Integer maxFeatures;
 
+    /***
+     * Extract the number of sub strings after splitting by the separator as value.
+     * @param indexName The name of the key index to use.
+     * @param attrName The name of the attribute to get the string to split. This will also be used as the feature
+     *                 key to convert to index.
+     * @param feaName The name of the feature after extracting.
+     * @param separator This actual string to count as the separator. Note that this is not a regex pattern.
+     * @param maxFeatures The maximum number of sub strings. It can be null. When not null, it serves as a maximum
+     *                    of the extracted feature value.
+     */
     public SeparatedStringSizeExtractor(String indexName,
                                         String attrName,
                                         String feaName,
