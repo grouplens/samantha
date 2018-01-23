@@ -23,10 +23,7 @@
 package org.grouplens.samantha.server.expander;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.server.io.RequestContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import play.Configuration;
 import play.inject.Injector;
 
@@ -34,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SeparatedStringExpander implements EntityExpander {
-    private static Logger logger = LoggerFactory.getLogger(SeparatedStringExpander.class);
     final private String nameAttr;
     final private String valueAttr;
     final private String separator;
@@ -57,7 +53,7 @@ public class SeparatedStringExpander implements EntityExpander {
         List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
             List<ObjectNode> oneExpanded = new ArrayList<>();
-            String[] values = StringUtils.split(entity.get(nameAttr).asText(), separator);
+            String[] values = entity.get(nameAttr).asText().split(separator);
             for (String value : values) {
                 ObjectNode newEntity = entity.deepCopy();
                 newEntity.put(valueAttr, value);

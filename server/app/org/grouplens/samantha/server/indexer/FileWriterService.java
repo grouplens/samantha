@@ -24,7 +24,6 @@ package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
-import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,7 +122,7 @@ public class FileWriterService {
                                 new FileInputStream(file), StandardCharsets.UTF_8));
                         String line = reader.readLine();
                         if (line != null) {
-                            List<String> curFields = Lists.newArrayList(StringUtils.split(line, separator));
+                            List<String> curFields = Lists.newArrayList(line.split(separator));
                             if (!dataFields.equals(curFields)) {
                                 continue;
                             }
