@@ -48,6 +48,7 @@ import java.util.List;
 
 public class TensorFlowPredictorConfig implements PredictorConfig {
     private final List<String> groupKeys;
+    private final List<List<String>> equalSizeChecks;
     private final List<String> indexKeys;
     private final List<String> evaluatorNames;
     private final String modelFile;
@@ -67,7 +68,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
     private final Configuration config;
 
     private TensorFlowPredictorConfig(List<String> groupKeys, List<String> indexKeys,
-                                      List<String> evaluatorNames,
+                                      List<List<String>> equalSizeChecks, List<String> evaluatorNames,
                                       String modelFile, String modelName,
                                       List<FeatureExtractorConfig> feaExtConfigs,
                                       Configuration entityDaoConfigs,
@@ -79,6 +80,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                                       String graphDefFilePath, Configuration config) {
         this.groupKeys = groupKeys;
         this.indexKeys = indexKeys;
+        this.equalSizeChecks = equalSizeChecks;
         this.evaluatorNames = evaluatorNames;
         this.modelFile = modelFile;
         this.modelName = modelName;
@@ -110,10 +112,17 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
         if (predictorConfig.asMap().containsKey("evaluatorNames")) {
             evaluatorNames = predictorConfig.getStringList("evaluatorNames");
         }
+        List<Configuration> checkConfigs = predictorConfig.getConfigList("equalSizeChecks");
+        List<List<String>> equalSizeChecks = new ArrayList<>();
+        if (checkConfigs != null) {
+            for (Configuration check : checkConfigs) {
+                equalSizeChecks.add(check.getStringList("featuresWithEqualSizes"));
+            }
+        }
         return new TensorFlowPredictorConfig(
                 predictorConfig.getStringList("groupKeys"),
                 predictorConfig.getStringList("indexKeys"),
-                evaluatorNames,
+                equalSizeChecks, evaluatorNames,
                 predictorConfig.getString("modelFile"),
                 predictorConfig.getString("modelName"),
                 feaExtConfigs, daoConfigs,
@@ -144,7 +153,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
             TensorFlowModelProducer producer = injector.instanceOf(TensorFlowModelProducer.class);
             return producer.createTensorFlowModelModelFromGraphDef(
                     modelName, spaceMode, graphDefFilePath,
-                    groupKeys, indexKeys,
+                    groupKeys, equalSizeChecks, indexKeys,
                     featureExtractors,
                     lossOperationName, updateOperationName,
                     outputOperationName, initOperationName);

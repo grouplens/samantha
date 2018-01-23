@@ -37,6 +37,8 @@ import org.grouplens.samantha.server.indexer.GroupedIndexer;
 import org.grouplens.samantha.server.indexer.IndexerUtilities;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.Configuration;
 import play.inject.Injector;
 import play.libs.Json;
@@ -47,6 +49,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class UserSequenceIndexer extends AbstractIndexer {
+    private static Logger logger = LoggerFactory.getLogger(UserSequenceIndexer.class);
     private final GroupedIndexer indexer;
     private final List<String> dataFields;
     private final String daoNameKey;
@@ -106,7 +109,13 @@ public class UserSequenceIndexer extends AbstractIndexer {
                     List<String> newVals = new ArrayList<>();
                     field2val.put(field, newVals);
                     for (JsonNode act : acts) {
-                        newVals.add(act.get(field).asText());
+                        String val = act.get(field).asText();
+                        if (val.contains(innerFieldSeparator)) {
+                            logger.warn("The field {} from {} already has the indicated separator {}. Removed.",
+                                    field, act.toString(), innerFieldSeparator);
+                            val = val.replace(innerFieldSeparator, "");
+                        }
+                        newVals.add(val);
                     }
                 }
                 ObjectNode newData = Json.newObject();

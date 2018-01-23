@@ -38,6 +38,7 @@ import org.grouplens.samantha.modeler.model.IndexSpace;
 import org.grouplens.samantha.modeler.model.UncollectableModel;
 import org.grouplens.samantha.modeler.model.VariableSpace;
 import org.grouplens.samantha.server.exception.BadRequestException;
+import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.tensorflow.Graph;
 import org.tensorflow.Session;
 import org.tensorflow.Tensor;
@@ -55,15 +56,16 @@ import java.util.Map;
 
 public class TensorFlowModel extends AbstractLearningModel implements Featurizer, UncollectableModel {
     private static final long serialVersionUID = 1L;
-    transient protected Graph graph;
-    transient protected Session session;
-    protected final List<FeatureExtractor> featureExtractors;
-    protected final String lossOperationName;
-    protected final String updateOperationName;
-    protected final String outputOperationName;
-    protected final String initOperationName;
-    protected final List<String> groupKeys;
-    protected final List<String> indexKeys;
+    transient private Graph graph;
+    transient private Session session;
+    private final List<FeatureExtractor> featureExtractors;
+    private final String lossOperationName;
+    private final String updateOperationName;
+    private final String outputOperationName;
+    private final String initOperationName;
+    private final List<String> groupKeys;
+    private final List<List<String>> equalSizeChecks;
+
     public static final String OOV = "";
     public static final int OOV_INDEX = 0;
     public static final String INDEX_APPENDIX = "_idx";
@@ -74,17 +76,17 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                            List<FeatureExtractor> featureExtractors,
                            String lossOperationName, String updateOperationName,
                            String outputOperationName, String initOperationName,
-                           List<String> groupKeys, List<String> indexKeys) {
+                           List<String> groupKeys, List<List<String>> equalSizeChecks) {
         super(indexSpace, variableSpace);
         this.graph = graph;
         this.session = new Session(graph);
         this.groupKeys = groupKeys;
+        this.equalSizeChecks = equalSizeChecks;
         this.featureExtractors = featureExtractors;
         this.lossOperationName = lossOperationName;
         this.updateOperationName = updateOperationName;
         this.outputOperationName = outputOperationName;
         this.initOperationName = initOperationName;
-        this.indexKeys = indexKeys;
         session.runner().addTarget(initOperationName).run();
     }
 
@@ -135,6 +137,18 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     public LearningInstance featurize(JsonNode entity, boolean update) {
         Map<String, List<Feature>> feaMap = FeaturizerUtilities.getFeatureMap(entity, true,
                 featureExtractors, indexSpace);
+        for (List<String> features : equalSizeChecks) {
+            int size = -1;
+            for (String fea : features) {
+                if (size < 0) {
+                    size = feaMap.get(fea).size();
+                } else if (size != feaMap.get(fea).size()) {
+                    throw new ConfigurationException(
+                            "Equal size checks with " + features.toString() +
+                                    " failed for " + entity.toString());
+                }
+            }
+        }
         String group = null;
         if (groupKeys != null && groupKeys.size() > 0) {
             group = FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys);

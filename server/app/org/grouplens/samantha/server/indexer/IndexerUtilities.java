@@ -22,8 +22,6 @@
 
 package org.grouplens.samantha.server.indexer;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -31,7 +29,8 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.modeler.dao.CSVFileDAO;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import play.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 
 import javax.inject.Singleton;
@@ -43,10 +42,10 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static java.io.File.separator;
-
 @Singleton
 public class IndexerUtilities {
+    private static Logger logger = LoggerFactory.getLogger(IndexerUtilities.class);
+
     private IndexerUtilities() {}
 
     /**
@@ -73,7 +72,7 @@ public class IndexerUtilities {
             } else {
                 return Integer.parseInt(timeStr);
             }
-            Logger.info("{}", date.toString());
+            logger.info("Converting {} to unix timestamp.", date.toString());
             return (int)(date.getTime() / 1000);
         } catch (ParseException e) {
             throw new ConfigurationException(e);
@@ -95,33 +94,17 @@ public class IndexerUtilities {
         writer.flush();
     }
 
-    public static void writeJson1(JsonNode entity, BufferedWriter writer) throws IOException {
-        JsonFactory jfactory = new JsonFactory();
-        JsonGenerator jGenerator = jfactory.createGenerator(writer);
-        jGenerator.writeStartObject();
-        Iterator<Map.Entry<String, JsonNode>> fields = entity.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> field = fields.next();
-            jGenerator.writeFieldName(field.getKey());
-            JsonNode value = field.getValue();
-            if (value.isBinary()) {
-                jGenerator.writeBinary(value.binaryValue());
-            } else {
-                jGenerator.writeTree(value);
-            }
-        }
-        jGenerator.writeEndObject();
-        writer.newLine();
-        writer.flush();
-    }
-
     public static void writeCSVFields(JsonNode entity, List<String> curFields, BufferedWriter writer,
                                       String separator) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         List<String> fields = new ArrayList<>(curFields.size());
         for (String field : curFields) {
-            //TODO: this might produce null when field is not in entity.
             String value = mapper.writeValueAsString(entity.get(field));
+            if (value.contains(separator)) {
+                logger.warn("The field {} from {} already has the separator {}. Removed.",
+                        field, entity, separator);
+                value = value.replace(separator, "");
+            }
             fields.add(StringEscapeUtils.unescapeCsv(value));
         }
         String line = StringUtils.join(fields, separator);
