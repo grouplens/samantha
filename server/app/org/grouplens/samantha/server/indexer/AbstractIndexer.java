@@ -100,7 +100,7 @@ abstract public class AbstractIndexer implements Indexer {
         ExpandedEntityDAO expandedEntityDAO = new ExpandedEntityDAO(entityExpanders, entityDAO, requestContext);
         while (expandedEntityDAO.hasNextEntity()) {
             toIndex.add(expandedEntityDAO.getNextEntity());
-            if (toIndex.size() >= batchSize) {
+            if (toIndex.size() >= this.batchSize) {
                 index(toIndex, requestContext);
                 notifyDataSubscribers(toIndex, requestContext);
                 toIndex.removeAll();
