@@ -7,7 +7,7 @@ from src.models.prediction_model import PredictionModel
 
 class HierarchicalPredictionModel(PredictionModel):
 
-    def __init__(self, hierarchies=None, metrics='MAP@1'):
+    def __init__(self, hierarchies=None, metrics='MAP@1,5'):
         if hierarchies is not None:
             self._hierarchies = hierarchies
         else:

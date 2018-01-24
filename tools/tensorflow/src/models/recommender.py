@@ -68,7 +68,7 @@ class RecommenderBuilder(ModelBuilder):
         return updates
 
     def _compute_target_loss(self, user_model, indices, labels,
-            paras, target, config, metrics=None):
+            paras, target, config, metrics=None, mode='train'):
         batch_idx = tf.reshape(
                 tf.slice(indices,
                          begin=[0, 0],
@@ -91,11 +91,11 @@ class RecommenderBuilder(ModelBuilder):
                     masked_labels = tf.boolean_mask(used_labels, loss_mask)
                     masked_output = tf.boolean_mask(used_model, loss_mask)
                     _, masked_loss, _ = self._prediction_model.get_target_prediction_loss(
-                        masked_output, masked_labels, paras, target, config, 'train')
+                        masked_output, masked_labels, paras, target, config, mode)
                     loss += masked_loss
         else:
             predictions, loss, model_updates = self._prediction_model.get_target_prediction_loss(
-                used_model, used_labels, paras, target, config, 'eval')
+                used_model, used_labels, paras, target, config, mode)
             metric_updates += model_updates
             if metrics is not None:
                 for metric in metrics.split(' '):
@@ -148,7 +148,7 @@ class RecommenderBuilder(ModelBuilder):
                     target, config)
                 eval_target_loss, metric_updates = self._compute_target_loss(
                     user_model, eval_indices, target2label[target], target2paras[target],
-                    target, config, metrics=self._eval_metrics)
+                    target, config, metrics=self._eval_metrics, mode='eval')
             train_loss += config['weight'] * train_target_loss
             eval_loss += config['weight'] * eval_target_loss
             updates += metric_updates
