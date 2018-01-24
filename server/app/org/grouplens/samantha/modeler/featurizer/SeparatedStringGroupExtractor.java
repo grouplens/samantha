@@ -128,10 +128,12 @@ public class SeparatedStringGroupExtractor implements FeatureExtractor {
                         indexSpace, indexName, key, val);
             }
             feaMap.put(feaName, features);
-            List<Feature> numGrpFeas = new ArrayList<>();
-            FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(numGrpFeas, update,
-                    indexSpace, inGrpRankIndexName, inGrpRankName, numGrp);
-            feaMap.put(grpNumFeaName, numGrpFeas);
+            if (inGrpRankIndexName != null && grpNumFeaName != null) {
+                List<Feature> numGrpFeas = new ArrayList<>();
+                FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(numGrpFeas, update,
+                        indexSpace, inGrpRankIndexName, inGrpRankName, numGrp);
+                feaMap.put(grpNumFeaName, numGrpFeas);
+            }
         } else {
             logger.warn("{} or {} is not present in {}", attrName, inGrpRankName, entity);
         }
