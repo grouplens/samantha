@@ -40,6 +40,7 @@ public class DisplayActionGroupExtractorConfig implements FeatureExtractorConfig
     private final List<String> actionIndices;
     private final List<String> actionAttrs;
     private final List<String> actionFeas;
+    private final List<Boolean> extractBools;
     private final String displayActionIndex;
     private final String displayActionFea;
     private final String separator;
@@ -56,6 +57,7 @@ public class DisplayActionGroupExtractorConfig implements FeatureExtractorConfig
                                               List<String> actionIndices,
                                               List<String> actionAttrs,
                                               List<String> actionFeas,
+                                              List<Boolean> extractBools,
                                               String displayActionIndex,
                                               String displayActionFea,
                                               String separator,
@@ -68,6 +70,7 @@ public class DisplayActionGroupExtractorConfig implements FeatureExtractorConfig
         this.actionAttrs = actionAttrs;
         this.actionFeas = actionFeas;
         this.actionIndices = actionIndices;
+        this.extractBools = extractBools;
         this.displayActionFea = displayActionFea;
         this.displayActionIndex = displayActionIndex;
         this.separator = separator;
@@ -81,7 +84,7 @@ public class DisplayActionGroupExtractorConfig implements FeatureExtractorConfig
 
     public FeatureExtractor getFeatureExtractor(RequestContext requestContext) {
         return new DisplayActionGroupExtractor(
-                index, sizeFeaIndex, attr, fea, sizeFea, actionIndices, actionIndices, actionFeas,
+                index, sizeFeaIndex, attr, fea, sizeFea, actionIndices, actionAttrs, actionFeas, extractBools,
                 displayActionIndex, displayActionFea, separator, normalize, maxGrpNum, grpSize, inGrpRank);
     }
 
@@ -102,6 +105,7 @@ public class DisplayActionGroupExtractorConfig implements FeatureExtractorConfig
                 extractorConfig.getStringList("actionIndices"),
                 extractorConfig.getStringList("actionAttrs"),
                 extractorConfig.getStringList("actionFeas"),
+                extractorConfig.getBooleanList("extractBools"),
                 extractorConfig.getString("displayActionIndex"),
                 extractorConfig.getString("displayActionFea"),
                 extractorConfig.getString("separator"),

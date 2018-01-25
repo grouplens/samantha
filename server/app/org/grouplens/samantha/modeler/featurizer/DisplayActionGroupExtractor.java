@@ -45,6 +45,7 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
     private final List<String> actionIndices;
     private final List<String> actionAttrs;
     private final List<String> actionFeas;
+    private final List<Boolean> extractBools;
     private final String displayActionIndex;
     private final String displayActionFea;
     private final String separator;
@@ -60,6 +61,7 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
                                        List<String> actionIndices,
                                        List<String> actionAttrs,
                                        List<String> actionFeas,
+                                       List<Boolean> extractBools,
                                        String displayActionIndex,
                                        String displayActionFea,
                                        String separator,
@@ -73,6 +75,7 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
         this.actionAttrs = actionAttrs;
         this.actionFeas = actionFeas;
         this.actionIndices = actionIndices;
+        this.extractBools = extractBools;
         this.displayActionFea = displayActionFea;
         this.displayActionIndex = displayActionIndex;
         this.attr = attr;
@@ -96,7 +99,8 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
 
     private void addFillings(int inGrpSize, IndexSpace indexSpace, boolean update,
                              List<Feature> features, List<Feature> disActFeas,
-                             Map<String, List<Feature>> act2feas, double val) {
+                             Map<String, List<Feature>> act2feas,
+                             Map<String, List<Feature>> act2bfeas, double val) {
         for (int j=0; j<grpSize - inGrpSize; j++) {
             processFeature(indexSpace, update, features, index, attr, null, val);
             processFeature(indexSpace, update, disActFeas, displayActionIndex,
@@ -105,6 +109,10 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
                 String act = actionAttrs.get(k);
                 processFeature(indexSpace, update, act2feas.get(act),
                         actionIndices.get(k), act, null, val);
+                if (extractBools.get(k)) {
+                    processFeature(indexSpace, update, act2bfeas.get(act),
+                            actionIndices.get(k) + "_BOOL", act, null, val);
+                }
             }
         }
     }
@@ -123,9 +131,11 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
             String[] indices = entity.get(inGrpRank).asText().split(separator, -1);
             Map<String, String[]> act2bools = new HashMap<>();
             Map<String, List<Feature>> act2feas = new HashMap<>();
+            Map<String, List<Feature>> act2bfeas = new HashMap<>();
             for (String act : actionAttrs) {
                 act2bools.put(act, entity.get(act).asText().split(separator, -1));
                 act2feas.put(act, new ArrayList<>());
+                act2bfeas.put(act, new ArrayList<>());
             }
             Map.Entry<Integer, Integer> entry = FeatureExtractorUtilities.getStartAndNumGroup(
                     indices, maxGrpNum, grpSize);
@@ -143,14 +153,16 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
             for (int i=start; i<len; i++) {
                 int curRank = Integer.parseInt(indices[i]);
                 if ((inGrpSize >= grpSize) || (curRank <= prevRank && curRank != Integer.MIN_VALUE)) {
-                    addFillings(inGrpSize, indexSpace, update, features, disActFeas, act2feas, val);
+                    addFillings(inGrpSize, indexSpace, update, features, disActFeas,
+                            act2feas, act2bfeas, val);
                     inGrpSize = 0;
                 }
                 processFeature(indexSpace, update, features, index, attr, fields[i], val);
                 String disAct = "";
                 for (int j=0; j<actionAttrs.size(); j++) {
                     String act = actionAttrs.get(j);
-                    if (act2bools.get(act)[i].equals("TRUE")) {
+                    String bact = act2bools.get(act)[i];
+                    if (bact.equals("1")) {
                         processFeature(indexSpace, update, act2feas.get(act),
                                 actionIndices.get(j), act, fields[i], val);
                         disAct = act;
@@ -158,17 +170,27 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
                         processFeature(indexSpace, update, act2feas.get(act),
                                 actionIndices.get(j), act, null, val);
                     }
+                    if (extractBools.get(j)) {
+                        processFeature(indexSpace, update, act2bfeas.get(act),
+                                actionIndices.get(j) + "_BOOL", act,
+                                fields[i] + "_" + bact, val);
+                    }
                 }
                 processFeature(indexSpace, update, disActFeas, displayActionIndex,
                         attr, disAct + fields[i], val);
                 inGrpSize++;
                 prevRank = curRank;
             }
-            addFillings(inGrpSize, indexSpace, update, features, disActFeas, act2feas, val);
+            addFillings(inGrpSize, indexSpace, update, features, disActFeas,
+                    act2feas, act2bfeas, val);
             feaMap.put(fea, features);
             feaMap.put(displayActionFea, disActFeas);
             for (int i=0; i<actionAttrs.size(); i++) {
-                feaMap.put(actionFeas.get(i), act2feas.get(actionAttrs.get(i)));
+                String actFea = actionFeas.get(i);
+                feaMap.put(actFea, act2feas.get(actionAttrs.get(i)));
+                if (extractBools.get(i)) {
+                    feaMap.put("b" + actFea, act2bfeas.get(actionAttrs.get(i)));
+                }
             }
             if (sizeFeaIndex != null && sizeFea != null) {
                 List<Feature> numGrpFeas = new ArrayList<>();
