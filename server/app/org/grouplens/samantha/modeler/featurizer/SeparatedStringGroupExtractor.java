@@ -24,6 +24,7 @@ package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.model.IndexSpace;
+import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,49 +76,24 @@ public class SeparatedStringGroupExtractor implements FeatureExtractor {
             List<Feature> features = new ArrayList<>();
             String[] fields = entity.get(attrName).asText().split(separator, -1);
             String[] indices = entity.get(inGrpRankName).asText().split(separator, -1);
-            int len = fields.length;
-            int numGrp = 0;
-            if (len > 0) {
-                numGrp = 1;
-            }
-            int inGrpSize = 0;
-            int start = 0;
-            if (maxGrpNum != null) {
-                int maxGrp = maxGrpNum;
-                int prevRank = Integer.MAX_VALUE;
-                for (int i = len - 1; i >= 0; i--) {
-                    int curRank = Integer.parseInt(indices[i]);
-                    if ((inGrpSize >= grpSize) || (curRank >= prevRank && curRank != Integer.MAX_VALUE)) {
-                        if (numGrp + 1 > maxGrp) {
-                            start = i + 1;
-                            break;
-                        }
-                        numGrp++;
-                        inGrpSize = 0;
-                    }
-                    prevRank = curRank;
-                    inGrpSize++;
-                }
-            }
+            Map.Entry<Integer, Integer> entry = FeatureExtractorUtilities.getStartAndNumGroup(
+                    indices, maxGrpNum, grpSize);
+            int start = entry.getKey();
+            int numGrp = entry.getValue();
             double val = 1.0;
             if (numGrp > 0 && normalize) {
                 val = 1.0 / Math.sqrt(numGrp);
             }
             int prevRank = Integer.MIN_VALUE;
-            inGrpSize = 0;
-            numGrp = 0;
-            if (start < len) {
-                numGrp = 1;
-            }
+            int inGrpSize = 0;
+            int len = fields.length;
             for (int i=start; i<len; i++) {
                 int curRank = Integer.parseInt(indices[i]);
                 if ((inGrpSize >= grpSize) || (curRank <= prevRank && curRank != Integer.MIN_VALUE)) {
                     for (int j=0; j<grpSize - inGrpSize; j++) {
-                        String key = FeatureExtractorUtilities.composeKey(attrName, "");
                         FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                                indexSpace, indexName, key, val);
+                                indexSpace, indexName, TensorFlowModel.OOV, val);
                     }
-                    numGrp++;
                     inGrpSize = 0;
                 }
                 String field = fields[i];
@@ -128,15 +104,14 @@ public class SeparatedStringGroupExtractor implements FeatureExtractor {
                 prevRank = curRank;
             }
             for (int j=0; j<grpSize - inGrpSize; j++) {
-                String key = FeatureExtractorUtilities.composeKey(attrName, "");
                 FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                        indexSpace, indexName, key, val);
+                        indexSpace, indexName, TensorFlowModel.OOV, val);
             }
             feaMap.put(feaName, features);
             if (sizeFeaIndexName != null && sizeFeaName != null) {
                 List<Feature> numGrpFeas = new ArrayList<>();
                 FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(numGrpFeas, update,
-                        indexSpace, sizeFeaIndexName, inGrpRankName, numGrp * grpSize);
+                        indexSpace, sizeFeaIndexName, inGrpRankName, features.size());
                 feaMap.put(sizeFeaName, numGrpFeas);
             }
         } else {

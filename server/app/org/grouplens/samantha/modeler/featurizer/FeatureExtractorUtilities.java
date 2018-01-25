@@ -33,10 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class FeatureExtractorUtilities {
     private static Logger logger = LoggerFactory.getLogger(FeatureExtractorUtilities.class);
@@ -107,5 +104,33 @@ public class FeatureExtractorUtilities {
             }
         }
         return composeKey(multiples);
+    }
+
+    static public Map.Entry<Integer, Integer> getStartAndNumGroup(String[] indices, Integer maxGrpNum, int grpSize) {
+        int len = indices.length;
+        int numGrp = 0;
+        if (len > 0) {
+            numGrp = 1;
+        }
+        int inGrpSize = 0;
+        int start = 0;
+        if (maxGrpNum != null) {
+            int maxGrp = maxGrpNum;
+            int prevRank = Integer.MAX_VALUE;
+            for (int i = len - 1; i >= 0; i--) {
+                int curRank = Integer.parseInt(indices[i]);
+                if ((inGrpSize >= grpSize) || (curRank >= prevRank && curRank != Integer.MAX_VALUE)) {
+                    if (numGrp + 1 > maxGrp) {
+                        start = i + 1;
+                        break;
+                    }
+                    numGrp++;
+                    inGrpSize = 0;
+                }
+                prevRank = curRank;
+                inGrpSize++;
+            }
+        }
+        return new AbstractMap.SimpleEntry<>(start, numGrp);
     }
 }
