@@ -30,22 +30,22 @@ import play.inject.Injector;
 
 public class SeparatedStringGroupExtractorConfig implements FeatureExtractorConfig {
     private final String indexName;
-    private final String inGrpRankIndexName;
+    private final String sizeFeaIndexName;
     private final String attrName;
     private final String inGrpRankName;
     private final String feaName;
-    private final String grpNumFeaName;
+    private final String sizeFeaName;
     private final String separator;
     private final boolean normalize;
     private final Integer maxGrpNum;
     private final int grpSize;
 
     private SeparatedStringGroupExtractorConfig(String indexName,
-                                                String inGrpRankIndexName,
+                                                String sizeFeaIndexName,
                                                 String attrName,
                                                 String inGrpRankName,
                                                 String feaName,
-                                                String grpNumFeaName,
+                                                String sizeFeaName,
                                                 String separator,
                                                 boolean normalize,
                                                 Integer maxGrpNum,
@@ -55,16 +55,16 @@ public class SeparatedStringGroupExtractorConfig implements FeatureExtractorConf
         this.feaName = feaName;
         this.separator = separator;
         this.normalize = normalize;
-        this.inGrpRankIndexName = inGrpRankIndexName;
+        this.sizeFeaIndexName = sizeFeaIndexName;
         this.inGrpRankName = inGrpRankName;
-        this.grpNumFeaName = grpNumFeaName;
+        this.sizeFeaName = sizeFeaName;
         this.maxGrpNum = maxGrpNum;
         this.grpSize = grpSize;
     }
 
     public FeatureExtractor getFeatureExtractor(RequestContext requestContext) {
         return new SeparatedStringGroupExtractor(
-                indexName, inGrpRankIndexName, attrName, feaName, grpNumFeaName, separator,
+                indexName, sizeFeaIndexName, attrName, feaName, sizeFeaName, separator,
                 normalize, maxGrpNum, grpSize, inGrpRankName);
     }
 
@@ -77,11 +77,11 @@ public class SeparatedStringGroupExtractorConfig implements FeatureExtractorConf
         }
         return new SeparatedStringGroupExtractorConfig(
                 extractorConfig.getString("indexName"),
-                extractorConfig.getString("inGrpRankIndexName"),
+                extractorConfig.getString("sizeFeaIndexName"),
                 extractorConfig.getString("attrName"),
                 extractorConfig.getString("inGrpRankName"),
                 extractorConfig.getString("feaName"),
-                extractorConfig.getString("grpNumFeaName"),
+                extractorConfig.getString("sizeFeaName"),
                 extractorConfig.getString("separator"),
                 normalize, extractorConfig.getInt("maxGrpNum"),
                 extractorConfig.getInt("grpSize"));

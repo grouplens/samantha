@@ -36,31 +36,31 @@ public class SeparatedStringGroupExtractor implements FeatureExtractor {
     private static final long serialVersionUID = 1L;
     private static Logger logger = LoggerFactory.getLogger(SeparatedStringGroupExtractor.class);
     private final String indexName;
-    private final String inGrpRankIndexName;
+    private final String sizeFeaIndexName;
     private final String attrName;
     private final String inGrpRankName;
     private final String feaName;
-    private final String grpNumFeaName;
+    private final String sizeFeaName;
     private final String separator;
     private final boolean normalize;
     private final Integer maxGrpNum;
     private final int grpSize;
 
     public SeparatedStringGroupExtractor(String indexName,
-                                         String inGrpRankIndexName,
+                                         String sizeFeaIndexName,
                                          String attrName,
                                          String feaName,
-                                         String grpNumFeaName,
+                                         String sizeFeaName,
                                          String separator,
                                          boolean normalize,
                                          Integer maxGrpNum,
                                          int grpSize,
                                          String inGrpRankName) {
         this.indexName = indexName;
-        this.inGrpRankIndexName = inGrpRankIndexName;
+        this.sizeFeaIndexName = sizeFeaIndexName;
         this.attrName = attrName;
         this.feaName = feaName;
-        this.grpNumFeaName = grpNumFeaName;
+        this.sizeFeaName = sizeFeaName;
         this.separator = separator;
         this.normalize = normalize;
         this.maxGrpNum = maxGrpNum;
@@ -128,11 +128,11 @@ public class SeparatedStringGroupExtractor implements FeatureExtractor {
                         indexSpace, indexName, key, val);
             }
             feaMap.put(feaName, features);
-            if (inGrpRankIndexName != null && grpNumFeaName != null) {
+            if (sizeFeaIndexName != null && sizeFeaName != null) {
                 List<Feature> numGrpFeas = new ArrayList<>();
                 FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(numGrpFeas, update,
-                        indexSpace, inGrpRankIndexName, inGrpRankName, numGrp);
-                feaMap.put(grpNumFeaName, numGrpFeas);
+                        indexSpace, sizeFeaIndexName, inGrpRankName, numGrp * grpSize);
+                feaMap.put(sizeFeaName, numGrpFeas);
             }
         } else {
             logger.warn("{} or {} is not present in {}", attrName, inGrpRankName, entity);
