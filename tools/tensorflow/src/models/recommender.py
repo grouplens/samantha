@@ -174,7 +174,8 @@ class RecommenderBuilder(ModelBuilder):
             attr2input[attr] = inputs
         if max_seq_len is None:
             raise Exception('There must be an item level attribute in attr2config.')
-        sequence_length = tf.placeholder(tf.int32, shape=(None, 1), name='sequence_length_val')
+        sequence_length = tf.placeholder(
+                tf.int32, shape=(None, 1), name='sequence_length_val') / self._page_size
         return max_seq_len, sequence_length, attr2input
 
     def _get_embedders(self):
