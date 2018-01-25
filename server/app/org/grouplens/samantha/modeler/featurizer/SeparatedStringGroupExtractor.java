@@ -105,6 +105,10 @@ public class SeparatedStringGroupExtractor implements FeatureExtractor {
             }
             int prevRank = Integer.MIN_VALUE;
             inGrpSize = 0;
+            numGrp = 0;
+            if (start < len) {
+                numGrp = 1;
+            }
             for (int i=start; i<len; i++) {
                 int curRank = Integer.parseInt(indices[i]);
                 if ((inGrpSize >= grpSize) || (curRank <= prevRank && curRank != Integer.MIN_VALUE)) {
@@ -113,6 +117,7 @@ public class SeparatedStringGroupExtractor implements FeatureExtractor {
                         FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
                                 indexSpace, indexName, key, val);
                     }
+                    numGrp++;
                     inGrpSize = 0;
                 }
                 String field = fields[i];
