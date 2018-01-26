@@ -103,8 +103,10 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
                              Map<String, List<Feature>> act2bfeas, double val) {
         for (int j=0; j<grpSize - inGrpSize; j++) {
             processFeature(indexSpace, update, features, index, attr, null, val);
-            processFeature(indexSpace, update, disActFeas, displayActionIndex,
-                    attr, null, val);
+            if (displayActionIndex != null) {
+                processFeature(indexSpace, update, disActFeas, displayActionIndex,
+                        attr, null, val);
+            }
             for (int k=0; k<actionAttrs.size(); k++) {
                 String act = actionAttrs.get(k);
                 processFeature(indexSpace, update, act2feas.get(act),
@@ -176,15 +178,19 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
                                 fields[i] + "_" + bact, val);
                     }
                 }
-                processFeature(indexSpace, update, disActFeas, displayActionIndex,
-                        attr, disAct + fields[i], val);
+                if (displayActionIndex != null) {
+                    processFeature(indexSpace, update, disActFeas, displayActionIndex,
+                            attr, disAct + fields[i], val);
+                }
                 inGrpSize++;
                 prevRank = curRank;
             }
             addFillings(inGrpSize, indexSpace, update, features, disActFeas,
                     act2feas, act2bfeas, val);
             feaMap.put(fea, features);
-            feaMap.put(displayActionFea, disActFeas);
+            if (displayActionFea != null) {
+                feaMap.put(displayActionFea, disActFeas);
+            }
             for (int i=0; i<actionAttrs.size(); i++) {
                 String actFea = actionFeas.get(i);
                 feaMap.put(actFea, act2feas.get(actionAttrs.get(i)));
