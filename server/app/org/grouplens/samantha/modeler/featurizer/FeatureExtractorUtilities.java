@@ -114,22 +114,19 @@ public class FeatureExtractorUtilities {
         }
         int inGrpSize = 0;
         int start = 0;
-        if (maxGrpNum != null) {
-            int maxGrp = maxGrpNum;
-            int prevRank = Integer.MAX_VALUE;
-            for (int i = len - 1; i >= 0; i--) {
-                int curRank = Integer.parseInt(indices[i]);
-                if ((inGrpSize >= grpSize) || (curRank >= prevRank && curRank != Integer.MAX_VALUE)) {
-                    if (numGrp + 1 > maxGrp) {
-                        start = i + 1;
-                        break;
-                    }
-                    numGrp++;
-                    inGrpSize = 0;
+        int prevRank = Integer.MAX_VALUE;
+        for (int i = len - 1; i >= 0; i--) {
+            int curRank = Integer.parseInt(indices[i]);
+            if ((inGrpSize >= grpSize) || (curRank >= prevRank && curRank != Integer.MAX_VALUE)) {
+                if (maxGrpNum != null && numGrp + 1 > maxGrpNum) {
+                    start = i + 1;
+                    break;
                 }
-                prevRank = curRank;
-                inGrpSize++;
+                numGrp++;
+                inGrpSize = 0;
             }
+            prevRank = curRank;
+            inGrpSize++;
         }
         return new AbstractMap.SimpleEntry<>(start, numGrp);
     }
