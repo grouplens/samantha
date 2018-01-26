@@ -46,9 +46,9 @@ class JsonStringFilesDataSet(DataSet):
                         else:
                             vals = [float(x) for x in val.split(self._separator)]
                             default = 1.0
-                        logger.info("max_size: %s, sum_size: %s, seq_len: %s.",
-                                max_size, sum_size, len(vals))
-                        logger.info("seq_len / 24 = %s", len(vals) / 24.0)
+                        logger.info("%s max_size: %s, sum_size: %s, seq_len: %s.",
+                                key, max_size, sum_size, len(vals))
+                        logger.info("%s seq_len / 24 = %s", key, len(vals) / 24.0)
                         if len(vals) == sum_size:
                             batch = []
                             start = 0
