@@ -169,6 +169,7 @@ class RecommenderBuilder(ModelBuilder):
                 tf.int32, shape=(None, size), name='%s_idx' % attr)
             if config['level'] == 'item':
                 max_seq_len = tf.shape(inputs)[1] / self._page_size
+                inputs = tf.reshape(inputs, [tf.shape(inputs)[0], max_seq_len, self._page_size])
             if self._filter_unrecognized:
                 inputs = inputs * tf.cast(inputs < config['vocab_size'], tf.int32)
             attr2input[attr] = inputs
@@ -186,14 +187,12 @@ class RecommenderBuilder(ModelBuilder):
                     config['vocab_size'], config['embedding_dim'], dtype=tf.float32)
         return attr2embedder
 
-    def _get_embeddings(self, max_seq_len, attr2input, attr2embedder):
+    def _get_embeddings(self, attr2input, attr2embedder):
         attr2embedding = {}
         for attr in self._embedding_attrs:
             config = self._attr2config[attr]
             inputs = attr2input[attr]
             if config['level'] == 'item':
-                inputs = tf.reshape(inputs, [tf.shape(inputs)[0], max_seq_len, self._page_size])
-                attr2input[attr] = inputs
                 embedding = attr2embedder[attr](inputs)
                 embedding = tf.reshape(embedding,
                     [
@@ -222,7 +221,7 @@ class RecommenderBuilder(ModelBuilder):
         max_seq_len, sequence_length, attr2input = self._get_inputs()
         with tf.variable_scope('embeddings'):
             attr2embedder = self._get_embedders()
-            attr2embedding = self._get_embeddings(max_seq_len, attr2input, attr2embedder)
+            attr2embedding = self._get_embeddings(attr2input, attr2embedder)
         with tf.variable_scope('user_model'):
             user_model = self._user_model.get_user_model(
                 max_seq_len, sequence_length, attr2embedding, self._attr2config)
