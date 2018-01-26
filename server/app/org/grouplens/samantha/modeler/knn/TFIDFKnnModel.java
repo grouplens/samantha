@@ -36,14 +36,16 @@ import java.util.*;
 public class TFIDFKnnModel extends IndexedVectorModel {
     private static final long serialVersionUID = 1L;
     final private List<String> itemAttrs;
-    final private List<String> feaAttrs;
+    final private String feaAttr;
+    final private boolean normalize;
     final private int numNeighbors;
 
     public TFIDFKnnModel(String modelName, List<String> itemAttrs,
-                         List<String> feaAttrs, int numNeighbors,
+                         String feaAttr, boolean normalize, int numNeighbors,
                          IndexSpace indexSpace, VariableSpace variableSpace) {
         super(modelName, 0, 2 * numNeighbors, indexSpace, variableSpace);
-        this.feaAttrs = feaAttrs;
+        this.feaAttr = feaAttr;
+        this.normalize = normalize;
         this.itemAttrs = itemAttrs;
         this.numNeighbors = numNeighbors;
     }
@@ -54,7 +56,11 @@ public class TFIDFKnnModel extends IndexedVectorModel {
         while (entityDAO.hasNextEntity()) {
             JsonNode entity = entityDAO.getNextEntity();
             String item = FeatureExtractorUtilities.composeConcatenatedKey(entity, itemAttrs);
-            String feature = FeatureExtractorUtilities.composeConcatenatedKey(entity, feaAttrs);
+            String feaVal = entity.get(feaAttr).asText();
+            if (normalize) {
+                feaVal = feaVal.toLowerCase(Locale.ENGLISH);
+            }
+            String feature = FeatureExtractorUtilities.composeKey(feaAttr, feaVal);
             Map<String, Double> feas = tfidf.getOrDefault(item, new HashMap<>());
             double freq = feas.getOrDefault(feature, 0.0);
             feas.put(feature, freq + 1.0);

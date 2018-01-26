@@ -20,21 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.expander;
+package org.grouplens.samantha.modeler.featurizer;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.grouplens.samantha.server.io.RequestContext;
-import play.Configuration;
-import play.inject.Injector;
-
-import java.util.List;
-
-/***
- * This does not guarantee the expanded fields are complete and leave to the downstream feature extractors to deal with.
- */
-public interface EntityExpander {
-    static EntityExpander getExpander(Configuration expanderConfig,
-                                      Injector injector, RequestContext requestContext) {return null;}
-    List<ObjectNode> expand(List<ObjectNode> initialResult,
-                           RequestContext requestContext);
+public class SeparatedStringGroupExtractorTest {
 }

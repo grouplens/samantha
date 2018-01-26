@@ -41,18 +41,16 @@ import java.util.Map;
 public class TensorFlowBatchIndexer extends AbstractIndexer {
     private final Indexer indexer;
     private final TensorFlowModel model;
-    private final boolean update;
     private final String timestampField;
 
     public TensorFlowBatchIndexer(SamanthaConfigService configService,
                                   Configuration config, Injector injector,
                                   Configuration daoConfigs, String daoConfigKey,
                                   Indexer indexer, TensorFlowModel model,
-                                  int batchSize, boolean update, String timestampField) {
+                                  int batchSize, String timestampField) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
         this.indexer = indexer;
         this.model = model;
-        this.update = update;
         //TODO: change this into AbstractIndexer constructor
         this.batchSize = batchSize;
         this.timestampField = timestampField;
@@ -68,12 +66,12 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
         JsonNode last;
         if (documents.isArray() && documents.size() > 0) {
             for (JsonNode document : documents) {
-                LearningInstance instance = model.featurize(document, update);
+                LearningInstance instance = model.featurize(document, true);
                 instances.add(instance);
             }
             last = documents.get(documents.size() - 1);
         } else {
-            instances.add(model.featurize(documents, update));
+            instances.add(model.featurize(documents, true));
             last = documents;
         }
         if (last.has(timestampField)) {

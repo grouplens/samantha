@@ -40,6 +40,7 @@ public class SeparatedStringExtractor implements FeatureExtractor {
     private final String feaName;
     private final String separator;
     private final boolean normalize;
+    private final String fillIn;
     private final Integer maxFeatures;
 
     public SeparatedStringExtractor(String indexName,
@@ -47,21 +48,26 @@ public class SeparatedStringExtractor implements FeatureExtractor {
                                     String feaName,
                                     String separator,
                                     boolean normalize,
+                                    String fillIn,
                                     Integer maxFeatures) {
         this.indexName = indexName;
         this.attrName = attrName;
         this.feaName = feaName;
         this.separator = separator;
         this.normalize = normalize;
+        this.fillIn = fillIn;
         this.maxFeatures = maxFeatures;
     }
 
     public Map<String, List<Feature>> extract(JsonNode entity, boolean update,
                                               IndexSpace indexSpace) {
         Map<String, List<Feature>> feaMap = new HashMap<>();
-        if (entity.has(attrName)) {
+        if (entity.has(attrName) || fillIn != null) {
             List<Feature> features = new ArrayList<>();
-            String attr = entity.get(attrName).asText();
+            String attr = fillIn;
+            if (entity.has(attrName)) {
+                attr = entity.get(attrName).asText();
+            }
             String[] fields = attr.split(separator, -1);
             int start = 0;
             if (maxFeatures != null && fields.length > maxFeatures) {
@@ -78,7 +84,8 @@ public class SeparatedStringExtractor implements FeatureExtractor {
                         indexSpace, indexName, key, val);
             }
             feaMap.put(feaName, features);
-        } else {
+        }
+        if (!entity.has(attrName)){
             logger.warn("{} is not present in {}", attrName, entity);
         }
         return feaMap;

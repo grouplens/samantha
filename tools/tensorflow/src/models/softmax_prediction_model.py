@@ -1,4 +1,5 @@
 
+import random
 import tensorflow as tf
 
 from src.models.prediction_model import PredictionModel
@@ -11,7 +12,19 @@ class SoftmaxPredictionModel(PredictionModel):
             self._softmax_config = {
                 'item': {
                     'vocab_size':  10,
+                    'softmax_dim': 10,
                     'num_sampled': 10,
+                    'attrs': {
+                        'tag': [random.randint(0, 5) for _ in range(10)],
+                        'genre': [random.randint(0, 3) for _ in range(10)],
+                    }
+                },
+                'tag': {
+                    'vocab_size':  3,
+                    'softmax_dim': 10,
+                },
+                'genre': {
+                    'vocab_size':  3,
                     'softmax_dim': 10,
                 }
             }
@@ -21,16 +34,38 @@ class SoftmaxPredictionModel(PredictionModel):
                 if 'num_sampled' not in val:
                     val['num_sampled'] = val['vocab_size']
 
+    def _get_softmax_paras(self, target, target_softmax):
+        weights = tf.get_variable(
+            '%s_weights' % target,  # TODO: Note that this probably won't reuse variables because of naming scope.
+            shape=[target_softmax['vocab_size'], target_softmax['softmax_dim']],
+            dtype=tf.float32, initializer=tf.truncated_normal_initializer)
+        biases = tf.get_variable(
+            '%s_biases' % target, shape=[target_softmax['vocab_size']],
+            dtype=tf.float32, initializer=tf.zeros_initializer)
+        if 'attrs' in target_softmax:
+            for attr, item2attr in target_softmax['attrs'].iteritems():
+                feamap = tf.constant(item2attr)
+                attr_config = self._softmax_config[attr]
+                attr_softmax = {
+                    'weights': tf.get_variable(
+                        '%s_weights' % attr,
+                        shape=[attr_config['vocab_size'], attr_config['softmax_dim']],
+                        dtype=tf.float32, initializer=tf.truncated_normal_initializer),
+                    'biases': tf.get_variable(
+                        '%s_biases' % attr, shape=[attr_config['vocab_size']],
+                        dtype=tf.float32, initializer=tf.zeros_initializer)
+                }
+                weights += tf.gather(attr_softmax['weights'], feamap)
+                biases += tf.gather(attr_softmax['biases'], feamap)
+        return weights, biases
+
     def get_target_paras(self, target, config):
         target_softmax = self._softmax_config[target]
-        paras = {}
-        paras['weights'] = tf.get_variable(
-                '%s_weights' % target,
-                shape=[target_softmax['vocab_size'], target_softmax['softmax_dim']],
-                dtype=tf.float32, initializer=tf.truncated_normal_initializer)
-        paras['biases'] = tf.get_variable(
-                '%s_biases' % target, shape=[target_softmax['vocab_size']],
-                dtype=tf.float32, initializer=tf.zeros_initializer)
+        weights, biases = self._get_softmax_paras(target, target_softmax)
+        paras = {
+            'weights': weights,
+            'biases': biases,
+        }
         return paras
 
     def get_target_prediction_loss(self, user_model, labels, paras, target, config, mode):

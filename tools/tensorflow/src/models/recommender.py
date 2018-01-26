@@ -142,13 +142,16 @@ class RecommenderBuilder(ModelBuilder):
             with tf.variable_scope(target):
                 tf.summary.scalar('num_train_labels', num_target_train_labels)
                 tf.summary.scalar('num_eval_labels', num_target_eval_labels)
-                target2paras[target] = self._prediction_model.get_target_paras(target, config)
-                train_target_loss, _ = self._compute_target_loss(
-                    user_model, train_indices, target2label[target], target2paras[target],
-                    target, config)
-                eval_target_loss, metric_updates = self._compute_target_loss(
-                    user_model, eval_indices, target2label[target], target2paras[target],
-                    target, config, metrics=self._eval_metrics, mode='eval')
+                with tf.variable_scope('paras'):
+                    target2paras[target] = self._prediction_model.get_target_paras(target, config)
+                with tf.variable_scope('train'):
+                    train_target_loss, _ = self._compute_target_loss(
+                        user_model, train_indices, target2label[target], target2paras[target],
+                        target, config)
+                with tf.variable_scope('eval'):
+                    eval_target_loss, metric_updates = self._compute_target_loss(
+                        user_model, eval_indices, target2label[target], target2paras[target],
+                        target, config, metrics=self._eval_metrics, mode='eval')
             train_loss += config['weight'] * train_target_loss
             eval_loss += config['weight'] * eval_target_loss
             updates += metric_updates

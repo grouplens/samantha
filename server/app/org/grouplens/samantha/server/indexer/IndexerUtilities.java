@@ -99,6 +99,10 @@ public class IndexerUtilities {
         ObjectMapper mapper = new ObjectMapper();
         List<String> fields = new ArrayList<>(curFields.size());
         for (String field : curFields) {
+            if (!entity.has(field)) {
+                logger.warn("The field {} is not present in {}. Filled in with null.",
+                        field, entity);
+            }
             String value = mapper.writeValueAsString(entity.get(field));
             if (value.contains(separator)) {
                 logger.warn("The field {} from {} already has the separator {}. Removed.",
