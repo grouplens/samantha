@@ -98,6 +98,7 @@ class RecommenderBuilder(ModelBuilder):
         return loss, updates
 
     def _compute_target_metrics(self, user_model, indices, labels, paras, target, config):
+        indices = tf.Print(indices, [indices], message='indices')
         batch_idx = tf.reshape(
             tf.slice(indices,
                      begin=[0, 0],
@@ -106,20 +107,42 @@ class RecommenderBuilder(ModelBuilder):
             tf.slice(indices,
                      begin=[0, 1],
                      size=[tf.shape(indices)[0], 1]), [-1])
+        batch_idx = tf.Print(batch_idx, [batch_idx], message='batch.idx', summarize=128)
+        step_idx = tf.Print(step_idx, [step_idx], message='step.idx', summarize=128)
         uniq_batch_idx, _ = tf.unique(batch_idx)
         min_step_idx = tf.segment_min(step_idx, batch_idx)
+        min_step_idx = tf.gather(min_step_idx, uniq_batch_idx)
+        uniq_batch_idx = tf.Print(uniq_batch_idx, [uniq_batch_idx], message='uniq.batch.idx', summarize=128)
+        min_step_idx = tf.Print(min_step_idx, [min_step_idx], message='min.step.idx', summarize=128)
+        self._test_tensors['uniq_shape'] = tf.Print(
+            tf.shape(uniq_batch_idx), [tf.shape(uniq_batch_idx)], message='uniq.shape')
+        self._test_tensors['min_shape'] = tf.Print(
+            tf.shape(min_step_idx), [tf.shape(min_step_idx)], message='min.shape')
         used_indices = tf.concat([
             tf.expand_dims(uniq_batch_idx, 1),
             tf.expand_dims(min_step_idx, 1),
         ], 1)
         used_model = tf.gather_nd(user_model, used_indices)
-        used_labels = tf.gather_nd(labels, indices)
-        eval_labels = tf.sparse_reshape(
-            tf.SparseTensor(indices, used_labels, tf.shape(labels)),
-            [tf.shape(labels)[0], tf.shape(labels)[1] * self._page_size]
-        )
+        self._test_tensors['model_shape'] = tf.Print(
+            tf.shape(used_model), [tf.shape(used_model)], message='model.shape')
         predictions = self._prediction_model.get_target_prediction(
             used_model, paras, target, config)
+        used_labels = tf.gather_nd(labels, indices)
+        eval_labels = tf.sparse_reshape(
+            tf.SparseTensor(
+                tf.cast(indices, tf.int64),
+                tf.cast(used_labels, tf.int64),
+                tf.cast(
+                    [tf.shape(predictions)[0], tf.shape(labels)[1], tf.shape(labels)[2]],
+                    tf.int64)
+                ),
+            [tf.shape(predictions)[0], tf.shape(labels)[1] * tf.shape(labels)[2]])
+        self._test_tensors['pred_shape'] = tf.Print(
+            tf.shape(predictions), [tf.shape(predictions)], message='pred.shape')
+        self._test_tensors['label_shape'] = tf.Print(
+            tf.shape(labels), [tf.shape(labels)], message='label.shape')
+        self._test_tensors['eval_label_shape'] = tf.Print(
+            eval_labels.dense_shape, [eval_labels.dense_shape], message='eval.shape')
         updates = []
         for metric in self._eval_metrics.split(' '):
             if 'MAP' in metric:

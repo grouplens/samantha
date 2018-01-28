@@ -72,7 +72,10 @@ class HierarchicalPredictionModel(PredictionModel):
                 masked_labels = tf.boolean_mask(used_labels, mask)
                 masked_indices = tf.boolean_mask(indices, mask)
                 eval_labels = tf.sparse_reshape(
-                    tf.SparseTensor(masked_indices, masked_labels, label_shape),
+                    tf.SparseTensor(
+                        tf.cast(masked_indices, tf.int64),
+                        tf.cast(masked_labels, tf.int64),
+                        tf.cast(label_shape, tf.int64)),
                     [label_shape[0], label_shape[1] * label_shape[2]])
                 for metric in self._eval_metrics.split(' '):
                     if 'MAP' in metric:
