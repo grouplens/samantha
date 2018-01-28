@@ -68,19 +68,20 @@ class SoftmaxPredictionModel(PredictionModel):
         }
         return paras
 
-    def get_target_loss(self, user_model, labels, label_shape, indices, paras, target, config, mode):
+    def get_target_loss(self, used_model, labels, label_shape, indices, user_model,
+            paras, target, config, mode):
         target_softmax = self._softmax_config[target]
-        logits = tf.matmul(user_model, tf.transpose(paras['weights'])) + paras['biases']
+        logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
         if target_softmax['num_sampled'] >= target_softmax['vocab_size'] - 1:
             losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=labels, logits=logits)
         else:
             losses = tf.nn.sampled_softmax_loss(paras['weights'], paras['biases'],
-                    tf.expand_dims(labels, 1), user_model,
+                    tf.expand_dims(labels, 1), used_model,
                     target_softmax['num_sampled'], target_softmax['vocab_size'])
         loss = tf.reduce_sum(losses)
         return loss, []
 
-    def get_target_prediction(self, user_model, paras, target, config):
-        logits = tf.matmul(user_model, tf.transpose(paras['weights'])) + paras['biases']
+    def get_target_prediction(self, used_model, paras, target, config):
+        logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
         return tf.nn.softmax(logits, name='%s_prob' % target)

@@ -4,7 +4,7 @@ import tensorflow as tf
 
 def layer_wise_loss(cluster_vocab_size,
                     cluster_labels, item_labels, item2cluster,
-                    weights, biases, user_model):
+                    weights, biases, used_model):
     uniq_clusters, _ = tf.unique(cluster_labels)
     whether_include_clusters = tf.sparse_to_dense(
         uniq_clusters, [cluster_vocab_size],
@@ -37,7 +37,7 @@ def layer_wise_loss(cluster_vocab_size,
         ),
         [-1]
     )
-    included_model = tf.gather(user_model, cluster_idx)
+    included_model = tf.gather(used_model, cluster_idx)
     included_logits = tf.add(
         tf.reduce_sum(
             included_model * tf.gather(included_weights, included_idx), 1),
@@ -45,7 +45,7 @@ def layer_wise_loss(cluster_vocab_size,
     exp_included_logits = tf.exp(included_logits)
     label_logits = tf.add(
         tf.reduce_sum(
-            user_model * tf.gather(weights, item_labels), 1),
+            used_model * tf.gather(weights, item_labels), 1),
         tf.gather(biases, item_labels))
     included_sum_exp_logits = tf.segment_sum(exp_included_logits, cluster_idx)
     item_label_probs = tf.exp(label_logits) / included_sum_exp_logits
@@ -54,12 +54,13 @@ def layer_wise_loss(cluster_vocab_size,
 
 
 def layer_wise_inference(cluster_probs, cluster_vocab_size,
-                         user_model, item_weights, item_biases, item2cluster):
-    logits = tf.matmul(user_model, tf.transpose(item_weights)) + item_biases
-    exp_logits = tf.exp(logits)
-    sum_exp_logits = tf.unsorted_segment_sum(exp_logits, item2cluster, cluster_vocab_size)
+                         used_model, item_weights, item_biases, item2cluster):
+    logits = tf.matmul(used_model, tf.transpose(item_weights)) + item_biases
+    exp_logits = tf.transpose(tf.exp(logits))
+    sum_exp_logits = tf.unsorted_segment_sum(
+        exp_logits, item2cluster, cluster_vocab_size)
     item_sum_exp_logits = tf.gather(sum_exp_logits, item2cluster)
-    item_cluster_probs = tf.transpose(tf.gather(cluster_probs, item2cluster, axis=1))
     within_cluster_probs = exp_logits / item_sum_exp_logits
-    item_probs = item_cluster_probs * within_cluster_probs
+    item_cluster_probs = tf.gather(tf.transpose(cluster_probs), item2cluster)
+    item_probs = tf.transpose(item_cluster_probs * within_cluster_probs)
     return item_probs
