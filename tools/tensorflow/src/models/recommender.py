@@ -17,7 +17,7 @@ class RecommenderBuilder(ModelBuilder):
                  eval_metrics='MAP@1',
                  loss_split_steps=500,
                  max_train_steps=500,
-                 train_steps=500,
+                 train_steps=1,
                  eval_steps=1,
                  split_tstamp=None,
                  tstamp_attr='tstamp',
@@ -168,8 +168,8 @@ class RecommenderBuilder(ModelBuilder):
             tf.reshape(sequence_length, [-1]),
             self._max_train_steps)
         tf.summary.histogram('batch_sequence_length', length_limit)
-        split_limit = tf.maximum(length_limit - self._eval_steps, 2)
-        start_limit = tf.maximum(split_limit - self._train_steps - 1, 0)
+        split_limit = tf.maximum(length_limit - self._eval_steps, 0)
+        start_limit = tf.maximum(split_limit - self._train_steps, 0)
         train_loss = 0.0
         eval_loss = 0.0
         num_train_labels = 0.0
