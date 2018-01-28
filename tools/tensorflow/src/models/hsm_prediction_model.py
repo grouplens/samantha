@@ -2,12 +2,13 @@
 import random
 import tensorflow as tf
 
+from src.models import metrics, hsm
 from src.models.prediction_model import PredictionModel
 
 
 class HierarchicalPredictionModel(PredictionModel):
 
-    def __init__(self, hierarchies=None, metrics='MAP@1,5'):
+    def __init__(self, hierarchies=None, eval_metrics='MAP@1,5'):
         if hierarchies is not None:
             self._hierarchies = hierarchies
         else:
@@ -25,68 +26,7 @@ class HierarchicalPredictionModel(PredictionModel):
                     }
                 ]
             }
-        self._metrics = metrics
-
-    def _layer_wise_loss(self, cluster_vocab_size,
-                         cluster_labels, item_labels, item2cluster,
-                         weights, biases, user_model):
-        uniq_clusters, _ = tf.unique(cluster_labels)
-        whether_include_clusters = tf.sparse_to_dense(
-            uniq_clusters, [cluster_vocab_size],
-            tf.ones_like(uniq_clusters, dtype=tf.bool),
-            default_value=False, validate_indices=False)
-        whether_include_items = tf.gather(whether_include_clusters, item2cluster)
-        included_items = tf.reshape(tf.where(whether_include_items), [-1])
-        included_clusters = tf.gather(item2cluster, included_items)
-        included_weights = tf.gather(weights, included_items)
-        included_biases = tf.gather(biases, included_items)
-        cluster_included_indices = tf.where(
-            tf.equal(
-                tf.tile(tf.expand_dims(cluster_labels, 1), [1, tf.shape(included_clusters)[0]]),
-                tf.tile(tf.expand_dims(included_clusters, 0), [tf.shape(cluster_labels)[0], 1])
-            )
-        )
-        cluster_idx = tf.reshape(
-            tf.slice(
-                cluster_included_indices,
-                begin=[0, 0],
-                size=[tf.shape(cluster_included_indices)[0], 1]
-            ),
-            [-1]
-        )
-        included_idx = tf.reshape(
-            tf.slice(
-                cluster_included_indices,
-                begin=[0, 1],
-                size=[tf.shape(cluster_included_indices)[0], 1]
-            ),
-            [-1]
-        )
-        included_model = tf.gather(user_model, cluster_idx)
-        included_logits = tf.add(
-            tf.reduce_sum(
-                included_model * tf.gather(included_weights, included_idx), 1),
-            tf.gather(included_biases, included_idx))
-        exp_included_logits = tf.exp(included_logits)
-        label_logits = tf.add(
-            tf.reduce_sum(
-                user_model * tf.gather(weights, item_labels), 1),
-            tf.gather(biases, item_labels))
-        included_sum_exp_logits = tf.segment_sum(exp_included_logits, cluster_idx)
-        item_label_probs = tf.exp(label_logits) / included_sum_exp_logits
-        item_label_losses = -tf.log(tf.maximum(item_label_probs, 1e-07))
-        return item_label_probs, item_label_losses
-
-    def _layer_wise_inference(self, cluster_probs, cluster_vocab_size,
-                              user_model, item_weights, item_biases, item2cluster):
-        logits = tf.matmul(user_model, tf.transpose(item_weights)) + item_biases
-        exp_logits = tf.exp(logits)
-        sum_exp_logits = tf.unsorted_segment_sum(exp_logits, item2cluster, cluster_vocab_size)
-        item_sum_exp_logits = tf.gather(sum_exp_logits, item2cluster)
-        item_cluster_probs = tf.transpose(tf.gather(cluster_probs, item2cluster, axis=1))
-        within_cluster_probs = exp_logits / item_sum_exp_logits
-        item_probs = item_cluster_probs * within_cluster_probs
-        return item_probs
+        self._eval_metrics = eval_metrics
 
     def get_target_paras(self, target, config):
         weights = {}
@@ -106,18 +46,40 @@ class HierarchicalPredictionModel(PredictionModel):
         paras = {'weights': weights, 'biases': biases, 'item2cluster': item2cluster}
         return paras
 
-    def _compute_map_metrics(self, labels, logits, metric):
-        K = metric.split('@')[1].split(',')
+    def _compute_metrics(self, user_model, paras, labels, label_shape, indices, target):
+        batch_idx = tf.reshape(
+            tf.slice(indices,
+                     begin=[0, 0],
+                     size=[tf.shape(indices)[0], 1]), [-1])
+        step_idx = tf.reshape(
+            tf.slice(indices,
+                     begin=[0, 1],
+                     size=[tf.shape(indices)[0], 1]), [-1])
+        uniq_batch_idx, _ = tf.unique(batch_idx)
+        min_step_idx = tf.segment_min(step_idx, batch_idx)
+        used_indices = tf.concat([
+            tf.expand_dims(uniq_batch_idx, 1),
+            tf.expand_dims(min_step_idx, 1),
+        ], 1)
+        used_model = tf.gather_nd(user_model, used_indices)
+        predictions = self._compute_predictions(
+            used_model, paras, target, last_layer=False)
         updates = []
-        for k in K:
-            with tf.variable_scope('MAP_K%s' % k):
-                map_value, map_update = tf.metrics.sparse_average_precision_at_k(
-                    tf.cast(labels, tf.int64), logits, int(k))
-                updates.append(map_update)
-                tf.summary.scalar('MAP_K%s' % k, map_value)
+        for attr, preds in predictions.iteritems():
+            with tf.variable_scope(attr):
+                used_labels = tf.gather_nd(labels[attr], indices)
+                mask = (used_labels > 0)
+                masked_labels = tf.boolean_mask(used_labels, mask)
+                masked_indices = tf.boolean_mask(indices, mask)
+                eval_labels = tf.sparse_reshape(
+                    tf.SparseTensor(masked_indices, masked_labels, label_shape),
+                    [label_shape[0], label_shape[1] * label_shape[2]])
+                for metric in self._eval_metrics.split(' '):
+                    if 'MAP' in metric:
+                        updates += metrics.compute_map_metrics(eval_labels, preds, metric)
         return updates
 
-    def get_target_prediction_loss(self, user_model, labels, paras, target, config, mode):
+    def get_target_loss(self, user_model, labels, label_shape, indices, paras, target, config, mode):
         weights = paras['weights']
         biases = paras['biases']
         item2cluster = paras['item2cluster']
@@ -132,7 +94,6 @@ class HierarchicalPredictionModel(PredictionModel):
                 item2cluster[child_level['attr']], hierarchical_labels[child_level['attr']])
         losses = 0.0
         preds = 1.0
-        updates = []
         for i in range(len(hierarchy)):
             level = hierarchy[i]
             if i == 0:
@@ -146,36 +107,43 @@ class HierarchicalPredictionModel(PredictionModel):
                 losses = -tf.log(tf.maximum(preds, 1e-07))
             else:
                 parent_level = hierarchy[i-1]
-                layer_preds, layer_losses = self._layer_wise_loss(
+                layer_preds, layer_losses = hsm.layer_wise_loss(
                     parent_level['vocab_size'], hierarchical_labels[parent_level['attr']],
                     hierarchical_labels[level['attr']], item2cluster[level['attr']],
                     weights[level['attr']], biases[level['attr']], user_model)
                 preds *= layer_preds
                 losses += layer_losses
-            if mode == 'eval' and i < len(hierarchy) - 1 and self._metrics is not None:
-                for metric in self._metrics.split(' '):
-                    if 'MAP' in metric:
-                        with tf.variable_scope(level['attr']):
-                            updates += self._compute_map_metrics(
-                                hierarchical_labels[level['attr']], preds, metric)
+        updates = []
+        if mode == 'eval' and self._eval_metrics is not None:
+            updates = self._compute_metrics(user_model, paras, hierarchical_labels,
+                                            label_shape, indices, target)
         loss = tf.reduce_sum(losses)
-        return preds, loss, updates
+        return loss, updates
 
-    def get_target_prediction(self, user_model, paras, target, config):
+    def _compute_predictions(self, user_model, paras, target, last_layer=True):
         weights = paras['weights']
         biases = paras['biases']
         item2cluster = paras['item2cluster']
         hierarchy = self._hierarchies[target]
         preds = None
-        for i in range(len(hierarchy)):
+        target2preds = {}
+        limit = len(hierarchy)
+        if not last_layer:
+            limit -= 1
+        for i in range(limit):
             level = hierarchy[i]
             if i == 0:
                 logits = tf.matmul(user_model, tf.transpose(weights[level['attr']])) + biases[level['attr']]
                 preds = tf.nn.softmax(logits)
             else:
                 parent_level = hierarchy[i-1]
-                preds = self._layer_wise_inference(
+                preds = hsm.layer_wise_inference(
                     preds, parent_level['vocab_size'], user_model,
                     weights[level['attr']], biases[level['attr']],
                     item2cluster[level['attr']])
-        return preds
+            target2preds[level['attr']] = preds
+        return target2preds
+
+    def get_target_prediction(self, user_model, paras, target, config):
+        target2preds = self._compute_predictions(user_model, paras, target)
+        return target2preds[target]

@@ -1,6 +1,7 @@
 
 import tensorflow as tf
 
+from src.models import layers
 from src.models.user_model import UserModel
 
 
@@ -10,31 +11,12 @@ class SequenceUserModel(UserModel):
         self._rnn_size = rnn_size
         self._use_relu = use_relu
 
-    def _step_wise_relu(self, inputs, relu_size):
-        relu_layer = tf.keras.layers.Dense(relu_size, activation='relu', dtype=tf.float32)
-        return relu_layer(inputs)
-
-    def _get_rnn_output(self, inputs, rnn_size):
-        rnn_layer = tf.keras.layers.GRU(rnn_size, return_sequences=True, dtype=tf.float32)
-        return rnn_layer(inputs)
-
-    def _get_concat_embeddings(self, max_seq_len, attr2embedding, attr2config):
-        embeddings = []
-        for attr, embedding in attr2embedding.iteritems():
-            config = attr2config[attr]
-            if config['level'] == 'user':
-                embedding = tf.tile(
-                    embedding, [1, max_seq_len, 1])
-            embeddings.append(embedding)
-        concatenated = tf.concat(embeddings, 2)
-        return concatenated
-
     def get_user_model(self, max_seq_len, sequence_length, attr2embedding, attr2config):
-        concatenated = self._get_concat_embeddings(max_seq_len, attr2embedding, attr2config)
+        concatenated = layers.get_concat_embeddings(max_seq_len, attr2embedding, attr2config)
         if self._use_relu:
-            rnn_input = self._step_wise_relu(concatenated, self._rnn_size)
+            rnn_input = layers.step_wise_relu(concatenated, self._rnn_size)
         else:
             rnn_input = concatenated
-        rnn_output = self._get_rnn_output(rnn_input, self._rnn_size)
+        rnn_output = layers.get_rnn_output(rnn_input, self._rnn_size)
         return rnn_output
 
