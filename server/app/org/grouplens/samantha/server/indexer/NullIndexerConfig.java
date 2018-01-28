@@ -35,7 +35,7 @@ public class NullIndexerConfig implements IndexerConfig {
     private final String daoConfigKey;
 
     private NullIndexerConfig(Injector injector, Configuration config,
-                                  Configuration daoConfigs, String daoConfigKey) {
+                              Configuration daoConfigs, String daoConfigKey) {
         this.injector = injector;
         this.config = config;
         this.daoConfigKey = daoConfigKey;

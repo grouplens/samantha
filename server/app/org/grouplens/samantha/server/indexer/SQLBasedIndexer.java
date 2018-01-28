@@ -78,9 +78,11 @@ public class SQLBasedIndexer extends AbstractIndexer {
             public Object getValue(String name, JsonNode data) {
                 return data.get(name).asText();
             }
-
             public void putValue(String name, ObjectNode data, Object value) {
                 data.put(name, (String) value);
+            }
+            public int compareValue(String name, JsonNode left, JsonNode right) {
+                return left.get(name).asText().compareTo(right.get(name).asText());
             }
         },
         INT() {
@@ -90,6 +92,9 @@ public class SQLBasedIndexer extends AbstractIndexer {
             public void putValue(String name, ObjectNode data, Object value) {
                 data.put(name, (Integer) value);
             }
+            public int compareValue(String name, JsonNode left, JsonNode right) {
+                return Integer.compare(left.get(name).asInt(), right.get(name).asInt());
+            }
         },
         LONG() {
             public Object getValue(String name, JsonNode data) {
@@ -97,6 +102,9 @@ public class SQLBasedIndexer extends AbstractIndexer {
             }
             public void putValue(String name, ObjectNode data, Object value) {
                 data.put(name, (Long) value);
+            }
+            public int compareValue(String name, JsonNode left, JsonNode right) {
+                return Long.compare(left.get(name).asLong(), right.get(name).asLong());
             }
         },
         FLOAT() {
@@ -106,6 +114,9 @@ public class SQLBasedIndexer extends AbstractIndexer {
             public void putValue(String name, ObjectNode data, Object value) {
                 data.put(name, (Float) value);
             }
+            public int compareValue(String name, JsonNode left, JsonNode right) {
+                return Double.compare(left.get(name).asDouble(), right.get(name).asDouble());
+            }
         },
         DOUBLE() {
             public Object getValue(String name, JsonNode data) {
@@ -114,12 +125,16 @@ public class SQLBasedIndexer extends AbstractIndexer {
             public void putValue(String name, ObjectNode data, Object value) {
                 data.put(name, (Double) value);
             }
+            public int compareValue(String name, JsonNode left, JsonNode right) {
+                return Double.compare(left.get(name).asDouble(), right.get(name).asDouble());
+            }
         }
     }
 
     private interface GetValue {
         Object getValue(String name, JsonNode data);
         void putValue(String name, ObjectNode data, Object value);
+        int compareValue(String name, JsonNode left, JsonNode right);
     }
 
     private void bulkInsert(String table, JsonNode data) {

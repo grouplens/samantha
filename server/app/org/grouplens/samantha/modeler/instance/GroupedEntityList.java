@@ -43,7 +43,11 @@ public class GroupedEntityList {
         } else {
             this.groupKeys = null;
         }
-        this.batchSize = batchSize;
+        if (batchSize != null) {
+            this.batchSize = batchSize;
+        } else {
+            this.batchSize = 128;
+        }
     }
 
     public List<ObjectNode> getNextGroup() {

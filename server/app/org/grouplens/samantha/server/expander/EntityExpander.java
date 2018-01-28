@@ -29,6 +29,9 @@ import play.inject.Injector;
 
 import java.util.List;
 
+/***
+ * This does not guarantee the expanded fields are complete and leave to the downstream feature extractors to deal with.
+ */
 public interface EntityExpander {
     static EntityExpander getExpander(Configuration expanderConfig,
                                       Injector injector, RequestContext requestContext) {return null;}

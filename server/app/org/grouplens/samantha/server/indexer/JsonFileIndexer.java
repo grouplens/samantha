@@ -23,6 +23,7 @@
 package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.common.DataOperation;
 import org.grouplens.samantha.server.common.JsonHelpers;
@@ -30,6 +31,8 @@ import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.Configuration;
 import play.inject.Injector;
 import play.libs.Json;
@@ -37,6 +40,7 @@ import play.libs.Json;
 import java.util.List;
 
 public class JsonFileIndexer extends AbstractIndexer {
+    private static Logger logger = LoggerFactory.getLogger(JsonFileIndexer.class);
     private final FileWriterService dataService;
     private final String indexType;
     private final String timestampField;
@@ -77,14 +81,22 @@ public class JsonFileIndexer extends AbstractIndexer {
         String operation = JsonHelpers.getOptionalString(reqBody, ConfigKey.DATA_OPERATION.get(),
                 DataOperation.INSERT.get());
         if (operation.equals(DataOperation.INSERT.get()) || operation.equals(DataOperation.UPSERT.get())) {
+            JsonNode arr;
             if (!documents.isArray()) {
-                dataService.writeJson(indexType, documents,
-                        documents.get(timestampField).asInt());
+                ArrayNode tmp = Json.newArray();
+                tmp.add(documents);
+                arr = tmp;
             } else {
-                for (JsonNode document : documents) {
-                    dataService.writeJson(indexType, document,
-                            document.get(timestampField).asInt());
+                arr = documents;
+            }
+            int timestamp = (int) (System.currentTimeMillis() / 1000);
+            for (JsonNode document : arr) {
+                if (document.has(timestampField)) {
+                    timestamp = document.get(timestampField).asInt();
+                } else {
+                    logger.warn("Time field {} is not present in the entity to be indexed.", timestampField);
                 }
+                dataService.writeJson(indexType, document, timestamp);
             }
         } else {
             throw new BadRequestException("Data operation " + operation + " is not supported");

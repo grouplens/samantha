@@ -31,6 +31,7 @@ import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.EngineComponent;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.dao.EntityDAOUtilities;
+import org.grouplens.samantha.server.dao.ExpandedEntityDAO;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
@@ -51,7 +52,8 @@ abstract public class AbstractIndexer implements Indexer {
     protected final Injector injector;
     protected final List<Configuration> expandersConfig;
     protected final List<Configuration> subscribers;
-    private final int bufferSize = 100;
+    //TODO: change this to take value from constructor and final
+    protected int batchSize = 128;
 
     public AbstractIndexer(Configuration config, SamanthaConfigService configService,
                            Configuration daoConfigs, String daoConfigKey, Injector injector) {
@@ -93,29 +95,21 @@ abstract public class AbstractIndexer implements Indexer {
         JsonNode reqBody = requestContext.getRequestBody();
         EntityDAO entityDAO = EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 reqBody.get(daoConfigKey), injector);
-        List<ObjectNode> bufferArr = new ArrayList<>();
         ArrayNode toIndex = Json.newArray();
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
-        while (entityDAO.hasNextEntity()) {
-            bufferArr.add(entityDAO.getNextEntity());
-            if (bufferArr.size() >= bufferSize) {
-                bufferArr = ExpanderUtilities.expand(bufferArr, entityExpanders, requestContext);
-                for (ObjectNode entity : bufferArr) {
-                    toIndex.add(entity);
-                }
+        ExpandedEntityDAO expandedEntityDAO = new ExpandedEntityDAO(entityExpanders, entityDAO, requestContext);
+        while (expandedEntityDAO.hasNextEntity()) {
+            toIndex.add(expandedEntityDAO.getNextEntity());
+            if (toIndex.size() >= batchSize) {
                 index(toIndex, requestContext);
                 notifyDataSubscribers(toIndex, requestContext);
-                bufferArr.clear();
                 toIndex.removeAll();
             }
         }
-        bufferArr = ExpanderUtilities.expand(bufferArr, entityExpanders, requestContext);
-        for (ObjectNode entity : bufferArr) {
-            toIndex.add(entity);
-        }
         index(toIndex, requestContext);
         notifyDataSubscribers(toIndex, requestContext);
+        expandedEntityDAO.close();
         entityDAO.close();
     }
 

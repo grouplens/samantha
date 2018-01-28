@@ -33,10 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class FeatureExtractorUtilities {
     private static Logger logger = LoggerFactory.getLogger(FeatureExtractorUtilities.class);
@@ -89,9 +86,9 @@ public class FeatureExtractorUtilities {
 
     static public Map<String, String> decomposeKey(String key) {
         Map<String, String> attrVals = new HashMap<>();
-        String[] multiples = key.split("\t");
+        String[] multiples = key.split("\t", -1);
         for (String multiple : multiples) {
-            String[] attrVal = multiple.split("\1");
+            String[] attrVal = multiple.split("\1", -1);
             if (attrVal.length == 2) {
                 attrVals.put(attrVal[0], attrVal[1]);
             }
@@ -107,5 +104,30 @@ public class FeatureExtractorUtilities {
             }
         }
         return composeKey(multiples);
+    }
+
+    static public Map.Entry<Integer, Integer> getStartAndNumGroup(String[] indices, Integer maxGrpNum, int grpSize) {
+        int len = indices.length;
+        int numGrp = 0;
+        if (len > 0) {
+            numGrp = 1;
+        }
+        int inGrpSize = 0;
+        int start = 0;
+        int prevRank = Integer.MAX_VALUE;
+        for (int i = len - 1; i >= 0; i--) {
+            int curRank = Integer.parseInt(indices[i]);
+            if ((inGrpSize >= grpSize) || (curRank >= prevRank && curRank != Integer.MAX_VALUE)) {
+                if (maxGrpNum != null && numGrp + 1 > maxGrpNum) {
+                    start = i + 1;
+                    break;
+                }
+                numGrp++;
+                inGrpSize = 0;
+            }
+            prevRank = curRank;
+            inGrpSize++;
+        }
+        return new AbstractMap.SimpleEntry<>(start, numGrp);
     }
 }

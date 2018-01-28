@@ -23,7 +23,7 @@
 package org.grouplens.samantha.server.retriever;
 
 import org.grouplens.samantha.modeler.knn.FeatureKnnModel;
-import org.grouplens.samantha.modeler.knn.KnnModelFeatureTrigger;
+import org.grouplens.samantha.modeler.knn.KnnModelTrigger;
 import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.ModelManager;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
@@ -110,7 +110,7 @@ public class UserKnnRetrieverConfig extends AbstractComponentConfig implements R
         FeatureKnnModel kdnModel = (FeatureKnnModel) kdnModelManager.manage(requestContext);
         Retriever retriever = configService.getRetriever(retrieverName, requestContext);
         List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
-        KnnModelFeatureTrigger trigger = new KnnModelFeatureTrigger(knnModel, kdnModel,
+        KnnModelTrigger trigger = new KnnModelTrigger(knnModel, kdnModel,
                 userAttrs, weightAttr, scoreAttr);
         return new UserKnnRetriever(weightAttr, scoreAttr, userAttrs, itemAttrs, retriever, trigger, expanders, config);
     }

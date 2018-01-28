@@ -223,6 +223,29 @@ public class EngineHandlers extends Controller {
     }
 
     /**
+     * Handler for indexer model management requests.
+     *
+     * It first asks for the key "indexer" in the request body, which tells which specific indexer implementation
+     * it is involving from {@link SamanthaConfigService}.
+     * The {@link org.grouplens.samantha.server.indexer.IndexerConfig#getIndexer(RequestContext) getRanker}
+     * method is called which typically asks for the key modelOperation and modelName in the request body. That's where
+     * the actual model management task is executed.
+     *
+     * @param engine the target engine name of this request.
+     * @return a HTTP response with the key "status" only (mostly with value "success" if the request is successfully processed).
+     * @throws BadRequestException
+     */
+    public Result indexerModel(String engine) throws BadRequestException {
+        JsonNode body = request().body().asJson();
+        RequestContext requestContext = requestParser.getJsonRequestContext(engine, body);
+        String indexerName = JsonHelpers.getRequiredString(body, "indexer");
+        //TODO: expanders are not initialized here. Fix this.
+        samanthaConfigService.getIndexer(indexerName, requestContext);
+        ObjectNode resp = JsonHelpers.successJson();
+        return ok(resp);
+    }
+
+    /**
      * Handler for data indexing requests.
      *
      * It first asks for the key "indexer" in the request body. Then the right indexer is found through {@link SamanthaConfigService}.

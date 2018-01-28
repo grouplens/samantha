@@ -53,7 +53,7 @@ public class HashBucketRouter implements Router {
     private String route(RequestContext requestContext, List<String> hashAttrs, Integer numBuckets,
                          Configuration name2range) {
         String key = FeatureExtractorUtilities.composeConcatenatedKey(requestContext.getRequestBody(), hashAttrs);
-        Integer bucket = key.hashCode() % numBuckets;
+        Integer bucket = Math.floorMod(key.hashCode(), numBuckets);
         String hit = null;
         for (String name : name2range.keys()) {
             List<Integer> ranges = name2range.getIntList(name);

@@ -24,9 +24,13 @@ package org.grouplens.samantha.server.indexer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
-import play.Logger;
+import org.grouplens.samantha.modeler.dao.CSVFileDAO;
+import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 
 import javax.inject.Singleton;
@@ -35,13 +39,13 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Singleton
 public class IndexerUtilities {
+    private static Logger logger = LoggerFactory.getLogger(IndexerUtilities.class);
+
     private IndexerUtilities() {}
 
     /**
@@ -52,7 +56,7 @@ public class IndexerUtilities {
         try {
             Date date;
             if (timeStr.startsWith("now") || timeStr.startsWith("today")) {
-                String[] fields = timeStr.split(" ");
+                String[] fields = timeStr.split(" ", -1);
                 long mul = Long.parseLong(fields[2]);
                 String unit = fields[3];
                 long current = new Date().getTime();
@@ -62,13 +66,13 @@ public class IndexerUtilities {
                 }
                 long minus = TimeUnit.valueOf(unit).toMillis(mul);
                 date = new Date(current - minus);
-            } else if (timeStr.split("-").length > 1) {
+            } else if (timeStr.split("-", -1).length > 1) {
                 DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:SS");
                 date = format.parse(timeStr);
             } else {
                 return Integer.parseInt(timeStr);
             }
-            Logger.info("{}", date.toString());
+            logger.info("Converting {} to unix timestamp.", date.toString());
             return (int)(date.getTime() / 1000);
         } catch (ParseException e) {
             throw new ConfigurationException(e);
@@ -95,12 +99,36 @@ public class IndexerUtilities {
         ObjectMapper mapper = new ObjectMapper();
         List<String> fields = new ArrayList<>(curFields.size());
         for (String field : curFields) {
+            if (!entity.has(field)) {
+                logger.warn("The field {} is not present in {}. Filled in with null.",
+                        field, entity);
+            }
             String value = mapper.writeValueAsString(entity.get(field));
+            if (value.contains(separator)) {
+                logger.warn("The field {} from {} already has the separator {}. Removed.",
+                        field, entity, separator);
+                value = value.replace(separator, "");
+            }
             fields.add(StringEscapeUtils.unescapeCsv(value));
         }
         String line = StringUtils.join(fields, separator);
         writer.write(line);
         writer.newLine();
         writer.flush();
+    }
+
+    public static void loadUsedGroups(String usedGroupsFilePath,
+                                      String separator,
+                                      List<String> groupKeys,
+                                      Map<String, Boolean> usedGroups) {
+        if (usedGroupsFilePath != null) {
+            CSVFileDAO csvFileDAO = new CSVFileDAO(separator, usedGroupsFilePath);
+            while (csvFileDAO.hasNextEntity()) {
+                ObjectNode grp = csvFileDAO.getNextEntity();
+                String grpStr = FeatureExtractorUtilities.composeConcatenatedKey(grp, groupKeys);
+                usedGroups.put(grpStr, true);
+            }
+            csvFileDAO.close();
+        }
     }
 }

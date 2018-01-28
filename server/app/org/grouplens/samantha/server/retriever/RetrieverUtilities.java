@@ -25,8 +25,8 @@ package org.grouplens.samantha.server.retriever;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import org.grouplens.samantha.server.indexer.SQLBasedIndexer;
 
-import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
 
@@ -72,6 +72,25 @@ public class RetrieverUtilities {
                     String rightVal= right.get(field).asText();
                     if (!leftVal.equals(rightVal)) {
                         return leftVal.compareTo(rightVal);
+                    }
+                }
+                return 0;
+            }
+        };
+    }
+
+    static public Comparator<ObjectNode> jsonTypedFieldsComparator(List<String> fields, List<String> types) {
+        return new Comparator<ObjectNode>() {
+            private List<String> orderFields = fields;
+            private List<String> fieldTypes = types;
+            @Override
+            public int compare(ObjectNode left, ObjectNode right) {
+                for (int i=0; i<orderFields.size(); i++) {
+                    String field = orderFields.get(i);
+                    int ret = SQLBasedIndexer.BasicType.valueOf(fieldTypes.get(i)).compareValue(
+                            field, left, right);
+                    if (ret != 0) {
+                        return ret;
                     }
                 }
                 return 0;

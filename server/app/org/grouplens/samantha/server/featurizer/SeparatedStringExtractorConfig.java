@@ -33,29 +33,44 @@ public class SeparatedStringExtractorConfig implements FeatureExtractorConfig {
     private final String feaName;
     private final String attrName;
     private final String separator;
+    private final boolean normalize;
+    private final String fillIn;
+    private final Integer maxFeatures;
 
     private SeparatedStringExtractorConfig(String indexName,
                                            String attrName,
                                            String feaName,
-                                           String separator) {
+                                           String separator,
+                                           boolean normalize,
+                                           String fillIn,
+                                           Integer maxFeatures) {
         this.indexName = indexName;
         this.attrName = attrName;
         this.feaName = feaName;
         this.separator = separator;
+        this.normalize = normalize;
+        this.fillIn = fillIn;
+        this.maxFeatures = maxFeatures;
     }
 
     public FeatureExtractor getFeatureExtractor(RequestContext requestContext) {
-        return new SeparatedStringExtractor(indexName, attrName, feaName, separator);
+        return new SeparatedStringExtractor(indexName, attrName, feaName, separator,
+                normalize, fillIn, maxFeatures);
     }
 
     public static FeatureExtractorConfig
             getFeatureExtractorConfig(Configuration extractorConfig,
                                       Injector injector) {
+        Boolean normalize = extractorConfig.getBoolean("normalize");
+        if (normalize == null) {
+            normalize = true;
+        }
         return new SeparatedStringExtractorConfig(
                 extractorConfig.getString("indexName"),
                 extractorConfig.getString("attrName"),
                 extractorConfig.getString("feaName"),
-                extractorConfig.getString("separator")
-        );
+                extractorConfig.getString("separator"),
+                normalize, extractorConfig.getString("fillIn"),
+                extractorConfig.getInt("maxFeatures"));
     }
 }

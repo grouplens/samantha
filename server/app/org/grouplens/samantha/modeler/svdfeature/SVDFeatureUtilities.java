@@ -28,7 +28,7 @@ public class SVDFeatureUtilities {
     private SVDFeatureUtilities() {}
 
     static public void parseInstanceFromString(String line, SVDFeatureInstance ins) {
-        String[] fields = line.split("\t");
+        String[] fields = line.split("\t", -1);
         ins.weight = Double.parseDouble(fields[0]);
         ins.label = Double.parseDouble(fields[1]);
         if (!"".equals(fields[2])) {

@@ -48,6 +48,8 @@ public class GroupedIndexer extends AbstractIndexer {
     private final String dataDir;
     private final int numBuckets;
     private final List<String> groupKeys;
+    private final List<String> groupKeysTypes;
+    private final List<String> orderFieldsTypes;
     private final List<String> dataFields;
     private final List<String> orderFields;
     private final Boolean descending;
@@ -57,6 +59,7 @@ public class GroupedIndexer extends AbstractIndexer {
     private final String daoName;
     private final String separatorKey;
     private final int usedBuckets;
+    private final boolean skip;
 
     public GroupedIndexer(SamanthaConfigService configService,
                           Configuration config, Injector injector,
@@ -66,7 +69,8 @@ public class GroupedIndexer extends AbstractIndexer {
                           List<String> dataFields, String separator,
                           List<String> orderFields, Boolean descending,
                           String filesKey, String daoName, String daoNameKey,
-                          String separatorKey, int usedBuckets) {
+                          String separatorKey, int usedBuckets, boolean skip,
+                          List<String> groupKeysTypes, List<String> orderFieldsTypes) {
         super(config, configService, daoConfigs, daoConfigKey, injector);
         this.indexer = indexer;
         this.dataDir = dataDir;
@@ -81,72 +85,86 @@ public class GroupedIndexer extends AbstractIndexer {
         this.daoNameKey = daoNameKey;
         this.separatorKey = separatorKey;
         this.usedBuckets = usedBuckets;
+        this.groupKeysTypes = groupKeysTypes;
+        this.orderFieldsTypes = orderFieldsTypes;
+        this.skip = skip;
     }
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
-        EntityDAO entityDAO = indexer.getEntityDAO(requestContext);
         String prefix = dataDir + "/";
-        List<BufferedWriter> writers = new ArrayList<>();
         List<String> files = new ArrayList<>(usedBuckets);
-        try {
-            new File(prefix).mkdirs();
-            for (int i = 0; i < usedBuckets; i++) {
-                BufferedWriter writer = new BufferedWriter(new FileWriter(prefix +
-                        Integer.valueOf(i).toString() + ".tmp"));
-                IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
-                writers.add(writer);
-            }
-            while (entityDAO.hasNextEntity()) {
-                ObjectNode entity = entityDAO.getNextEntity();
-                int idx = FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys)
-                        .hashCode() % numBuckets;
-                if (idx < usedBuckets) {
-                    IndexerUtilities.writeCSVFields(entity, dataFields, writers.get(idx), separator);
-                }
-            }
-            for (int i = 0; i < usedBuckets; i++) {
-                writers.get(i).close();
-            }
-            writers.clear();
+        if (skip) {
             for (int i=0; i<usedBuckets; i++) {
-                String tmpFilePath = prefix + Integer.valueOf(i).toString() + ".tmp";
-                File tmpFile = new File(tmpFilePath);
-                if (tmpFile.isFile()) {
-                    List<ObjectNode> buffer = new ArrayList<>();
-                    EntityDAO csvDao = new CSVFileDAO(separator, tmpFilePath);
-                    while (csvDao.hasNextEntity()) {
-                        buffer.add(csvDao.getNextEntity());
-                    }
-                    csvDao.close();
-                    tmpFile.delete();
-                    Comparator<ObjectNode> comparator;
-                    if (orderFields == null || orderFields.size() == 0) {
-                        comparator = RetrieverUtilities.jsonStringFieldsComparator(groupKeys);
-                    } else {
-                        List<String> sortFields = new ArrayList<>();
-                        sortFields.addAll(groupKeys);
-                        sortFields.addAll(orderFields);
-                        comparator = RetrieverUtilities.jsonStringFieldsComparator(sortFields);
-                        if (descending != null && descending) {
-                            comparator = comparator.reversed();
-                        }
-                    }
-                    buffer.sort(comparator);
-                    String resultFile = prefix + Integer.valueOf(i).toString() + ".csv";
-                    BufferedWriter writer = new BufferedWriter(new FileWriter(resultFile));
-                    IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
-                    for (ObjectNode entity : buffer) {
-                        IndexerUtilities.writeCSVFields(entity, dataFields, writer, separator);
-                    }
-                    buffer.clear();
-                    writer.close();
-                    files.add(resultFile);
-                }
+                String resultFile = prefix + Integer.valueOf(i).toString() + ".csv";
+                files.add(resultFile);
             }
-        } catch (IOException e) {
-            throw new BadRequestException(e);
+        } else {
+            EntityDAO entityDAO = indexer.getEntityDAO(requestContext);
+            List<BufferedWriter> writers = new ArrayList<>();
+            try {
+                new File(prefix).mkdirs();
+                for (int i = 0; i < usedBuckets; i++) {
+                    BufferedWriter writer = new BufferedWriter(new FileWriter(prefix +
+                            Integer.valueOf(i).toString() + ".tmp"));
+                    IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
+                    writers.add(writer);
+                }
+                while (entityDAO.hasNextEntity()) {
+                    ObjectNode entity = entityDAO.getNextEntity();
+                    int idx = Math.floorMod(FeatureExtractorUtilities.composeConcatenatedKey(entity, groupKeys)
+                            .hashCode(), numBuckets);
+                    if (idx < usedBuckets) {
+                        IndexerUtilities.writeCSVFields(entity, dataFields, writers.get(idx), separator);
+                    }
+                }
+                for (int i = 0; i < usedBuckets; i++) {
+                    writers.get(i).close();
+                }
+                writers.clear();
+                for (int i = 0; i < usedBuckets; i++) {
+                    String tmpFilePath = prefix + Integer.valueOf(i).toString() + ".tmp";
+                    File tmpFile = new File(tmpFilePath);
+                    if (tmpFile.isFile()) {
+                        List<ObjectNode> buffer = new ArrayList<>();
+                        EntityDAO csvDao = new CSVFileDAO(separator, tmpFilePath);
+                        while (csvDao.hasNextEntity()) {
+                            buffer.add(csvDao.getNextEntity());
+                        }
+                        csvDao.close();
+                        tmpFile.delete();
+                        Comparator<ObjectNode> comparator;
+                        if (orderFields == null || orderFields.size() == 0) {
+                            comparator = RetrieverUtilities.jsonTypedFieldsComparator(groupKeys, groupKeysTypes);
+                        } else {
+                            List<String> sortFields = new ArrayList<>();
+                            sortFields.addAll(groupKeys);
+                            sortFields.addAll(orderFields);
+                            List<String> sortFieldsTypes = new ArrayList<>();
+                            sortFieldsTypes.addAll(groupKeysTypes);
+                            sortFieldsTypes.addAll(orderFieldsTypes);
+                            comparator = RetrieverUtilities.jsonTypedFieldsComparator(sortFields, sortFieldsTypes);
+                            if (descending != null && descending) {
+                                comparator = comparator.reversed();
+                            }
+                        }
+                        buffer.sort(comparator);
+                        String resultFile = prefix + Integer.valueOf(i).toString() + ".csv";
+                        BufferedWriter writer = new BufferedWriter(new FileWriter(resultFile));
+                        IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
+                        for (ObjectNode entity : buffer) {
+                            IndexerUtilities.writeCSVFields(entity, dataFields, writer, separator);
+                        }
+                        buffer.clear();
+                        writer.close();
+                        files.add(resultFile);
+                    }
+                }
+            } catch (IOException e) {
+                throw new BadRequestException(e);
+            } finally {
+                entityDAO.close();
+            }
         }
-        entityDAO.close();
         ObjectNode reqDao = Json.newObject();
         reqDao.set(filesKey, Json.toJson(files));
         reqDao.put(separatorKey, separator);

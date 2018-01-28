@@ -61,6 +61,7 @@ public class TensorFlowModelProducer {
                                                                   SpaceMode spaceMode,
                                                                   String graphDefFilePath,
                                                                   List<String> groupKeys,
+                                                                  List<List<String>> equalSizeChecks,
                                                                   List<String> indexKeys,
                                                                   List<FeatureExtractor> featureExtractors,
                                                                   String lossOperationName,
@@ -70,7 +71,7 @@ public class TensorFlowModelProducer {
         IndexSpace indexSpace = getIndexSpace(modelName, spaceMode);
         for (String indexKey : indexKeys) {
             indexSpace.requestKeyMap(indexKey);
-            indexSpace.setKey(indexKey, "__OOV__");
+            indexSpace.setKey(indexKey, TensorFlowModel.OOV);
         }
         VariableSpace variableSpace = getVariableSpace(modelName, spaceMode);
         byte[] graphDef;
@@ -82,8 +83,7 @@ public class TensorFlowModelProducer {
         Graph graph = new Graph();
         graph.importGraphDef(graphDef);
         return new TensorFlowModel(graph, indexSpace, variableSpace,
-                featureExtractors, lossOperationName,
-                updateOperationName, outputOperationName, initOperationName,
-                groupKeys, indexKeys);
+                featureExtractors, lossOperationName, updateOperationName,
+                outputOperationName, initOperationName, groupKeys, equalSizeChecks);
     }
 }

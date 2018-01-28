@@ -39,35 +39,53 @@ public class SeparatedStringExtractor implements FeatureExtractor {
     private final String attrName;
     private final String feaName;
     private final String separator;
+    private final boolean normalize;
+    private final String fillIn;
+    private final Integer maxFeatures;
 
     public SeparatedStringExtractor(String indexName,
                                     String attrName,
                                     String feaName,
-                                    String separator) {
+                                    String separator,
+                                    boolean normalize,
+                                    String fillIn,
+                                    Integer maxFeatures) {
         this.indexName = indexName;
         this.attrName = attrName;
         this.feaName = feaName;
         this.separator = separator;
+        this.normalize = normalize;
+        this.fillIn = fillIn;
+        this.maxFeatures = maxFeatures;
     }
 
     public Map<String, List<Feature>> extract(JsonNode entity, boolean update,
                                               IndexSpace indexSpace) {
         Map<String, List<Feature>> feaMap = new HashMap<>();
-        if (entity.has(attrName)) {
+        if (entity.has(attrName) || fillIn != null) {
             List<Feature> features = new ArrayList<>();
-            String attr = entity.get(attrName).asText();
-            String[] fields = attr.split(separator);
-            double val = 1.0;
-            if (fields.length > 0) {
-                val = 1.0 / Math.sqrt(fields.length);
+            String attr = fillIn;
+            if (entity.has(attrName)) {
+                attr = entity.get(attrName).asText();
             }
-            for (String field : fields) {
+            String[] fields = attr.split(separator, -1);
+            int start = 0;
+            if (maxFeatures != null && fields.length > maxFeatures) {
+                start = fields.length - maxFeatures;
+            }
+            double val = 1.0;
+            if (fields.length > 0 && normalize) {
+                val = 1.0 / Math.sqrt(fields.length - start);
+            }
+            for (int i=start; i<fields.length; i++) {
+                String field = fields[i];
                 String key = FeatureExtractorUtilities.composeKey(attrName, field);
                 FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
                         indexSpace, indexName, key, val);
             }
             feaMap.put(feaName, features);
-        } else {
+        }
+        if (!entity.has(attrName)){
             logger.warn("{} is not present in {}", attrName, entity);
         }
         return feaMap;
