@@ -20,7 +20,7 @@ class RecommenderBuilder(ModelBuilder):
                  train_steps=1,
                  eval_steps=1,
                  split_tstamp=None,
-                 tstamp_attr='tstamp',
+                 tstamp_attr='tstamp_val',
                  filter_unrecognized=False):
         self._user_model = user_model
         self._prediction_model = prediction_model
@@ -135,6 +135,8 @@ class RecommenderBuilder(ModelBuilder):
             indices,
             begin=[0, 0],
             size=[tf.shape(indices)[0], 1]), [-1])
+        uniq_batch_idx, ori_batch_idx = tf.unique(batch_idx)
+        uniq_length_limit = tf.gather(length_limit, uniq_batch_idx)
         step_idx = tf.reshape(tf.slice(
             indices,
             begin=[0, 1],
@@ -142,13 +144,14 @@ class RecommenderBuilder(ModelBuilder):
         start_limit = None
         end_limit = None
         if mode == 'train':
-            split_limit = tf.segment_max(step_idx, batch_idx)
-            end_limit = tf.gather(split_limit, batch_idx)
+            split_limit = tf.gather(tf.segment_max(step_idx, batch_idx), uniq_batch_idx)
+            end_limit = tf.gather(split_limit, ori_batch_idx)
             start_limit = tf.maximum(end_limit - self._train_steps, 0)
         elif mode == 'eval':
-            split_limit = tf.segment_min(step_idx, batch_idx)
-            start_limit = tf.gather(split_limit, batch_idx)
-            end_limit = tf.minimum(start_limit + self._eval_steps, length_limit - 1)
+            split_limit = tf.gather(tf.segment_min(step_idx, batch_idx), uniq_batch_idx)
+            start_limit = tf.gather(split_limit, ori_batch_idx)
+            end_limit = tf.minimum(start_limit + self._eval_steps,
+                                   tf.gather(uniq_length_limit, ori_batch_idx) - 1)
         return tf.boolean_mask(
             indices, tf.logical_and(step_idx >= start_limit, step_idx <= end_limit))
 
@@ -220,8 +223,12 @@ class RecommenderBuilder(ModelBuilder):
             size = None
             if config['level'] == 'user':
                 size = 1
+            if config['is_numerical']:
+                name = '%s_val' % attr
+            else:
+                name = '%s_idx' % attr
             inputs = tf.placeholder(
-                tf.int32, shape=(None, size), name='%s_idx' % attr)
+                tf.int32, shape=(None, size), name=name)
             if config['level'] == 'item':
                 max_seq_len = tf.shape(inputs)[1] / self._page_size
                 inputs = tf.reshape(inputs, [tf.shape(inputs)[0], max_seq_len, self._page_size])
