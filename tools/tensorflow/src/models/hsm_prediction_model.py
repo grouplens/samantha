@@ -22,7 +22,8 @@ class HierarchicalPredictionModel(PredictionModel):
                         'attr': 'item',
                         'vocab_size': 20,
                         'softmax_dim': 10,
-                        'item2cluster': [random.randint(0, 9) for _ in range(20)]
+                        'item2cluster': [random.randint(0, 9) for _ in range(20)],
+                        'sample_rate': 0.8,
                     }
                 ]
             }
@@ -95,10 +96,13 @@ class HierarchicalPredictionModel(PredictionModel):
                 losses = -tf.log(tf.maximum(preds, 1e-07))
             else:
                 parent_level = hierarchy[i-1]
+                sample_rate = 1.0
+                if 'sample_rate' in level:
+                    sample_rate = level['sample_rate']
                 layer_preds, layer_losses = hsm.layer_wise_loss(
                     parent_level['vocab_size'], hierarchical_labels[parent_level['attr']],
                     hierarchical_labels[level['attr']], item2cluster[level['attr']],
-                    weights[level['attr']], biases[level['attr']], used_model)
+                    weights[level['attr']], biases[level['attr']], used_model, sample_rate=sample_rate)
                 preds *= layer_preds
                 losses += layer_losses
         updates = []

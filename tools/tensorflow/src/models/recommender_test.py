@@ -34,7 +34,8 @@ class RecommenderTest(unittest.TestCase):
                     'attr': 'item',
                     'vocab_size': item_vocab_size,
                     'item2cluster': item2cluster,
-                    'softmax_dim': rnn_size
+                    'softmax_dim': rnn_size,
+                    'sample_rate': 0.8
                 }
             ]
         })
@@ -68,7 +69,7 @@ class RecommenderTest(unittest.TestCase):
             batch = {'user_idx': [], 'item_idx': [], 'sequence_length_val': []}
             for l in range(batch_size):
                 batch['user_idx'].append([random.randint(1, user_vocab_size - 1)])
-                batch['sequence_length_val'].append([random.randint(1, max_seq_len)])
+                batch['sequence_length_val'].append([random.randint(2, max_seq_len)])
                 batch['item_idx'].append([])
                 for j in range(max_seq_len):
                     for k in range(page_size):
@@ -122,7 +123,7 @@ class RecommenderTest(unittest.TestCase):
             batch = {'user_idx': [], 'item_idx': [], 'sequence_length_val': []}
             for l in range(batch_size):
                 batch['user_idx'].append([random.randint(1, user_vocab_size - 1)])
-                batch['sequence_length_val'].append([random.randint(1, max_seq_len)])
+                batch['sequence_length_val'].append([random.randint(2, max_seq_len)])
                 batch['item_idx'].append([])
                 for j in range(max_seq_len):
                     for k in range(page_size):

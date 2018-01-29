@@ -2,9 +2,23 @@
 import tensorflow as tf
 
 
+def _sample_included_items(whether_include_items, included_items,
+                           item_labels, item2cluster, sample_rate):
+    uniq_items, _ = tf.unique(item_labels)
+    whether_label_items = tf.sparse_to_dense(
+        uniq_items, [tf.shape(item2cluster)[0]],
+        tf.ones_like(uniq_items, dtype=tf.bool),
+        default_value=False, validate_indices=False)
+    whether_included_label_items = tf.boolean_mask(whether_label_items,
+                                                   whether_include_items)
+    dice = tf.random_uniform(tf.shape(included_items))
+    sampled = tf.logical_or(whether_included_label_items, dice < sample_rate)
+    return tf.boolean_mask(included_items, sampled)
+
+
 def layer_wise_loss(cluster_vocab_size,
                     cluster_labels, item_labels, item2cluster,
-                    weights, biases, used_model):
+                    weights, biases, used_model, sample_rate=1.0):
     uniq_clusters, _ = tf.unique(cluster_labels)
     whether_include_clusters = tf.sparse_to_dense(
         uniq_clusters, [cluster_vocab_size],
@@ -12,6 +26,11 @@ def layer_wise_loss(cluster_vocab_size,
         default_value=False, validate_indices=False)
     whether_include_items = tf.gather(whether_include_clusters, item2cluster)
     included_items = tf.reshape(tf.where(whether_include_items), [-1])
+    tf.summary.scalar('num_included_items', tf.shape(included_items)[0])
+    if sample_rate < 1.0:
+        included_items = _sample_included_items(
+            whether_include_items, included_items, item_labels, item2cluster, sample_rate)
+        tf.summary.scalar('num_sampled_items', tf.shape(included_items)[0])
     included_clusters = tf.gather(item2cluster, included_items)
     included_weights = tf.gather(weights, included_items)
     included_biases = tf.gather(biases, included_items)
