@@ -130,13 +130,12 @@ class RecommenderBuilder(ModelBuilder):
                 step_idx >= step_split_limit, step_idx < step_length_limit))
         return train_indices, eval_indices
 
-    def _get_constrained_steps(self, indices, length_limit, mode):
+    def _get_constrained_steps(self, indices, mode):
         batch_idx = tf.reshape(tf.slice(
             indices,
             begin=[0, 0],
             size=[tf.shape(indices)[0], 1]), [-1])
         uniq_batch_idx, ori_batch_idx = tf.unique(batch_idx)
-        uniq_length_limit = tf.gather(length_limit, uniq_batch_idx)
         step_idx = tf.reshape(tf.slice(
             indices,
             begin=[0, 1],
@@ -146,24 +145,23 @@ class RecommenderBuilder(ModelBuilder):
         if mode == 'train':
             split_limit = tf.gather(tf.segment_max(step_idx, batch_idx), uniq_batch_idx)
             end_limit = tf.gather(split_limit, ori_batch_idx)
-            start_limit = tf.maximum(end_limit - self._train_steps, 0)
+            start_limit = end_limit - self._train_steps + 1
         elif mode == 'eval':
             split_limit = tf.gather(tf.segment_min(step_idx, batch_idx), uniq_batch_idx)
             start_limit = tf.gather(split_limit, ori_batch_idx)
-            end_limit = tf.minimum(start_limit + self._eval_steps,
-                                   tf.gather(uniq_length_limit, ori_batch_idx) - 1)
+            end_limit = start_limit + self._eval_steps - 1
         return tf.boolean_mask(
             indices, tf.logical_and(step_idx >= start_limit, step_idx <= end_limit))
 
-    def _get_train_eval_indices_by_tstamp(self, label, tstamp, length_limit):
+    def _get_train_eval_indices_by_tstamp(self, label, tstamp):
         train_indices = tf.cast(tf.where(
             tf.logical_and(label > 0, tstamp < self._split_tstamp)), tf.int32)
         eval_indices = tf.cast(tf.where(
             tf.logical_and(label > 0, tstamp >= self._split_tstamp)), tf.int32)
         if self._train_steps < self._max_train_steps:
-            train_indices = self._get_constrained_steps(train_indices, length_limit, 'train')
+            train_indices = self._get_constrained_steps(train_indices, 'train')
         if self._eval_steps < self._max_train_steps:
-            eval_indices = self._get_constrained_steps(eval_indices, length_limit, 'eval')
+            eval_indices = self._get_constrained_steps(eval_indices, 'eval')
         return train_indices, eval_indices
 
     def _get_loss_metrics(self, sequence_length, user_model, attr2input):
@@ -186,7 +184,7 @@ class RecommenderBuilder(ModelBuilder):
                         attr2input[target], start_limit, split_limit, length_limit)
                 else:
                     train_indices, eval_indices = self._get_train_eval_indices_by_tstamp(
-                        attr2input[target], attr2input[self._tstamp_attr], length_limit)
+                        attr2input[target], attr2input[self._tstamp_attr])
                 num_target_train_labels = tf.shape(train_indices)[0]
                 num_target_eval_labels = tf.shape(eval_indices)[0]
                 num_train_labels += config['weight'] * tf.cast(num_target_train_labels, tf.float32)
