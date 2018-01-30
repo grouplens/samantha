@@ -10,17 +10,17 @@ class RecommenderBuilder(ModelBuilder):
     def __init__(self,
                  user_model,
                  prediction_model,
-                 page_size=3,
+                 page_size=1,
                  attr2config=None,
                  embedding_attrs=None,
                  target2config=None,
-                 eval_metrics='MAP@1',
+                 eval_metrics='MAP@1,5',
                  loss_split_steps=500,
                  max_train_steps=500,
                  train_steps=1,
                  eval_steps=1,
                  split_tstamp=None,
-                 tstamp_attr='tstamp_val',
+                 tstamp_attr='tstamp',
                  filter_unrecognized=False):
         self._user_model = user_model
         self._prediction_model = prediction_model
@@ -77,6 +77,7 @@ class RecommenderBuilder(ModelBuilder):
         used_indices = tf.concat([batch_idx, used_step_idx], 1)
         used_model = tf.gather_nd(user_model, used_indices)
         used_labels = tf.gather_nd(labels, indices)
+        self._test_tensors['%s_labels' % mode] = used_labels
         if self._loss_split_steps < self._max_train_steps and mode == 'train':
             mask_idx = tf.reshape(step_idx, [-1])
             loss = 0
@@ -185,6 +186,8 @@ class RecommenderBuilder(ModelBuilder):
                 else:
                     train_indices, eval_indices = self._get_train_eval_indices_by_tstamp(
                         attr2input[target], attr2input[self._tstamp_attr])
+                self._test_tensors['train_indices'] = train_indices
+                self._test_tensors['eval_indices'] = eval_indices
                 num_target_train_labels = tf.shape(train_indices)[0]
                 num_target_eval_labels = tf.shape(eval_indices)[0]
                 num_train_labels += config['weight'] * tf.cast(num_target_train_labels, tf.float32)

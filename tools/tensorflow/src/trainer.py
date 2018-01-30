@@ -30,14 +30,15 @@ class ModelTrainer(object):
             with session.as_default():
                 logger.info('Building the model graph.')
                 loss, updates = self._builder.build_model()
-                run_tensors = self._builder.test_tensors()
                 update_op = self._builder.build_optimizer(loss, self._learning_rate)
                 for update in updates:
                     update_op = tf.group(update_op, update)
                 merged_summary = tf.summary.merge_all()
-                run_tensors['merged_summary'] = merged_summary
-                run_tensors['update_op'] = update_op
-                run_tensors['train_loss'] = loss
+                run_tensors = {
+                    'merged_summary': merged_summary,
+                    'update_op': update_op,
+                    'train_loss': loss
+                }
                 if run_name is None:
                     run_name = ''.join(
                         random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
