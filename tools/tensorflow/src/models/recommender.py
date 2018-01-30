@@ -81,8 +81,8 @@ class RecommenderBuilder(ModelBuilder):
             mask_idx = tf.reshape(step_idx, [-1])
             loss = 0
             updates = []
-            with tf.variable_scope('mask'):
-                for i in range(0, self._max_train_steps, self._loss_split_steps):
+            for i in range(0, self._max_train_steps, self._loss_split_steps):
+                with tf.variable_scope('mask_%s' % i):
                     loss_mask = tf.logical_and(
                             mask_idx >= i, mask_idx < i + self._loss_split_steps)
                     masked_labels = tf.boolean_mask(used_labels, loss_mask)
@@ -290,5 +290,7 @@ class RecommenderBuilder(ModelBuilder):
         with tf.variable_scope('metrics'):
             loss, updates, target2paras = self._get_loss_metrics(
                 sequence_length, user_model, attr2input)
+        with tf.variable_scope('prediction'):
+            self._get_prediction(sequence_length, user_model, target2paras)
         return loss, updates
 
