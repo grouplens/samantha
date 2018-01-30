@@ -1,6 +1,7 @@
 
 import unittest
 import random
+import tensorflow as tf
 
 from src.trainer import ModelTrainer
 from src.datasets.json_list import JsonListDataSet
@@ -15,7 +16,46 @@ class RecommenderTest(unittest.TestCase):
     def setUp(self):
         self._test_path = '/tmp/tflearn_logs/'
 
-    def test_sequence_hsm_model(self):
+    def test_run_seq_flat_default_eval(self):
+        embedding_dim = 10
+        user_vocab_size = 15
+        item_vocab_size = 20
+        rnn_size = 5
+        page_size = 1
+        user_model = SequenceUserModel(rnn_size)
+        softmax_model = SoftmaxPredictionModel(config={
+            'item': {'vocab_size': item_vocab_size, 'softmax_dim': rnn_size}})
+        model_builder = RecommenderBuilder(
+            user_model, softmax_model,
+            page_size=page_size,
+            attr2config={
+                'item': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'user': {
+                    'vocab_size': user_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'user'
+                }
+            },
+            target2config={
+                'item': {
+                    'weight': 1.0
+                }
+            },
+        )
+        graph = tf.Graph()
+        with graph.as_default():
+            session = tf.Session(graph=graph)
+            with session.as_default():
+                loss, updates = model_builder.build_model()
+                run_tensors = self._builder.test_tensors()
+
+    def test_train_sequence_hsm_model(self):
         embedding_dim = 10
         user_vocab_size = 15
         item_vocab_size = 20
@@ -84,7 +124,7 @@ class RecommenderTest(unittest.TestCase):
             tensorboard_dir=self._test_path)
         model_trainer.train('recommender_test_sequence_hsm_model_run0')
 
-    def test_sequence_softmax_model(self):
+    def test_train_sequence_softmax_model(self):
         embedding_dim = 10
         user_vocab_size = 15
         item_vocab_size = 20

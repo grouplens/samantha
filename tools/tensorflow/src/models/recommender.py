@@ -230,7 +230,7 @@ class RecommenderBuilder(ModelBuilder):
             if config['level'] == 'item':
                 max_seq_len = tf.shape(inputs)[1] / self._page_size
                 inputs = tf.reshape(inputs, [tf.shape(inputs)[0], max_seq_len, self._page_size])
-            if self._filter_unrecognized:
+            if self._filter_unrecognized and 'vocab_size' in config:
                 inputs = inputs * tf.cast(inputs < config['vocab_size'], tf.int32)
             attr2input[attr] = inputs
         if max_seq_len is None:
