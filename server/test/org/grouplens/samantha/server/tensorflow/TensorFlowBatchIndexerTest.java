@@ -39,7 +39,6 @@ import org.grouplens.samantha.server.io.RequestContext;
 import org.junit.Test;
 import play.Configuration;
 import play.inject.Injector;
-import org.junit.*;
 import play.libs.Json;
 import play.test.WithApplication;
 
