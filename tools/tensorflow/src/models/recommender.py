@@ -15,6 +15,7 @@ class RecommenderBuilder(ModelBuilder):
                  embedding_attrs=None,
                  target2config=None,
                  eval_metrics='MAP@1,5',
+                 eval_per_step=True,
                  loss_split_steps=500,
                  max_train_steps=500,
                  train_steps=1,
@@ -25,6 +26,7 @@ class RecommenderBuilder(ModelBuilder):
         self._user_model = user_model
         self._prediction_model = prediction_model
         self._page_size = page_size
+        self._eval_per_step = eval_per_step
         if attr2config is None:
             self._attr2config = {
                 'action': {
@@ -101,14 +103,20 @@ class RecommenderBuilder(ModelBuilder):
         return loss, updates
 
     def _compute_target_metrics(self, user_model, indices, labels, paras, target, config):
-        used_model, uniq_batch_idx, ori_batch_idx, step_idx = metrics.get_eval_user_model(
-                user_model, indices)
-        predictions = self._prediction_model.get_target_prediction(
-                used_model, paras, target, config)
-        used_labels = tf.gather_nd(labels, indices)
-        return metrics.compute_eval_label_metrics(
-                self._eval_metrics, predictions, used_labels, tf.shape(labels), indices,
-                uniq_batch_idx, ori_batch_idx, step_idx)
+        if not self._eval_per_step:
+            used_model, uniq_batch_idx, ori_batch_idx, step_idx = metrics.get_eval_user_model(
+                    user_model, indices)
+            predictions = self._prediction_model.get_target_prediction(
+                    used_model, paras, target, config)
+            used_labels = tf.gather_nd(labels, indices)
+            return metrics.compute_eval_label_metrics(
+                    self._eval_metrics, predictions, used_labels, tf.shape(labels), indices,
+                    uniq_batch_idx, ori_batch_idx, step_idx)
+        else:
+            used_model = metrics.get_per_step_eval_user_model(user_model, indices)
+            used_labels = tf.gather_nd(labels, indices)
+            predictions = self._prediction_model.get_target_prediction(used_model, paras, target, config)
+            return metrics.compute_per_step_eval_label_metrics(self._eval_metrics, predictions, used_labels)
 
     def _get_default_train_eval_indices(self, label, start_limit, split_limit, length_limit):
         non_zeros_indices = tf.cast(tf.where(label > 0), tf.int32)
@@ -206,9 +214,10 @@ class RecommenderBuilder(ModelBuilder):
                         user_model, eval_indices, attr2input[target], target2paras[target],
                         target, config, 'eval')
                     updates += model_updates
-                    updates += self._compute_target_metrics(
-                        user_model, eval_indices, attr2input[target],
-                        target2paras[target], target, config)
+                    if self._eval_metrics is not None:
+                        updates += self._compute_target_metrics(
+                            user_model, eval_indices, attr2input[target],
+                            target2paras[target], target, config)
             train_loss += config['weight'] * train_target_loss
             eval_loss += config['weight'] * eval_target_loss
         train_loss = train_loss / tf.maximum(1.0, num_train_labels)

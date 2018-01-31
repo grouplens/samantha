@@ -8,7 +8,7 @@ from src.models.prediction_model import PredictionModel
 
 class HierarchicalPredictionModel(PredictionModel):
 
-    def __init__(self, hierarchies=None, eval_metrics='MAP@1,5'):
+    def __init__(self, hierarchies=None, eval_metrics='MAP@1,5', eval_per_step=True):
         if hierarchies is not None:
             self._hierarchies = hierarchies
         else:
@@ -28,6 +28,7 @@ class HierarchicalPredictionModel(PredictionModel):
                 ]
             }
         self._eval_metrics = eval_metrics
+        self._eval_per_step = eval_per_step
 
     def get_target_paras(self, target, config):
         weights = {}
@@ -59,12 +60,18 @@ class HierarchicalPredictionModel(PredictionModel):
                 mask = (used_labels > 0)
                 masked_labels = tf.boolean_mask(used_labels, mask)
                 masked_indices = tf.boolean_mask(indices, mask)
-                used_model, uniq_batch_idx, ori_batch_idx, step_idx = metrics.get_eval_user_model(
-                        user_model, masked_indices)
-                attr2preds = self._compute_predictions(used_model, paras, target, limit=i)
-                updates += metrics.compute_eval_label_metrics(
-                        self._eval_metrics, attr2preds[attr], masked_labels, label_shape,
-                        masked_indices, uniq_batch_idx, ori_batch_idx, step_idx)
+                if not self._eval_per_step:
+                    used_model, uniq_batch_idx, ori_batch_idx, step_idx = metrics.get_eval_user_model(
+                            user_model, masked_indices)
+                    attr2preds = self._compute_predictions(used_model, paras, target, limit=i)
+                    updates += metrics.compute_eval_label_metrics(
+                            self._eval_metrics, attr2preds[attr], masked_labels, label_shape,
+                            masked_indices, uniq_batch_idx, ori_batch_idx, step_idx)
+                else:
+                    used_model = metrics.get_per_step_eval_user_model(user_model, masked_indices)
+                    attr2preds = self._compute_predictions(used_model, paras, target, limit=i)
+                    updates += metrics.compute_per_step_eval_label_metrics(
+                        self._eval_metrics, attr2preds[attr], masked_labels)
         return updates
 
     def get_target_loss(self, used_model, labels, label_shape, indices, user_model,
