@@ -78,6 +78,7 @@ def compute_per_step_eval_label_metrics(metrics, predictions, eval_labels):
     updates = []
     for metric in metrics.split(' '):
         if 'MAP' in metric:
-            updates += compute_map_metrics(eval_labels, predictions, metric)
+            updates += compute_map_metrics(
+                tf.cast(eval_labels, tf.int64), predictions, metric)
     return updates
 
