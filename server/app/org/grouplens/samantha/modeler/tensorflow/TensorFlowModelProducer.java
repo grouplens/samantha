@@ -29,6 +29,8 @@ import org.grouplens.samantha.modeler.model.SpaceMode;
 import org.grouplens.samantha.modeler.model.SpaceProducer;
 import org.grouplens.samantha.modeler.model.VariableSpace;
 import org.grouplens.samantha.server.exception.BadRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.tensorflow.Graph;
 
 import javax.inject.Inject;
@@ -37,6 +39,8 @@ import java.io.IOException;
 import java.util.List;
 
 public class TensorFlowModelProducer {
+    private static Logger logger = LoggerFactory.getLogger(TensorFlowModelProducer.class);
+
     @Inject
     private SpaceProducer spaceProducer;
 
@@ -74,14 +78,16 @@ public class TensorFlowModelProducer {
             indexSpace.setKey(indexKey, TensorFlowModel.OOV);
         }
         VariableSpace variableSpace = getVariableSpace(modelName, spaceMode);
-        byte[] graphDef;
+        Graph graph = null;
         try {
+            byte[] graphDef;
             graphDef = IOUtils.toByteArray(new FileInputStream(graphDefFilePath));
+            graph = new Graph();
+            graph.importGraphDef(graphDef);
         } catch (IOException e) {
-            throw new BadRequestException(e);
+            logger.warn("Loading TensorFlow graph definition file error: {}. " +
+                    "Created a TensorFlowModel without graph or session.", e.getMessage());
         }
-        Graph graph = new Graph();
-        graph.importGraphDef(graphDef);
         return new TensorFlowModel(graph, indexSpace, variableSpace,
                 featureExtractors, lossOperationName, updateOperationName,
                 outputOperationName, initOperationName, groupKeys, equalSizeChecks);

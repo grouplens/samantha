@@ -78,8 +78,6 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                            String outputOperationName, String initOperationName,
                            List<String> groupKeys, List<List<String>> equalSizeChecks) {
         super(indexSpace, variableSpace);
-        this.graph = graph;
-        this.session = new Session(graph);
         this.groupKeys = groupKeys;
         this.equalSizeChecks = equalSizeChecks;
         this.featureExtractors = featureExtractors;
@@ -87,7 +85,11 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         this.updateOperationName = updateOperationName;
         this.outputOperationName = outputOperationName;
         this.initOperationName = initOperationName;
-        session.runner().addTarget(initOperationName).run();
+        this.graph = graph;
+        if (graph != null) {
+            this.session = new Session(graph);
+            session.runner().addTarget(initOperationName).run();
+        }
     }
 
     public double[] predict(LearningInstance ins) {
@@ -137,15 +139,17 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     public LearningInstance featurize(JsonNode entity, boolean update) {
         Map<String, List<Feature>> feaMap = FeaturizerUtilities.getFeatureMap(entity, true,
                 featureExtractors, indexSpace);
-        for (List<String> features : equalSizeChecks) {
-            int size = -1;
-            for (String fea : features) {
-                if (size < 0) {
-                    size = feaMap.get(fea).size();
-                } else if (size != feaMap.get(fea).size()) {
-                    throw new ConfigurationException(
-                            "Equal size checks with " + features.toString() +
-                                    " failed for " + entity.toString());
+        if (equalSizeChecks != null) {
+            for (List<String> features : equalSizeChecks) {
+                int size = -1;
+                for (String fea : features) {
+                    if (size < 0) {
+                        size = feaMap.get(fea).size();
+                    } else if (size != feaMap.get(fea).size()) {
+                        throw new ConfigurationException(
+                                "Equal size checks with " + features.toString() +
+                                        " failed for " + entity.toString());
+                    }
                 }
             }
         }
