@@ -41,7 +41,7 @@ class SoftmaxPredictionModel(PredictionModel):
             dtype=tf.float32, initializer=tf.truncated_normal_initializer)
         biases = tf.get_variable(
             '%s_biases' % target, shape=[target_softmax['vocab_size']],
-            dtype=tf.float32, initializer=tf.zeros_initializer)
+            dtype=tf.float32, initializer=tf.truncated_normal_initializer)
         if 'attrs' in target_softmax:
             for attr, item2attr in target_softmax['attrs'].iteritems():
                 feamap = tf.constant(item2attr)
@@ -53,7 +53,7 @@ class SoftmaxPredictionModel(PredictionModel):
                         dtype=tf.float32, initializer=tf.truncated_normal_initializer),
                     'biases': tf.get_variable(
                         '%s_biases' % attr, shape=[attr_config['vocab_size']],
-                        dtype=tf.float32, initializer=tf.zeros_initializer)
+                        dtype=tf.float32, initializer=tf.truncated_normal_initializer),
                 }
                 weights += tf.gather(attr_softmax['weights'], feamap)
                 biases += tf.gather(attr_softmax['biases'], feamap)

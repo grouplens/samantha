@@ -3,7 +3,7 @@ import random
 
 from src.dataset import DataSet
 
-class HierarchicalSoftmaxSimulatedDataSet(DataSet):
+class SimulatedRecommenderDataSet(DataSet):
 
     def __init__(self, config=None):
         if config is None:

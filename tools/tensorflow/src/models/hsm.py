@@ -75,7 +75,8 @@ def layer_wise_loss(cluster_vocab_size,
 
 
 def layer_wise_inference(cluster_probs, cluster_vocab_size,
-                         used_model, item_weights, item_biases, item2cluster):
+                         used_model, item_weights, item_biases,
+                         item2cluster, target):
     logits = tf.matmul(used_model, tf.transpose(item_weights)) + item_biases
     exp_logits = tf.transpose(tf.exp(logits))
     sum_exp_logits = tf.unsorted_segment_sum(
@@ -83,5 +84,5 @@ def layer_wise_inference(cluster_probs, cluster_vocab_size,
     item_sum_exp_logits = tf.gather(sum_exp_logits, item2cluster)
     within_cluster_probs = exp_logits / item_sum_exp_logits
     item_cluster_probs = tf.gather(tf.transpose(cluster_probs), item2cluster)
-    item_probs = tf.transpose(item_cluster_probs * within_cluster_probs)
+    item_probs = tf.transpose(item_cluster_probs * within_cluster_probs, name='%s_probs' % target)
     return item_probs

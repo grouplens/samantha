@@ -47,7 +47,7 @@ class HierarchicalPredictionModel(PredictionModel):
                 dtype=tf.float32, initializer=tf.truncated_normal_initializer)
             biases[level['attr']] = tf.get_variable(
                 '%s_biases' % level['attr'], shape=[level['vocab_size']],
-                dtype=tf.float32, initializer=tf.zeros_initializer)
+                dtype=tf.float32, initializer=tf.truncated_normal_initializer)
             if i >= 1:
                 item2cluster[level['attr']] = tf.constant(level['item2cluster'])
         paras = {'weights': weights, 'biases': biases, 'item2cluster': item2cluster}
@@ -138,13 +138,13 @@ class HierarchicalPredictionModel(PredictionModel):
             level = hierarchy[i]
             if i == 0:
                 logits = tf.matmul(used_model, tf.transpose(weights[level['attr']])) + biases[level['attr']]
-                preds = tf.nn.softmax(logits)
+                preds = tf.nn.softmax(logits, name='%s_probs' % level['attr'])
             else:
                 parent_level = hierarchy[i-1]
                 preds = hsm.layer_wise_inference(
                     preds, parent_level['vocab_size'], used_model,
                     weights[level['attr']], biases[level['attr']],
-                    item2cluster[level['attr']])
+                    item2cluster[level['attr']], level['attr'])
             target2preds[level['attr']] = preds
         return target2preds
 
