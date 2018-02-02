@@ -14,18 +14,26 @@ def compute_map_metrics(labels, logits, metric):
     return updates
 
 
-# TODO: this only uses the first of the batch; fix to use more
-def compute_auc_metric(batch_idx, used_labels, preds):
-    mask = tf.reshape(batch_idx == 0, [tf.shape(batch_idx)[0]])
+def compute_auc_metric(uniq_batch_idx, batch_idx, used_labels, preds, num_used=4):
+    mask = tf.reshape(batch_idx < num_used, [tf.shape(batch_idx)[0]])
+    masked_idx = tf.boolean_mask(batch_idx, mask)
     masked_label = tf.boolean_mask(used_labels, mask)
-    pred_mask = tf.reshape(tf.range(tf.shape(preds)[0]) == 0, [tf.shape(preds)[0]])
+    pred_mask = tf.reshape(tf.range(tf.shape(preds)[0]) < num_used, [tf.shape(preds)[0]])
     used_preds = tf.boolean_mask(preds, pred_mask)
+    new_indices = tf.concat([
+        tf.expand_dims(masked_idx, 1),
+        tf.expand_dims(masked_label, 1)
+    ], axis=1)
+    num_positives = tf.shape(new_indices)[0]
+    tf.summary.scalar('num_positives', num_positives)
     labels = tf.sparse_to_dense(
-        masked_label, [tf.shape(preds)[1] * tf.minimum(1, tf.shape(masked_label)[0])],
-        tf.ones_like(masked_label, dtype=tf.bool),
+        new_indices, [
+            tf.minimum(num_used, tf.shape(uniq_batch_idx)[0]),
+            tf.shape(preds)[1]],
+        tf.ones([num_positives], dtype=tf.bool),
         default_value=False, validate_indices=False)
     auc_value, auc_update = tf.metrics.auc(
-        labels, tf.reshape(used_preds, [-1]))
+        tf.reshape(labels, [-1]), tf.reshape(used_preds, [-1]))
     tf.summary.scalar('AUC', auc_value)
     return auc_update
 
@@ -90,8 +98,8 @@ def compute_eval_label_metrics(metrics, predictions, used_labels, label_shape, i
         if 'MAP' in metric:
             updates += compute_map_metrics(eval_labels, predictions, metric)
         elif 'AUC' in metric:
-            # updates.append(compute_auc_metric(new_batch_idx, eval_labels, predictions))
-            updates.append(compute_auc_metric(new_batch_idx, used_labels, predictions))
+            # updates.append(compute_batch_auc_metric(new_batch_idx, eval_labels, predictions))
+            updates.append(compute_auc_metric(uniq_batch_idx, new_batch_idx, used_labels, predictions))
     return updates
 
 
