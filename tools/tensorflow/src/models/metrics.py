@@ -14,6 +14,22 @@ def compute_map_metrics(labels, logits, metric):
     return updates
 
 
+def compute_auc_metric(batch_idx, sp_labels, preds):
+    new_indices = tf.concat([
+        tf.expand_dims(tf.cast(batch_idx, tf.int64), 1),
+        tf.expand_dims(sp_labels.values, 1)
+    ], axis=1)
+    labels = tf.sparse_to_dense(
+        new_indices, [sp_labels.dense_shape[0], tf.shape(preds, out_type=tf.int64)[1]],
+        tf.ones([tf.shape(new_indices)[0]], dtype=tf.bool),
+        default_value=False, validate_indices=False)
+    auc_value, auc_update = tf.metrics.auc(
+        tf.reshape(labels, [-1]),
+        tf.reshape(preds, [-1]))
+    tf.summary.scalar('AUC', auc_value)
+    return auc_update
+
+
 def get_eval_user_model(user_model, indices):
     batch_idx = tf.reshape(
         tf.slice(indices,
@@ -57,6 +73,8 @@ def compute_eval_label_metrics(metrics, predictions, used_labels, label_shape, i
     for metric in metrics.split(' '):
         if 'MAP' in metric:
             updates += compute_map_metrics(eval_labels, predictions, metric)
+        elif 'AUC' in metric:
+            updates.append(compute_auc_metric(new_batch_idx, eval_labels, predictions))
     return updates
 
 
