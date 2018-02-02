@@ -14,7 +14,23 @@ def compute_map_metrics(labels, logits, metric):
     return updates
 
 
-def compute_auc_metric(batch_idx, sp_labels, preds):
+# TODO: this only uses the first of the batch; fix to use more
+def compute_auc_metric(batch_idx, used_labels, preds):
+    mask = tf.reshape(batch_idx == 0, [tf.shape(batch_idx)[0]])
+    masked_label = tf.boolean_mask(used_labels, mask)
+    pred_mask = tf.reshape(tf.range(tf.shape(preds)[0]) == 0, [tf.shape(preds)[0]])
+    used_preds = tf.boolean_mask(preds, pred_mask)
+    labels = tf.sparse_to_dense(
+        masked_label, [tf.shape(preds)[1] * tf.minimum(1, tf.shape(masked_label)[0])],
+        tf.ones_like(masked_label, dtype=tf.bool),
+        default_value=False, validate_indices=False)
+    auc_value, auc_update = tf.metrics.auc(
+        labels, tf.reshape(used_preds, [-1]))
+    tf.summary.scalar('AUC', auc_value)
+    return auc_update
+
+
+def compute_batch_auc_metric(batch_idx, sp_labels, preds):
     new_indices = tf.concat([
         tf.expand_dims(tf.cast(batch_idx, tf.int64), 1),
         tf.expand_dims(sp_labels.values, 1)
@@ -74,7 +90,8 @@ def compute_eval_label_metrics(metrics, predictions, used_labels, label_shape, i
         if 'MAP' in metric:
             updates += compute_map_metrics(eval_labels, predictions, metric)
         elif 'AUC' in metric:
-            updates.append(compute_auc_metric(new_batch_idx, eval_labels, predictions))
+            # updates.append(compute_auc_metric(new_batch_idx, eval_labels, predictions))
+            updates.append(compute_auc_metric(new_batch_idx, used_labels, predictions))
     return updates
 
 
