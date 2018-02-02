@@ -11,6 +11,10 @@ class HierarchicalPredictionModel(PredictionModel):
     def __init__(self, hierarchies=None, eval_metrics='MAP@1,5', eval_per_step=True):
         if hierarchies is not None:
             self._hierarchies = hierarchies
+            for key, vals in self._hierarchies.iteritems():
+                for val in vals:
+                    if 'num_sampled' not in val:
+                        val['num_sampled'] = val['vocab_size']
         else:
             self._hierarchies = {
                 'item': [
@@ -18,6 +22,7 @@ class HierarchicalPredictionModel(PredictionModel):
                         'attr': 'cluster',
                         'vocab_size': 10,
                         'softmax_dim': 10,
+                        'num_sampled': 4,
                     }, {
                         'attr': 'item',
                         'vocab_size': 20,
@@ -89,28 +94,27 @@ class HierarchicalPredictionModel(PredictionModel):
             hierarchical_labels[level['attr']] = tf.gather(
                 item2cluster[child_level['attr']], hierarchical_labels[child_level['attr']])
         losses = 0.0
-        preds = 1.0
         for i in range(len(hierarchy)):
             level = hierarchy[i]
             if i == 0:
-                logits = tf.matmul(used_model, tf.transpose(weights[level['attr']])) + biases[level['attr']]
-                exp_logits = tf.exp(logits)
-                sum_exp_logits = tf.reduce_sum(exp_logits, axis=1)
-                vocab_idx = tf.expand_dims(hierarchical_labels[level['attr']], axis=1)
-                label_idx = tf.expand_dims(tf.range(tf.shape(exp_logits)[0]), axis=1)
-                label_exp_logits = tf.gather_nd(exp_logits, tf.concat([label_idx, vocab_idx], axis=1))
-                preds = label_exp_logits / sum_exp_logits
-                losses = -tf.log(tf.maximum(preds, 1e-07))
+                if level['num_sampled'] >= level['vocab_size'] - 1:
+                    logits = tf.matmul(used_model, tf.transpose(weights[level['attr']])) + biases[level['attr']]
+                    losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
+                        labels=hierarchical_labels[level['attr']], logits=logits)
+                else:
+                    losses = tf.nn.sampled_softmax_loss(
+                        weights[level['attr']], biases[level['attr']],
+                        tf.expand_dims(hierarchical_labels[level['attr']], 1), used_model,
+                        level['num_sampled'], level['vocab_size'])
             else:
                 parent_level = hierarchy[i-1]
                 num_sampled = None
-                if 'num_sampled' in level:
+                if 'num_sampled' in level and level['num_sampled'] < level['vocab_size']:
                     num_sampled = level['num_sampled']
-                layer_preds, layer_losses = hsm.layer_wise_loss(
+                _, layer_losses = hsm.layer_wise_loss(
                     parent_level['vocab_size'], hierarchical_labels[parent_level['attr']],
                     hierarchical_labels[level['attr']], item2cluster[level['attr']],
                     weights[level['attr']], biases[level['attr']], used_model, num_sampled=num_sampled)
-                preds *= layer_preds
                 losses += layer_losses
         updates = []
         if mode == 'eval' and self._eval_metrics is not None:
