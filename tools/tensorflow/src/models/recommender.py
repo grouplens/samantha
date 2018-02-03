@@ -22,7 +22,8 @@ class RecommenderBuilder(ModelBuilder):
                  eval_steps=1,
                  split_tstamp=None,
                  tstamp_attr='tstamp',
-                 filter_unrecognized=False):
+                 filter_unrecognized=False,
+                 top_k=5):
         self._user_model = user_model
         self._prediction_model = prediction_model
         self._page_size = page_size
@@ -61,6 +62,7 @@ class RecommenderBuilder(ModelBuilder):
         self._split_tstamp = split_tstamp
         self._tstamp_attr = tstamp_attr
         self._filter_unrecognized = filter_unrecognized
+        self._top_k = top_k
         self._test_tensors = {}
 
     def test_tensors(self):
@@ -287,6 +289,7 @@ class RecommenderBuilder(ModelBuilder):
         for target, config in self._target2config.iteritems():
             target2preds[target] = self._prediction_model.get_target_prediction(
                 model_output, target2paras[target], target, config)
+            tf.nn.top_k(target2preds[target], k=self._top_k, sorted=True, name='%s_top_k' % target)
         return target2preds
 
     def build_model(self):
