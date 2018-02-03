@@ -14,42 +14,46 @@ def compute_map_metrics(labels, logits, metric):
     return updates
 
 
-def compute_auc_metric(uniq_batch_idx, batch_idx, used_labels, preds, num_used=2):
-    mask = tf.reshape(batch_idx < num_used, [tf.shape(batch_idx)[0]])
-    masked_idx = tf.boolean_mask(batch_idx, mask)
-    masked_label = tf.boolean_mask(used_labels, mask)
-    pred_mask = tf.reshape(tf.range(tf.shape(preds)[0]) < num_used, [tf.shape(preds)[0]])
-    used_preds = tf.boolean_mask(preds, pred_mask)
+def _get_sampled_for_auc(batch_idx, used_labels, used_preds, num_sampled):
+    sampled_ids = tf.random_uniform([num_sampled], dtype=tf.int32, maxval=tf.shape(used_preds)[1] - 1)
+    all_ids = tf.concat([sampled_ids, used_labels], axis=0)
+    label_range = tf.range(num_sampled, num_sampled + tf.shape(used_labels)[0])
+    uniq_ids, idx = tf.unique(all_ids)
+    label_idx = tf.gather(idx, label_range)
     new_indices = tf.concat([
-        tf.expand_dims(masked_idx, 1),
-        tf.expand_dims(masked_label, 1)
+        tf.expand_dims(batch_idx, 1),
+        tf.expand_dims(label_idx, 1),
     ], axis=1)
+    return new_indices, tf.gather(used_preds, uniq_ids, axis=1)
+
+
+def compute_auc_metric(uniq_batch_idx, batch_idx, used_labels, preds, num_used=None, num_sampled=2000):
+    if num_used is not None:
+        mask = tf.reshape(batch_idx < num_used, [tf.shape(batch_idx)[0]])
+        batch_idx = tf.boolean_mask(batch_idx, mask)
+        used_labels = tf.boolean_mask(used_labels, mask)
+        pred_mask = tf.reshape(tf.range(tf.shape(preds)[0]) < num_used, [tf.shape(preds)[0]])
+        used_preds = tf.boolean_mask(preds, pred_mask)
+    else:
+        used_preds = preds
+        num_used = tf.shape(uniq_batch_idx)[0]
+    if num_sampled is not None:
+        new_indices, used_preds = _get_sampled_for_auc(batch_idx, used_labels, used_preds, num_sampled)
+    else:
+        new_indices = tf.concat([
+            tf.expand_dims(batch_idx, 1),
+            tf.expand_dims(used_labels, 1)
+        ], axis=1)
     num_positives = tf.shape(new_indices)[0]
     tf.summary.scalar('num_positives', num_positives)
     labels = tf.sparse_to_dense(
         new_indices, [
             tf.minimum(num_used, tf.shape(uniq_batch_idx)[0]),
-            tf.shape(preds)[1]],
+            tf.shape(used_preds)[1]],
         tf.ones([num_positives], dtype=tf.bool),
         default_value=False, validate_indices=False)
     auc_value, auc_update = tf.metrics.auc(
         tf.reshape(labels, [-1]), tf.reshape(used_preds, [-1]))
-    tf.summary.scalar('AUC', auc_value)
-    return auc_update
-
-
-def compute_batch_auc_metric(batch_idx, sp_labels, preds):
-    new_indices = tf.concat([
-        tf.expand_dims(tf.cast(batch_idx, tf.int64), 1),
-        tf.expand_dims(sp_labels.values, 1)
-    ], axis=1)
-    labels = tf.sparse_to_dense(
-        new_indices, [sp_labels.dense_shape[0], tf.shape(preds, out_type=tf.int64)[1]],
-        tf.ones([tf.shape(new_indices)[0]], dtype=tf.bool),
-        default_value=False, validate_indices=False)
-    auc_value, auc_update = tf.metrics.auc(
-        tf.reshape(labels, [-1]),
-        tf.reshape(preds, [-1]))
     tf.summary.scalar('AUC', auc_value)
     return auc_update
 
