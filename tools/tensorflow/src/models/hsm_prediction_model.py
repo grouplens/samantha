@@ -47,7 +47,7 @@ class HierarchicalPredictionModel(PredictionModel):
                 dtype=tf.float32, initializer=tf.truncated_normal_initializer)
             biases[level['attr']] = tf.get_variable(
                 '%s_biases' % level['attr'], shape=[level['vocab_size']],
-                dtype=tf.float32, initializer=tf.truncated_normal_initializer)
+                dtype=tf.float32, initializer=tf.zeros_initializer)
             if i >= 1:
                 item2cluster[level['attr']] = tf.constant(level['item2cluster'])
         paras = {'weights': weights, 'biases': biases, 'item2cluster': item2cluster}
