@@ -123,13 +123,13 @@ def compute_eval_label_metrics(metrics, predictions, used_labels, label_shape, i
         [tf.shape(uniq_batch_idx)[0], label_shape[1] * label_shape[2]])
     updates = []
     for metric in metrics.split(' '):
-        if 'MAP' == metric:
+        if 'MAP' in metric:
             updates += compute_map_metrics(eval_labels, predictions, metric)
-        elif 'AUC' == metric:
+        elif 'AUC' in metric:
             updates.append(compute_auc_metric(uniq_batch_idx, new_batch_idx, used_labels, predictions))
-        elif 'AP' == metric:
+        elif 'AP' in metric:
             updates += compute_ap_metrics(eval_labels, predictions, metric)
-        elif 'AR' == metric:
+        elif 'AR' in metric:
             updates += compute_ar_metrics(eval_labels, predictions, metric)
     return updates
 
