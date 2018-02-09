@@ -14,6 +14,30 @@ def compute_map_metrics(labels, logits, metric):
     return updates
 
 
+def compute_ap_metrics(labels, logits, metric):
+    K = metric.split('@')[1].split(',')
+    updates = []
+    for k in K:
+        with tf.variable_scope('AP_K%s' % k):
+            ap_value, ap_update = tf.metrics.sparse_precision_at_k(
+                labels, logits, int(k))
+            updates.append(ap_update)
+            tf.summary.scalar('AP_K%s' % k, ap_value)
+    return updates
+
+
+def compute_ar_metrics(labels, logits, metric):
+    K = metric.split('@')[1].split(',')
+    updates = []
+    for k in K:
+        with tf.variable_scope('AR_K%s' % k):
+            ar_value, ar_update = tf.metrics.recall_at_k(
+                labels, logits, int(k))
+            updates.append(ar_update)
+            tf.summary.scalar('AR_K%s' % k, ar_value)
+    return updates
+
+
 def _get_sampled_for_auc(batch_idx, used_labels, used_preds, num_sampled):
     sampled_ids = tf.random_uniform([num_sampled], dtype=tf.int32, maxval=tf.shape(used_preds)[1] - 1)
     all_ids = tf.concat([sampled_ids, used_labels], axis=0)
@@ -99,10 +123,14 @@ def compute_eval_label_metrics(metrics, predictions, used_labels, label_shape, i
         [tf.shape(uniq_batch_idx)[0], label_shape[1] * label_shape[2]])
     updates = []
     for metric in metrics.split(' '):
-        if 'MAP' in metric:
+        if 'MAP' == metric:
             updates += compute_map_metrics(eval_labels, predictions, metric)
-        elif 'AUC' in metric:
+        elif 'AUC' == metric:
             updates.append(compute_auc_metric(uniq_batch_idx, new_batch_idx, used_labels, predictions))
+        elif 'AP' == metric:
+            updates += compute_ap_metrics(eval_labels, predictions, metric)
+        elif 'AR' == metric:
+            updates += compute_ar_metrics(eval_labels, predictions, metric)
     return updates
 
 
