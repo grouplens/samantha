@@ -24,7 +24,6 @@ package org.grouplens.samantha.server.expander;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
-import org.grouplens.samantha.FakeApplication;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.junit.Test;
 import play.libs.Json;
@@ -36,25 +35,30 @@ import static org.junit.Assert.*;
 
 
 public class SequenceExpanderTest {
+    private final List<ObjectNode> entities = new ArrayList<>();
+    private final List<String> nameAttrs = Lists.newArrayList("item", "action");
+    private final List<String> valueAttrs = Lists.newArrayList("item", "action");
+    private final List<String> historyAttrs = Lists.newArrayList("hitem", "haction");
 
-    @Test
-    public void testExpand() {
-        FakeApplication.instance();
-        List<String> nameAttrs = Lists.newArrayList("item", "action");
-        List<String> valueAttrs = Lists.newArrayList("item", "action");
-        List<String> historyAttrs = Lists.newArrayList("hitem", "haction");
-        SequenceExpander expander = new SequenceExpander(nameAttrs, valueAttrs, historyAttrs, "\\|");
-        List<ObjectNode> entities = new ArrayList<>();
+    public SequenceExpanderTest() {
         ObjectNode entity1 = Json.newObject();
         entity1.put("user", "123");
         entity1.put("item", "10|2|10|7|4|5");
         entity1.put("action", "1|0|0|0|0|1");
+        entity1.put("tstamp", "1|2|3|4|5|6");
         entities.add(entity1);
         ObjectNode entity2 = Json.newObject();
         entity2.put("user", "455");
         entity2.put("item", "5");
         entity2.put("action", "0");
+        entity2.put("tstamp", "1");
         entities.add(entity2);
+    }
+
+    @Test
+    public void testExpandWithoutLimit() {
+        SequenceExpander expander = new SequenceExpander(
+                nameAttrs, valueAttrs, historyAttrs, "\\|", "|", null, false, null, 0);
         List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
         assertEquals(7, expanded.size());
         assertEquals(expanded.get(0).get("item").asText(), "10");
@@ -62,7 +66,6 @@ public class SequenceExpanderTest {
         assertEquals(expanded.get(0).get("action").asText(), "1");
         assertEquals(expanded.get(0).get("haction").asText(), "");
         assertEquals(expanded.get(0).get("user").asText(), "123");
-        /*
         assertEquals(expanded.get(4).get("item").asText(), "4");
         assertEquals(expanded.get(4).get("hitem").asText(), "10|2|10|7");
         assertEquals(expanded.get(4).get("action").asText(), "0");
@@ -73,6 +76,47 @@ public class SequenceExpanderTest {
         assertEquals(expanded.get(6).get("action").asText(), "0");
         assertEquals(expanded.get(6).get("haction").asText(), "");
         assertEquals(expanded.get(6).get("user").asText(), "455");
-        */
+    }
+
+    @Test
+    public void testExpandWithLimit() {
+        SequenceExpander expander = new SequenceExpander(
+                nameAttrs, valueAttrs, historyAttrs, "\\|", "|", 3, false, null, 0);
+        List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
+        assertEquals(4, expanded.size());
+        assertEquals(expanded.get(1).get("item").asText(), "2");
+        assertEquals(expanded.get(1).get("hitem").asText(), "10");
+        assertEquals(expanded.get(1).get("action").asText(), "0");
+        assertEquals(expanded.get(1).get("haction").asText(), "1");
+        assertEquals(expanded.get(1).get("user").asText(), "123");
+    }
+
+    @Test
+    public void testExpandWithBackwardLimit() {
+        SequenceExpander expander = new SequenceExpander(
+                nameAttrs, valueAttrs, historyAttrs, "\\|", "|", 3, true, null, 0);
+        List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
+        assertEquals(4, expanded.size());
+        assertEquals(expanded.get(2).get("item").asText(), "5");
+        assertEquals(expanded.get(2).get("hitem").asText(), "10|2|10|7|4");
+        assertEquals(expanded.get(2).get("action").asText(), "1");
+        assertEquals(expanded.get(2).get("haction").asText(), "1|0|0|0|0");
+        assertEquals(expanded.get(2).get("user").asText(), "123");
+    }
+
+    @Test
+    public void testExpandWithSplitTstampLimit() {
+        SequenceExpander expander = new SequenceExpander(
+                nameAttrs, valueAttrs, historyAttrs, "\\|", "|", 2, false, "tstamp", 4);
+        List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
+        assertEquals(2, expanded.size());
+    }
+
+    @Test
+    public void testExpandWithSplitTstampBackwardLimit() {
+        SequenceExpander expander = new SequenceExpander(
+                nameAttrs, valueAttrs, historyAttrs, "\\|", "|", 2, true, "tstamp", 4);
+        List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
+        assertEquals(3, expanded.size());
     }
 }

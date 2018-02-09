@@ -36,23 +36,45 @@ public class SequenceExpander implements EntityExpander {
     final private List<String> nameAttrs;
     final private List<String> valueAttrs;
     final private List<String> historyAttrs;
+    final private String tstampAttr;
+    final private int splitTstamp;
     final private String separator;
+    final private String joiner;
+    final private Integer maxStepNum;
+    final private boolean backward;
 
     public SequenceExpander(List<String> nameAttrs, List<String> valueAttrs,
-                            List<String> historyAttrs, String separator) {
+                            List<String> historyAttrs, String separator, String joiner,
+                            Integer maxStepNum, boolean backward, String tstampAttr, int splitTstamp) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
         this.historyAttrs = historyAttrs;
+        this.joiner = joiner;
         this.separator = separator;
+        this.maxStepNum = maxStepNum;
+        this.backward = backward;
+        this.splitTstamp = splitTstamp;
+        this.tstampAttr = tstampAttr;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
+        Boolean backward = expanderConfig.getBoolean("backward");
+        if (backward == null) {
+            backward = false;
+        }
+        Integer splitTstamp = expanderConfig.getInt("splitTstamp");
+        if (splitTstamp == null) {
+            splitTstamp = 0;
+        }
         return new SequenceExpander(
                 expanderConfig.getStringList("nameAttrs"),
                 expanderConfig.getStringList("valueAttrs"),
                 expanderConfig.getStringList("historyAttrs"),
-                expanderConfig.getString("separator"));
+                expanderConfig.getString("separator"),
+                expanderConfig.getString("joiner"),
+                expanderConfig.getInt("maxStepNum"), backward,
+                expanderConfig.getString("tstampAttr"), splitTstamp);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
@@ -61,24 +83,48 @@ public class SequenceExpander implements EntityExpander {
         for (ObjectNode entity : initialResult) {
             List<ObjectNode> oneExpanded = new ArrayList<>();
             List<String[]> values = new ArrayList<>();
+            int size = 0;
             for (String nameAttr : nameAttrs) {
-                values.add(entity.get(nameAttr).asText().split(separator, -1));
+                String[] splitted = entity.get(nameAttr).asText().split(separator, -1);
+                size = splitted.length;
+                values.add(splitted);
             }
-            int size = values.get(0).length;
-            for (int i=0; i<size; i++) {
+            int start = 0;
+            int end = size;
+            if (tstampAttr != null) {
+                String[] fstamp = entity.get(tstampAttr).asText().split(separator, -1);
+                int i;
+                for (i=0; i<size; i++) {
+                    String tstamp = fstamp[i];
+                    int istamp = Integer.parseInt(tstamp);
+                    if (istamp >= splitTstamp) {
+                        break;
+                    }
+                }
+                if (backward) {
+                    end = i;
+                } else {
+                    start = i;
+                }
+                size = end - start;
+            }
+            if (maxStepNum != null && maxStepNum < size) {
+                if (backward) {
+                    start = end - maxStepNum;
+                } else {
+                    end = start + maxStepNum;
+                }
+            }
+            for (int i=start; i<end; i++) {
                 ObjectNode newEntity = entity.deepCopy();
                 for (int j=0; j<values.size(); j++) {
                     newEntity.put(valueAttrs.get(j), values.get(j)[i]);
                     newEntity.put(historyAttrs.get(j), StringUtils.join(
-                            ArrayUtils.subarray(values.get(j), 0, i), separator));
+                            ArrayUtils.subarray(values.get(j), 0, i), joiner));
                 }
                 oneExpanded.add(newEntity);
             }
-            if (oneExpanded.size() > 0) {
-                expanded.addAll(oneExpanded);
-            } else {
-                expanded.add(entity);
-            }
+            expanded.addAll(oneExpanded);
         }
         return expanded;
     }
