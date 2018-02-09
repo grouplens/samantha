@@ -23,6 +23,8 @@
 package org.grouplens.samantha.server.expander;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -30,22 +32,26 @@ import play.inject.Injector;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SeparatedStringExpander implements EntityExpander {
+public class SequenceExpander implements EntityExpander {
     final private List<String> nameAttrs;
     final private List<String> valueAttrs;
+    final private List<String> historyAttrs;
     final private String separator;
 
-    private SeparatedStringExpander(List<String> nameAttrs, List<String> valueAttrs, String separator) {
+    public SequenceExpander(List<String> nameAttrs, List<String> valueAttrs,
+                            List<String> historyAttrs, String separator) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
+        this.historyAttrs = historyAttrs;
         this.separator = separator;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
-        return new SeparatedStringExpander(
+        return new SequenceExpander(
                 expanderConfig.getStringList("nameAttrs"),
                 expanderConfig.getStringList("valueAttrs"),
+                expanderConfig.getStringList("historyAttrs"),
                 expanderConfig.getString("separator"));
     }
 
@@ -63,8 +69,10 @@ public class SeparatedStringExpander implements EntityExpander {
                 ObjectNode newEntity = entity.deepCopy();
                 for (int j=0; j<values.size(); j++) {
                     newEntity.put(valueAttrs.get(j), values.get(j)[i]);
-                    oneExpanded.add(newEntity);
+                    newEntity.put(historyAttrs.get(j), StringUtils.join(
+                            ArrayUtils.subarray(values.get(j), 0, i), separator));
                 }
+                oneExpanded.add(newEntity);
             }
             if (oneExpanded.size() > 0) {
                 expanded.addAll(oneExpanded);
