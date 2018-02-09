@@ -24,6 +24,7 @@ package org.grouplens.samantha.server.expander;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
+import org.grouplens.samantha.TestUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.junit.Test;
 import play.libs.Json;
@@ -33,7 +34,6 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-
 public class SequenceExpanderTest {
     private final List<ObjectNode> entities = new ArrayList<>();
     private final List<String> nameAttrs = Lists.newArrayList("item", "action");
@@ -41,18 +41,7 @@ public class SequenceExpanderTest {
     private final List<String> historyAttrs = Lists.newArrayList("hitem", "haction");
 
     public SequenceExpanderTest() {
-        ObjectNode entity1 = Json.newObject();
-        entity1.put("user", "123");
-        entity1.put("item", "10|2|10|7|4|5");
-        entity1.put("action", "1|0|0|0|0|1");
-        entity1.put("tstamp", "1|2|3|4|5|6");
-        entities.add(entity1);
-        ObjectNode entity2 = Json.newObject();
-        entity2.put("user", "455");
-        entity2.put("item", "5");
-        entity2.put("action", "0");
-        entity2.put("tstamp", "1");
-        entities.add(entity2);
+        TestUtilities.setUpUserSequence(entities);
     }
 
     @Test

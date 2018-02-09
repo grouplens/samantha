@@ -23,6 +23,7 @@
 package org.grouplens.samantha.server.expander;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -30,47 +31,60 @@ import play.inject.Injector;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SeparatedStringExpander implements EntityExpander {
+public class DisplayAction2ActionExpander implements EntityExpander {
     final private List<String> nameAttrs;
     final private List<String> valueAttrs;
+    final private String actionName;
     final private String separator;
+    final private String joiner;
 
-    private SeparatedStringExpander(List<String> nameAttrs, List<String> valueAttrs, String separator) {
+    public DisplayAction2ActionExpander(List<String> nameAttrs, List<String> valueAttrs, String separator,
+                                         String actionName, String joiner) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
         this.separator = separator;
+        this.actionName = actionName;
+        this.joiner = joiner;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
-        return new SeparatedStringExpander(
+        return new DisplayAction2ActionExpander(
                 expanderConfig.getStringList("nameAttrs"),
                 expanderConfig.getStringList("valueAttrs"),
-                expanderConfig.getString("separator"));
+                expanderConfig.getString("separator"),
+                expanderConfig.getString("actionName"),
+                expanderConfig.getString("joiner"));
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                    RequestContext requestContext) {
         List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
-            List<ObjectNode> oneExpanded = new ArrayList<>();
             List<String[]> values = new ArrayList<>();
+            List<List<String>> valueStrs = new ArrayList<>();
             for (String nameAttr : nameAttrs) {
                 values.add(entity.get(nameAttr).asText().split(separator, -1));
+                valueStrs.add(new ArrayList<>());
             }
-            int size = values.get(0).length;
+            String[] actions = entity.get(actionName).asText().split(separator, -1);
+            int size = actions.length;
+            boolean include = false;
             for (int i=0; i<size; i++) {
-                ObjectNode newEntity = entity.deepCopy();
-                for (int j=0; j<values.size(); j++) {
-                    newEntity.put(valueAttrs.get(j), values.get(j)[i]);
-                    oneExpanded.add(newEntity);
+                String act = actions[i];
+                if (Double.parseDouble(act) > 0.0) {
+                    for (int j=0; j<valueStrs.size(); j++) {
+                        valueStrs.get(j).add(values.get(j)[i]);
+                    }
+                    include = true;
                 }
             }
-            //TODO: this behavior can be problematic, make it explict
-            if (oneExpanded.size() > 0) {
-                expanded.addAll(oneExpanded);
-            } else {
-                expanded.add(entity);
+            if (include) {
+                ObjectNode newEntity = entity.deepCopy();
+                for (int j=0; j<valueAttrs.size(); j++) {
+                    newEntity.put(valueAttrs.get(j), StringUtils.join(valueStrs.get(j), joiner));
+                }
+                expanded.add(newEntity);
             }
         }
         return expanded;
