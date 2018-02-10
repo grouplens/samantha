@@ -31,15 +31,15 @@ import play.inject.Injector;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DisplayAction2ActionExpander implements EntityExpander {
+public class Display2ActionExpander implements EntityExpander {
     final private List<String> nameAttrs;
     final private List<String> valueAttrs;
     final private String actionName;
     final private String separator;
     final private String joiner;
 
-    public DisplayAction2ActionExpander(List<String> nameAttrs, List<String> valueAttrs, String separator,
-                                         String actionName, String joiner) {
+    public Display2ActionExpander(List<String> nameAttrs, List<String> valueAttrs, String separator,
+                                  String actionName, String joiner) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
         this.separator = separator;
@@ -49,7 +49,7 @@ public class DisplayAction2ActionExpander implements EntityExpander {
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
-        return new DisplayAction2ActionExpander(
+        return new Display2ActionExpander(
                 expanderConfig.getStringList("nameAttrs"),
                 expanderConfig.getStringList("valueAttrs"),
                 expanderConfig.getString("separator"),

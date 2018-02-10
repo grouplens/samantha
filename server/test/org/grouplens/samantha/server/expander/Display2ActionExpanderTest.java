@@ -34,19 +34,19 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class DisplayAction2ActionExpanderTest {
+public class Display2ActionExpanderTest {
     private final List<ObjectNode> entities = new ArrayList<>();
     private final List<String> nameAttrs = Lists.newArrayList("item", "action", "tstamp");
     private final List<String> valueAttrs = Lists.newArrayList("item", "action", "tstamp");
     private final String actionName = "action";
 
-    public DisplayAction2ActionExpanderTest() {
+    public Display2ActionExpanderTest() {
         TestUtilities.setUpUserSequence(entities);
     }
 
     @Test
     public void testExpand() {
-        DisplayAction2ActionExpander expander = new DisplayAction2ActionExpander(nameAttrs, valueAttrs, "\\|",
+        Display2ActionExpander expander = new Display2ActionExpander(nameAttrs, valueAttrs, "\\|",
                 actionName, "|");
         List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
         assertEquals(1, expanded.size());
