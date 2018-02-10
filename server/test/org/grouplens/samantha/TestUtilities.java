@@ -43,4 +43,23 @@ public class TestUtilities {
         entity2.put("tstamp", "1");
         entities.add(entity2);
     }
+
+    static public void setUpUserMultiTypeSequence(List<ObjectNode> entities) {
+        ObjectNode entity1 = Json.newObject();
+        entity1.put("user", "123");
+        entity1.put("item", "10|2|10|7|4|5");
+        entity1.put("click", "1|0|0|0|0|1");
+        entity1.put("rating", "0|0|1|0|0|1");
+        entity1.put("wishlist", "1|0|0|1|0|1");
+        entity1.put("tstamp", "1|2|3|4|5|6");
+        entities.add(entity1);
+        ObjectNode entity2 = Json.newObject();
+        entity2.put("user", "455");
+        entity2.put("item", "5");
+        entity2.put("click", "0");
+        entity2.put("rating", "1");
+        entity2.put("wishlist", "0");
+        entity2.put("tstamp", "1");
+        entities.add(entity2);
+    }
 }
