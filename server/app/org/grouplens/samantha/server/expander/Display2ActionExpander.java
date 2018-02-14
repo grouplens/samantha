@@ -57,6 +57,7 @@ public class Display2ActionExpander implements EntityExpander {
                 expanderConfig.getString("joiner"));
     }
 
+    //TODO: support truncating according to display steps and timestamp split
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                    RequestContext requestContext) {
         List<ObjectNode> expanded = new ArrayList<>();
