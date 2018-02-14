@@ -23,72 +23,72 @@
 package org.grouplens.samantha.server.expander;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-public class SeparatedStringExpander implements EntityExpander {
+public class TruncatingExpander implements EntityExpander {
     final private List<String> nameAttrs;
     final private List<String> valueAttrs;
     final private String separator;
-    final private String withDefault;
+    final private String joiner;
+    final private int maxStepNum;
+    final private boolean backward;
 
-    public SeparatedStringExpander(List<String> nameAttrs, List<String> valueAttrs, String separator,
-                                    String withDefault) {
+    public TruncatingExpander(List<String> nameAttrs, List<String> valueAttrs,
+                              String separator, String joiner,
+                              int maxStepNum, boolean backward) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
+        this.joiner = joiner;
         this.separator = separator;
-        this.withDefault = withDefault;
+        this.maxStepNum = maxStepNum;
+        this.backward = backward;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
-        return new SeparatedStringExpander(
+        Boolean backward = expanderConfig.getBoolean("backward");
+        if (backward == null) {
+            backward = false;
+        }
+        return new TruncatingExpander(
                 expanderConfig.getStringList("nameAttrs"),
                 expanderConfig.getStringList("valueAttrs"),
                 expanderConfig.getString("separator"),
-                expanderConfig.getString("withDefault"));
+                expanderConfig.getString("joiner"),
+                expanderConfig.getInt("maxStepNum"), backward);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                    RequestContext requestContext) {
-        List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
-            Map<String, String[]> name2values = new HashMap<>();
+            List<String[]> values = new ArrayList<>();
+            int size = 0;
             for (String nameAttr : nameAttrs) {
-                if (entity.has(nameAttr)) {
-                    name2values.put(nameAttr, entity.get(nameAttr).asText().split(separator, -1));
+                String[] splitted = entity.get(nameAttr).asText().split(separator, -1);
+                size = splitted.length;
+                values.add(splitted);
+            }
+            int start = 0;
+            int end = size;
+            if (maxStepNum < size) {
+                if (backward) {
+                    start = end - maxStepNum;
+                } else {
+                    end = start + maxStepNum;
                 }
             }
-            List<ObjectNode> oneExpanded = new ArrayList<>();
-            if (name2values.size() > 0) {
-                int size = name2values.values().iterator().next().length;
-                for (int i = 0; i < size; i++) {
-                    ObjectNode newEntity = entity.deepCopy();
-                    for (String valueAttr : valueAttrs) {
-                        if (name2values.containsKey(valueAttr)) {
-                            newEntity.put(valueAttr, name2values.get(valueAttr)[i]);
-                        } else if (withDefault != null) {
-                            newEntity.put(valueAttr, withDefault);
-                        }
-                    }
-                    oneExpanded.add(newEntity);
-                }
-            }
-            if (oneExpanded.size() > 0) {
-                expanded.addAll(oneExpanded);
-            } else if (withDefault != null) {
-                for (String valueAttr : valueAttrs) {
-                    entity.put(valueAttr, withDefault);
-                }
-                expanded.add(entity);
+            for (int j=0; j<values.size(); j++) {
+                entity.put(valueAttrs.get(j), StringUtils.join(
+                        ArrayUtils.subarray(values.get(j), start, end), joiner));
             }
         }
-        return expanded;
+        return initialResult;
     }
 }
