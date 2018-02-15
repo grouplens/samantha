@@ -154,5 +154,11 @@ def compute_per_step_eval_label_metrics(metrics, predictions, eval_labels):
         if 'MAP' in metric:
             updates += compute_map_metrics(
                 tf.cast(eval_labels, tf.int64), predictions, metric)
+        elif 'AP' in metric:
+            updates += compute_ap_metrics(
+                tf.cast(eval_labels, tf.int64), predictions, metric)
+        elif 'AR' in metric:
+            updates += compute_ar_metrics(
+                tf.cast(eval_labels, tf.int64), predictions, metric)
     return updates
 
