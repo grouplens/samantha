@@ -35,12 +35,14 @@ public class TestUtilities {
         entity1.put("item", "10|2|10|7|4|5");
         entity1.put("action", "1|0|0|0|0|1");
         entity1.put("tstamp", "1|2|3|4|5|6");
+        entity1.put("rank", "0|1|0|0|0|1");
         entities.add(entity1);
         ObjectNode entity2 = Json.newObject();
         entity2.put("user", "455");
         entity2.put("item", "5");
         entity2.put("action", "0");
         entity2.put("tstamp", "1");
+        entity2.put("rank", "0");
         entities.add(entity2);
     }
 

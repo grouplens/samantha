@@ -23,13 +23,16 @@
 package org.grouplens.samantha.server.expander;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Display2ActionExpander implements EntityExpander {
     final private List<String> nameAttrs;
@@ -37,27 +40,52 @@ public class Display2ActionExpander implements EntityExpander {
     final private String actionName;
     final private String separator;
     final private String joiner;
+    final private String tstampAttr;
+    final private String inGrpRank;
+    final private int splitTstamp;
+    final private int maxGrpNum;
+    final private int grpSize;
 
     public Display2ActionExpander(List<String> nameAttrs, List<String> valueAttrs, String separator,
-                                  String actionName, String joiner) {
+                                  String actionName, String joiner, String tstampAttr, int splitTstamp,
+                                  int maxGrpNum, int grpSize, String inGrpRank) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
         this.separator = separator;
         this.actionName = actionName;
         this.joiner = joiner;
+        this.tstampAttr = tstampAttr;
+        this.splitTstamp = splitTstamp;
+        this.maxGrpNum = maxGrpNum;
+        this.grpSize = grpSize;
+        this.inGrpRank = inGrpRank;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
+        Integer splitTstamp = expanderConfig.getInt("splitTstamp");
+        if (splitTstamp == null) {
+            splitTstamp = 0;
+        }
+        Integer maxGrpNum = expanderConfig.getInt("maxGrpNum");
+        if (maxGrpNum == null) {
+            maxGrpNum = Integer.MAX_VALUE;
+        }
+        Integer grpSize = expanderConfig.getInt("groupSize");
+        if (grpSize == null) {
+            grpSize = 1;
+        }
         return new Display2ActionExpander(
                 expanderConfig.getStringList("nameAttrs"),
                 expanderConfig.getStringList("valueAttrs"),
                 expanderConfig.getString("separator"),
                 expanderConfig.getString("actionName"),
-                expanderConfig.getString("joiner"));
+                expanderConfig.getString("joiner"),
+                expanderConfig.getString("tstampAttr"),
+                splitTstamp, maxGrpNum, grpSize,
+                expanderConfig.getString("inGrpRank"));
     }
 
-    //TODO: support truncating according to display steps and timestamp split
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                    RequestContext requestContext) {
         List<ObjectNode> expanded = new ArrayList<>();
@@ -69,9 +97,23 @@ public class Display2ActionExpander implements EntityExpander {
                 valueStrs.add(new ArrayList<>());
             }
             String[] actions = entity.get(actionName).asText().split(separator, -1);
-            int size = actions.length;
+            int end = actions.length;
+            if (tstampAttr != null) {
+                String[] fstamp = entity.get(tstampAttr).asText().split(separator, -1);
+                int i;
+                for (i=0; i<fstamp.length; i++) {
+                    String tstamp = fstamp[i];
+                    int istamp = Integer.parseInt(tstamp);
+                    if (istamp >= splitTstamp) {
+                        break;
+                    }
+                }
+                String[] indices = entity.get(inGrpRank).asText().split(separator, -1);
+                end = i + FeatureExtractorUtilities.getForwardEnd(
+                        ArrayUtils.subarray(indices, i, end), maxGrpNum, grpSize);
+            }
             boolean include = false;
-            for (int i=0; i<size; i++) {
+            for (int i=0; i<end; i++) {
                 String act = actions[i];
                 if (Double.parseDouble(act) > 0.0) {
                     for (int j=0; j<valueStrs.size(); j++) {
