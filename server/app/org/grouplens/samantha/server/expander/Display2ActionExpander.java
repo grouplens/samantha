@@ -71,7 +71,7 @@ public class Display2ActionExpander implements EntityExpander {
         if (maxGrpNum == null) {
             maxGrpNum = Integer.MAX_VALUE;
         }
-        Integer grpSize = expanderConfig.getInt("groupSize");
+        Integer grpSize = expanderConfig.getInt("grpSize");
         if (grpSize == null) {
             grpSize = 1;
         }
