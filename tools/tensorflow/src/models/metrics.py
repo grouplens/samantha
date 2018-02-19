@@ -5,37 +5,43 @@ import tensorflow as tf
 def compute_map_metrics(labels, logits, metric):
     K = metric.split('@')[1].split(',')
     updates = []
+    values = []
     for k in K:
         with tf.variable_scope('MAP_K%s' % k):
             map_value, map_update = tf.metrics.sparse_average_precision_at_k(
                 labels, logits, int(k))
             updates.append(map_update)
+            values.append(map_value)
             tf.summary.scalar('MAP_K%s' % k, map_value)
-    return updates
+    return values, updates
 
 
 def compute_ap_metrics(labels, logits, metric):
     K = metric.split('@')[1].split(',')
     updates = []
+    values = []
     for k in K:
         with tf.variable_scope('AP_K%s' % k):
             ap_value, ap_update = tf.metrics.sparse_precision_at_k(
                 labels, logits, int(k))
             updates.append(ap_update)
+            values.append(ap_value)
             tf.summary.scalar('AP_K%s' % k, ap_value)
-    return updates
+    return values, updates
 
 
 def compute_ar_metrics(labels, logits, metric):
     K = metric.split('@')[1].split(',')
     updates = []
+    values = []
     for k in K:
         with tf.variable_scope('AR_K%s' % k):
             ar_value, ar_update = tf.metrics.recall_at_k(
                 labels, logits, int(k))
             updates.append(ar_update)
+            values.append(ar_value)
             tf.summary.scalar('AR_K%s' % k, ar_value)
-    return updates
+    return values, updates
 
 
 def _get_sampled_for_auc(batch_idx, used_labels, used_preds, num_sampled):
@@ -79,7 +85,7 @@ def compute_auc_metric(uniq_batch_idx, batch_idx, used_labels, preds, num_used=N
     auc_value, auc_update = tf.metrics.auc(
         tf.reshape(labels, [-1]), tf.reshape(used_preds, [-1]))
     tf.summary.scalar('AUC', auc_value)
-    return auc_update
+    return auc_value, auc_update
 
 
 def get_eval_user_model(user_model, indices):
@@ -124,13 +130,13 @@ def compute_eval_label_metrics(metrics, predictions, used_labels, label_shape, i
     updates = []
     for metric in metrics.split(' '):
         if 'MAP' in metric:
-            updates += compute_map_metrics(eval_labels, predictions, metric)
+            updates += compute_map_metrics(eval_labels, predictions, metric)[1]
         elif 'AUC' in metric:
-            updates.append(compute_auc_metric(uniq_batch_idx, new_batch_idx, used_labels, predictions))
+            updates.append(compute_auc_metric(uniq_batch_idx, new_batch_idx, used_labels, predictions)[1])
         elif 'AP' in metric:
-            updates += compute_ap_metrics(eval_labels, predictions, metric)
+            updates += compute_ap_metrics(eval_labels, predictions, metric)[1]
         elif 'AR' in metric:
-            updates += compute_ar_metrics(eval_labels, predictions, metric)
+            updates += compute_ar_metrics(eval_labels, predictions, metric)[1]
     return updates
 
 
@@ -153,12 +159,12 @@ def compute_per_step_eval_label_metrics(metrics, predictions, eval_labels):
     for metric in metrics.split(' '):
         if 'MAP' in metric:
             updates += compute_map_metrics(
-                tf.cast(eval_labels, tf.int64), predictions, metric)
+                tf.cast(eval_labels, tf.int64), predictions, metric)[1]
         elif 'AP' in metric:
             updates += compute_ap_metrics(
-                tf.cast(eval_labels, tf.int64), predictions, metric)
+                tf.cast(eval_labels, tf.int64), predictions, metric)[1]
         elif 'AR' in metric:
             updates += compute_ar_metrics(
-                tf.cast(eval_labels, tf.int64), predictions, metric)
+                tf.cast(eval_labels, tf.int64), predictions, metric)[1]
     return updates
 
