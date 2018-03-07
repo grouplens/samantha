@@ -68,10 +68,13 @@ public class TensorFlowModelProducer {
                                                                   List<List<String>> equalSizeChecks,
                                                                   List<String> indexKeys,
                                                                   List<FeatureExtractor> featureExtractors,
-                                                                  String lossOperationName,
-                                                                  String updateOperationName,
-                                                                  String outputOperationName,
-                                                                  String initOperationName) {
+                                                                  String lossOper,
+                                                                  String updateOper,
+                                                                  String outputOper,
+                                                                  String initOper,
+                                                                  String topKOper,
+                                                                  String topKId,
+                                                                  String itemIndex) {
         IndexSpace indexSpace = getIndexSpace(modelName, spaceMode);
         for (String indexKey : indexKeys) {
             indexSpace.requestKeyMap(indexKey);
@@ -89,7 +92,7 @@ public class TensorFlowModelProducer {
                     "Created a TensorFlowModel without graph or session.", e.getMessage());
         }
         return new TensorFlowModel(graph, indexSpace, variableSpace,
-                featureExtractors, lossOperationName, updateOperationName,
-                outputOperationName, initOperationName, groupKeys, equalSizeChecks);
+                featureExtractors, lossOper, updateOper, topKId, itemIndex,
+                outputOper, topKOper, initOper, groupKeys, equalSizeChecks);
     }
 }

@@ -57,6 +57,12 @@ public class IOUtilities {
         }
     }
 
+    static public void parseEntityFromStringMap(ObjectNode entity, Map<String, String> objMap) {
+        for (String fieldName : objMap.keySet()) {
+            entity.put(fieldName, objMap.get(fieldName));
+        }
+    }
+
     static public Map<String, String> getKeyValueFromEntity(JsonNode entity, List<String> keys) {
         Map<String, String> keyVal = new HashMap<>(keys.size());
         for (String key : keys) {
