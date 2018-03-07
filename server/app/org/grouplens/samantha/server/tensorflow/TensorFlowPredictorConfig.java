@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.predictor;
+package org.grouplens.samantha.server.tensorflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.common.LearningData;
@@ -40,6 +40,10 @@ import org.grouplens.samantha.server.featurizer.FeatureExtractorConfig;
 import org.grouplens.samantha.server.featurizer.FeatureExtractorListConfigParser;
 import org.grouplens.samantha.server.featurizer.FeaturizerConfigParser;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.grouplens.samantha.server.predictor.PredictiveModelBasedPredictor;
+import org.grouplens.samantha.server.predictor.Predictor;
+import org.grouplens.samantha.server.predictor.PredictorConfig;
+import org.grouplens.samantha.server.predictor.PredictorUtilities;
 import play.Configuration;
 import play.inject.Injector;
 

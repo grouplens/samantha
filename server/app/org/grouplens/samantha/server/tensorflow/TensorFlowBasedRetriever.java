@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.retriever;
+package org.grouplens.samantha.server.tensorflow;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
@@ -28,6 +28,8 @@ import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.grouplens.samantha.server.retriever.AbstractRetriever;
+import org.grouplens.samantha.server.retriever.RetrievedResult;
 import play.Configuration;
 import play.libs.Json;
 

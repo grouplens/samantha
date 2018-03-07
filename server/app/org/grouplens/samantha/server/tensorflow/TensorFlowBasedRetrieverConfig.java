@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.retriever;
+package org.grouplens.samantha.server.tensorflow;
 
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.grouplens.samantha.server.common.AbstractComponentConfig;
@@ -29,6 +29,8 @@ import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.grouplens.samantha.server.retriever.Retriever;
+import org.grouplens.samantha.server.retriever.RetrieverConfig;
 import play.Configuration;
 import play.inject.Injector;
 
