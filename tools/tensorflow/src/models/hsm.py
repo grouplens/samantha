@@ -2,9 +2,25 @@
 import tensorflow as tf
 
 
+def _sample_included_items(whether_include_items, included_items,
+                           item_labels, item2cluster, num_sampled):
+    uniq_items, _ = tf.unique(item_labels)
+    whether_label_items = tf.sparse_to_dense(
+        uniq_items, [tf.shape(item2cluster)[0]],
+        tf.ones_like(uniq_items, dtype=tf.bool),
+        default_value=False, validate_indices=False)
+    whether_included_label_items = tf.boolean_mask(whether_label_items,
+                                                   whether_include_items)
+    dice = tf.random_uniform(tf.shape(included_items))
+    sampled = tf.logical_or(whether_included_label_items,
+                            dice < num_sampled * 1.0 / tf.cast(
+                                tf.shape(included_items)[0], tf.float32))
+    return tf.boolean_mask(included_items, sampled)
+
+
 def layer_wise_loss(cluster_vocab_size,
                     cluster_labels, item_labels, item2cluster,
-                    weights, biases, used_model):
+                    weights, biases, used_model, num_sampled=None):
     uniq_clusters, _ = tf.unique(cluster_labels)
     whether_include_clusters = tf.sparse_to_dense(
         uniq_clusters, [cluster_vocab_size],
@@ -12,6 +28,11 @@ def layer_wise_loss(cluster_vocab_size,
         default_value=False, validate_indices=False)
     whether_include_items = tf.gather(whether_include_clusters, item2cluster)
     included_items = tf.reshape(tf.where(whether_include_items), [-1])
+    tf.summary.scalar('num_included_items', tf.shape(included_items)[0])
+    if num_sampled is not None:
+        included_items = _sample_included_items(
+            whether_include_items, included_items, item_labels, item2cluster, num_sampled)
+        tf.summary.scalar('num_sampled_items', tf.shape(included_items)[0])
     included_clusters = tf.gather(item2cluster, included_items)
     included_weights = tf.gather(weights, included_items)
     included_biases = tf.gather(biases, included_items)
@@ -54,7 +75,8 @@ def layer_wise_loss(cluster_vocab_size,
 
 
 def layer_wise_inference(cluster_probs, cluster_vocab_size,
-                         used_model, item_weights, item_biases, item2cluster):
+                         used_model, item_weights, item_biases,
+                         item2cluster, target):
     logits = tf.matmul(used_model, tf.transpose(item_weights)) + item_biases
     exp_logits = tf.transpose(tf.exp(logits))
     sum_exp_logits = tf.unsorted_segment_sum(
@@ -62,5 +84,5 @@ def layer_wise_inference(cluster_probs, cluster_vocab_size,
     item_sum_exp_logits = tf.gather(sum_exp_logits, item2cluster)
     within_cluster_probs = exp_logits / item_sum_exp_logits
     item_cluster_probs = tf.gather(tf.transpose(cluster_probs), item2cluster)
-    item_probs = tf.transpose(item_cluster_probs * within_cluster_probs)
+    item_probs = tf.transpose(item_cluster_probs * within_cluster_probs, name='%s_probs' % target)
     return item_probs

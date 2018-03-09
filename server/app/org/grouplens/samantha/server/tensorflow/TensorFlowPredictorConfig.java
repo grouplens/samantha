@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.predictor;
+package org.grouplens.samantha.server.tensorflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.common.LearningData;
@@ -40,6 +40,10 @@ import org.grouplens.samantha.server.featurizer.FeatureExtractorConfig;
 import org.grouplens.samantha.server.featurizer.FeatureExtractorListConfigParser;
 import org.grouplens.samantha.server.featurizer.FeaturizerConfigParser;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.grouplens.samantha.server.predictor.PredictiveModelBasedPredictor;
+import org.grouplens.samantha.server.predictor.Predictor;
+import org.grouplens.samantha.server.predictor.PredictorConfig;
+import org.grouplens.samantha.server.predictor.PredictorUtilities;
 import play.Configuration;
 import play.inject.Injector;
 
@@ -60,10 +64,13 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
     private final Injector injector;
     private final List<Configuration> expandersConfig;
     private final String daoConfigKey;
-    private final String outputOperationName;
-    private final String updateOperationName;
-    private final String lossOperationName;
-    private final String initOperationName;
+    private final String outputOper;
+    private final String updateOper;
+    private final String lossOper;
+    private final String initOper;
+    private final String topKOper;
+    private final String topKId;
+    private final String itemIndex;
     private final String graphDefFilePath;
     private final Configuration config;
 
@@ -75,8 +82,9 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                                       Configuration methodConfig, Configuration onlineMethodConfig,
                                       Injector injector,
                                       List<Configuration> expandersConfig, String daoConfigKey,
-                                      String outputOperationName, String updateOperationName,
-                                      String lossOperationName, String initOperationName,
+                                      String outputOper, String updateOper,
+                                      String lossOper, String initOper, String topKOper,
+                                      String topKId, String itemIndex,
                                       String graphDefFilePath, Configuration config) {
         this.groupKeys = groupKeys;
         this.indexKeys = indexKeys;
@@ -88,10 +96,13 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
         this.methodConfig = methodConfig;
         this.onlineMethodConfig = onlineMethodConfig;
         this.entityDaoConfigs = entityDaoConfigs;
-        this.outputOperationName = outputOperationName;
-        this.updateOperationName = updateOperationName;
-        this.lossOperationName = lossOperationName;
-        this.initOperationName = initOperationName;
+        this.outputOper = outputOper;
+        this.updateOper = updateOper;
+        this.lossOper = lossOper;
+        this.initOper = initOper;
+        this.topKId = topKId;
+        this.topKOper = topKOper;
+        this.itemIndex = itemIndex;
         this.graphDefFilePath = graphDefFilePath;
         this.injector = injector;
         this.expandersConfig = expandersConfig;
@@ -130,10 +141,13 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                 predictorConfig.getConfig("onlineMethodConfig"),
                 injector, expanders,
                 predictorConfig.getString("daoConfigKey"),
-                predictorConfig.getString("outputOperationName"),
-                predictorConfig.getString("updateOperationName"),
-                predictorConfig.getString("lossOperationName"),
-                predictorConfig.getString("initOperationName"),
+                predictorConfig.getString("outputOper"),
+                predictorConfig.getString("updateOper"),
+                predictorConfig.getString("lossOper"),
+                predictorConfig.getString("initOper"),
+                predictorConfig.getString("topKOper"),
+                predictorConfig.getString("topKId"),
+                predictorConfig.getString("itemIndex"),
                 predictorConfig.getString("graphDefFilePath"),
                 predictorConfig);
     }
@@ -155,8 +169,8 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                     modelName, spaceMode, graphDefFilePath,
                     groupKeys, equalSizeChecks, indexKeys,
                     featureExtractors,
-                    lossOperationName, updateOperationName,
-                    outputOperationName, initOperationName);
+                    lossOper, updateOper,
+                    outputOper, initOper, topKOper, topKId, itemIndex);
         }
 
         public Object buildModel(Object model, RequestContext requestContext) {

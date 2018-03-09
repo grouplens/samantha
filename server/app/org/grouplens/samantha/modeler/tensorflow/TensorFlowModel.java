@@ -23,6 +23,7 @@
 package org.grouplens.samantha.modeler.tensorflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -39,9 +40,11 @@ import org.grouplens.samantha.modeler.model.UncollectableModel;
 import org.grouplens.samantha.modeler.model.VariableSpace;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.exception.ConfigurationException;
+import org.grouplens.samantha.server.io.IOUtilities;
 import org.tensorflow.Graph;
 import org.tensorflow.Session;
 import org.tensorflow.Tensor;
+import play.libs.Json;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -59,10 +62,13 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     transient private Graph graph;
     transient private Session session;
     private final List<FeatureExtractor> featureExtractors;
-    private final String lossOperationName;
-    private final String updateOperationName;
-    private final String outputOperationName;
-    private final String initOperationName;
+    private final String lossOper;
+    private final String updateOper;
+    private final String outputOper;
+    private final String topKOper;
+    private final String initOper;
+    private final String topKId;
+    private final String itemIndex;
     private final List<String> groupKeys;
     private final List<List<String>> equalSizeChecks;
 
@@ -74,20 +80,25 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     public TensorFlowModel(Graph graph,
                            IndexSpace indexSpace, VariableSpace variableSpace,
                            List<FeatureExtractor> featureExtractors,
-                           String lossOperationName, String updateOperationName,
-                           String outputOperationName, String initOperationName,
+                           String lossOper, String updateOper, String topKId, String itemIndex,
+                           String outputOper, String topKOper, String initOper,
                            List<String> groupKeys, List<List<String>> equalSizeChecks) {
         super(indexSpace, variableSpace);
-        this.graph = graph;
-        this.session = new Session(graph);
         this.groupKeys = groupKeys;
         this.equalSizeChecks = equalSizeChecks;
         this.featureExtractors = featureExtractors;
-        this.lossOperationName = lossOperationName;
-        this.updateOperationName = updateOperationName;
-        this.outputOperationName = outputOperationName;
-        this.initOperationName = initOperationName;
-        session.runner().addTarget(initOperationName).run();
+        this.lossOper = lossOper;
+        this.updateOper = updateOper;
+        this.outputOper = outputOper;
+        this.topKId = topKId;
+        this.itemIndex = itemIndex;
+        this.topKOper = topKOper;
+        this.initOper = initOper;
+        this.graph = graph;
+        if (graph != null) {
+            this.session = new Session(graph);
+            session.runner().addTarget(initOper).run();
+        }
     }
 
     public double[] predict(LearningInstance ins) {
@@ -107,7 +118,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             runner.feed(entry.getKey(), entry.getValue());
         }
-        runner.fetch(outputOperationName);
+        runner.fetch(outputOper);
         List<Tensor<?>> results = runner.run();
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             entry.getValue().close();
@@ -134,18 +145,63 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         return preds;
     }
 
+    public List<ObjectNode> recommend(List<ObjectNode> entities) {
+        List<LearningInstance> instances = new ArrayList<>();
+        for (JsonNode entity : entities) {
+            instances.add(featurize(entity, true));
+        }
+        Session.Runner runner = session.runner();
+        Map<String, Tensor> feedDict = getFeedDict(instances);
+        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
+            runner.feed(entry.getKey(), entry.getValue());
+        }
+        runner.fetch(topKOper);
+        List<Tensor<?>> results = runner.run();
+        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
+            entry.getValue().close();
+        }
+        Tensor<?> tensorOutput = results.get(0);
+        if (tensorOutput.numDimensions() != 2) {
+            throw new BadRequestException(
+                    "The TensorFlow model should always recommend with a two dimensional tensor.");
+        }
+        long[] outputShape = tensorOutput.shape();
+        int k = (int)outputShape[1];
+        IntBuffer buffer = IntBuffer.allocate(tensorOutput.numElements());
+        tensorOutput.writeTo(buffer);
+        List<ObjectNode> recs = new ArrayList<>();
+        int iter = 0;
+        for (int i=0; i<instances.size(); i++) {
+            ObjectNode rec = Json.newObject();
+            rec.put(topKId, i);
+            for (int j=0; j<k; j++) {
+                int itemIdx = buffer.get(iter++);
+                String fea = (String) indexSpace.getKeyForIndex(itemIndex, itemIdx);
+                IOUtilities.parseEntityFromStringMap(rec, FeatureExtractorUtilities.decomposeKey(fea));
+            }
+            recs.add(rec);
+        }
+        for (int i=0; i<results.size(); i++) {
+            results.get(i).close();
+        }
+        buffer.clear();
+        return recs;
+    }
+
     public LearningInstance featurize(JsonNode entity, boolean update) {
         Map<String, List<Feature>> feaMap = FeaturizerUtilities.getFeatureMap(entity, true,
                 featureExtractors, indexSpace);
-        for (List<String> features : equalSizeChecks) {
-            int size = -1;
-            for (String fea : features) {
-                if (size < 0) {
-                    size = feaMap.get(fea).size();
-                } else if (size != feaMap.get(fea).size()) {
-                    throw new ConfigurationException(
-                            "Equal size checks with " + features.toString() +
-                                    " failed for " + entity.toString());
+        if (equalSizeChecks != null) {
+            for (List<String> features : equalSizeChecks) {
+                int size = -1;
+                for (String fea : features) {
+                    if (size < 0) {
+                        size = feaMap.get(fea).size();
+                    } else if (size != feaMap.get(fea).size()) {
+                        throw new ConfigurationException(
+                                "Equal size checks with " + features.toString() +
+                                        " failed for " + entity.toString());
+                    }
                 }
             }
         }
@@ -282,7 +338,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             runner.feed(entry.getKey(), entry.getValue());
         }
-        runner.addTarget(updateOperationName).fetch(lossOperationName);
+        runner.addTarget(updateOper).fetch(lossOper);
         List<Tensor<?>> results = runner.run();
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             entry.getValue().close();
@@ -322,6 +378,6 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         graph = new Graph();
         graph.importGraphDef(graphDef);
         session = new Session(graph);
-        session.runner().addTarget(initOperationName).run();
+        session.runner().addTarget(initOper).run();
     }
 }

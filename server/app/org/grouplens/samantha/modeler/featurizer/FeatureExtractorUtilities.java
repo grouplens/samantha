@@ -130,4 +130,32 @@ public class FeatureExtractorUtilities {
         }
         return new AbstractMap.SimpleEntry<>(start, numGrp);
     }
+
+    static public int getForwardEnd(String[] indices, Integer maxGrpNum, int grpSize) {
+        int len = indices.length;
+        if (maxGrpNum == null) {
+            return len;
+        }
+        int numGrp = 0;
+        if (len > 0) {
+            numGrp = 1;
+        }
+        int inGrpSize = 0;
+        int end = 0;
+        int prevRank = Integer.MIN_VALUE;
+        for (int i = 0; i < len; i++) {
+            int curRank = Integer.parseInt(indices[i]);
+            if ((inGrpSize >= grpSize) || (curRank <= prevRank && curRank != Integer.MIN_VALUE)) {
+                if (numGrp + 1 > maxGrpNum) {
+                    end = i;
+                    break;
+                }
+                numGrp++;
+                inGrpSize = 0;
+            }
+            prevRank = curRank;
+            inGrpSize++;
+        }
+        return end;
+    }
 }

@@ -53,7 +53,7 @@ class SoftmaxPredictionModel(PredictionModel):
                         dtype=tf.float32, initializer=tf.truncated_normal_initializer),
                     'biases': tf.get_variable(
                         '%s_biases' % attr, shape=[attr_config['vocab_size']],
-                        dtype=tf.float32, initializer=tf.zeros_initializer)
+                        dtype=tf.float32, initializer=tf.zeros_initializer),
                 }
                 weights += tf.gather(attr_softmax['weights'], feamap)
                 biases += tf.gather(attr_softmax['biases'], feamap)
@@ -71,8 +71,8 @@ class SoftmaxPredictionModel(PredictionModel):
     def get_target_loss(self, used_model, labels, label_shape, indices, user_model,
             paras, target, config, mode):
         target_softmax = self._softmax_config[target]
-        logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
         if target_softmax['num_sampled'] >= target_softmax['vocab_size'] - 1:
+            logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
             losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=labels, logits=logits)
         else:
