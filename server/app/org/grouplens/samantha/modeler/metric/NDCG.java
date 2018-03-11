@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.evaluator.metric;
+package org.grouplens.samantha.modeler.metric;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -40,14 +40,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class NDCG implements Metric {
-    private final NDCGConfig config;
+    private final List<Integer> N;
+    private final List<String> itemKeys;
+    private final String relevanceKey;
+    private final double minValue;
     private int cnt = 0;
     private DoubleList DCG;
 
-    public NDCG(NDCGConfig config) {
-        this.config = config;
-        this.DCG = new DoubleArrayList(config.N.size());
-        for (int i=0; i<config.N.size(); i++) {
+    public NDCG(List<Integer> N, List<String> itemKeys, String relevanceKey, double minValue) {
+        this.N = N;
+        this.itemKeys = itemKeys;
+        this.relevanceKey = relevanceKey;
+        this.minValue = minValue;
+        this.DCG = new DoubleArrayList(N.size());
+        for (int i=0; i<N.size(); i++) {
             this.DCG.add(0.0);
         }
     }
@@ -55,11 +61,11 @@ public class NDCG implements Metric {
     public void add(List<ObjectNode> groundTruth, List<Prediction> recommendations) {
         Object2DoubleMap<String> releItems = new Object2DoubleOpenHashMap<>();
         for (JsonNode entity : groundTruth) {
-            String item = FeatureExtractorUtilities.composeConcatenatedKey(entity, config.itemKeys);
-            releItems.put(item, entity.get(config.relevanceKey).asDouble());
+            String item = FeatureExtractorUtilities.composeConcatenatedKey(entity, itemKeys);
+            releItems.put(item, entity.get(relevanceKey).asDouble());
         }
         int maxN = 0;
-        for (Integer n : config.N) {
+        for (Integer n : N) {
             if (n > maxN) {
                 maxN = n;
             }
@@ -68,14 +74,14 @@ public class NDCG implements Metric {
                         recommendations.size(), n);
             }
         }
-        double[] dcg = new double[config.N.size()];
+        double[] dcg = new double[N.size()];
         for (int i=0; i<recommendations.size(); i++) {
             int rank = i + 1;
             String recItem = FeatureExtractorUtilities.composeConcatenatedKey(
-                    recommendations.get(i).getEntity(), config.itemKeys);
+                    recommendations.get(i).getEntity(), itemKeys);
             if (releItems.containsKey(recItem)) {
-                for (int j=0; j<config.N.size(); j++) {
-                    int n = config.N.get(j);
+                for (int j=0; j<N.size(); j++) {
+                    int n = N.get(j);
                     if (rank <= n) {
                         dcg[j] += (Math.pow(2.0, releItems.getDouble(recItem)) / Math.log(1.0 + rank));
                     }
@@ -85,18 +91,18 @@ public class NDCG implements Metric {
                 break;
             }
         }
-        double[] maxDcg = new double[config.N.size()];
+        double[] maxDcg = new double[N.size()];
         if (groundTruth.size() <= maxN) {
             maxN = groundTruth.size();
         }
-        Ordering<ObjectNode> ordering = RetrieverUtilities.jsonFieldOrdering(config.relevanceKey);
+        Ordering<ObjectNode> ordering = RetrieverUtilities.jsonFieldOrdering(relevanceKey);
         List<ObjectNode> topN = ordering.greatestOf(groundTruth, maxN);
         for (int i=0; i<topN.size(); i++) {
             int rank = i + 1;
-            double relevance = topN.get(i).get(config.relevanceKey).asDouble();
+            double relevance = topN.get(i).get(relevanceKey).asDouble();
             if (relevance > 0.0) {
-                for (int j=0; j<config.N.size(); j++) {
-                    int n = config.N.get(j);
+                for (int j=0; j<N.size(); j++) {
+                    int n = N.get(j);
                     if (rank <= n) {
                         maxDcg[j] += (Math.pow(2.0, relevance) / Math.log(1.0 + rank));
                     }
@@ -105,21 +111,21 @@ public class NDCG implements Metric {
                 break;
             }
         }
-        for (int i=0; i<config.N.size(); i++) {
+        for (int i=0; i<N.size(); i++) {
             DCG.set(i, DCG.getDouble(i) + dcg[i] / maxDcg[i]);
         }
         cnt += 1;
     }
 
     public MetricResult getResults() {
-        List<ObjectNode> results = new ArrayList<>(config.N.size());
+        List<ObjectNode> results = new ArrayList<>(N.size());
         ObjectNode metricPara = Json.newObject();
-        metricPara.put("minValue", config.minValue);
+        metricPara.put("minValue", minValue);
         boolean pass = true;
-        for (int i=0; i<config.N.size(); i++) {
+        for (int i=0; i<N.size(); i++) {
             ObjectNode result = Json.newObject();
             result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "NDCG");
-            metricPara.put("N", config.N.get(i));
+            metricPara.put("N", N.get(i));
             result.put(ConfigKey.EVALUATOR_METRIC_PARA.get(),
                     metricPara.toString());
             double value = 0.0;
@@ -128,7 +134,7 @@ public class NDCG implements Metric {
             }
             result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
             results.add(result);
-            if (value < config.minValue) {
+            if (value < minValue) {
                 pass = false;
             }
         }

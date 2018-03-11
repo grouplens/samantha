@@ -20,16 +20,15 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.evaluator.metric;
+package org.grouplens.samantha.modeler.metric;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.config.ConfigKey;
+import org.grouplens.samantha.server.predictor.Prediction;
 import play.Logger;
 import play.libs.Json;
 
@@ -38,24 +37,33 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class MAP implements Metric {
-    private final MAPConfig config;
+public class MRR implements Metric {
+    private final List<Integer> N;
+    private final List<String> itemKeys;
+    private final String relevanceKey;
+    private final double threshold;
+    private final double minValue;
     private int cnt = 0;
-    private DoubleList AP;
+    private DoubleList RR;
 
-    public MAP(MAPConfig config) {
-        this.config = config;
-        this.AP = new DoubleArrayList(config.N.size());
-        for (int i=0; i<config.N.size(); i++) {
-            this.AP.add(0.0);
+    public MRR(List<Integer> N, List<String> itemKeys, String relevanceKey,
+               double threshold, double minValue) {
+        this.N = N;
+        this.itemKeys = itemKeys;
+        this.relevanceKey = relevanceKey;
+        this.threshold = threshold;
+        this.minValue = minValue;
+        this.RR = new DoubleArrayList(N.size());
+        for (int i=0; i<N.size(); i++) {
+            this.RR.add(0.0);
         }
     }
 
     public void add(List<ObjectNode> groundTruth, List<Prediction> recommendations) {
         Set<String> releItems = new HashSet<>();
         for (JsonNode entity : groundTruth) {
-            if (config.relevanceKey == null || entity.get(config.relevanceKey).asDouble() >= config.threshold) {
-                String item = FeatureExtractorUtilities.composeConcatenatedKey(entity, config.itemKeys);
+            if (relevanceKey == null || entity.get(relevanceKey).asDouble() >= threshold) {
+                String item = FeatureExtractorUtilities.composeConcatenatedKey(entity, itemKeys);
                 releItems.add(item);
             }
         }
@@ -63,61 +71,57 @@ public class MAP implements Metric {
             return;
         }
         int maxN = 0;
-        for (Integer n : config.N) {
+        for (Integer n : N) {
             if (n > maxN) {
                 maxN = n;
             }
             if (recommendations.size() < n) {
-                Logger.error("The number of recommendations({}) is less than the indicated MAP N({})",
+                Logger.error("The number of recommendations({}) is less than the indicated MRR N({})",
                         recommendations.size(), n);
             }
         }
-        int hits = 0;
-        double[] ap = new double[config.N.size()];
+        double[] rr = new double[N.size()];
         for (int i=0; i<recommendations.size(); i++) {
             int rank = i + 1;
             String recItem = FeatureExtractorUtilities.composeConcatenatedKey(
-                    recommendations.get(i).getEntity(), config.itemKeys);
-            int hit = 0;
+                    recommendations.get(i).getEntity(), itemKeys);
             if (releItems.contains(recItem)) {
-                hit = 1;
-                hits += 1;
-            }
-            for (int j=0; j<config.N.size(); j++) {
-                int n = config.N.get(j);
-                if (rank <= n && hit > 0 && hits > 0) {
-                    ap[j] += (1.0 * hits / rank) * hit;
+                for (int j=0; j<N.size(); j++) {
+                    int n = N.get(j);
+                    if (rank <= n) {
+                        rr[j] += (1.0 / rank);
+                    }
                 }
             }
             if (rank > maxN) {
                 break;
             }
         }
-        for (int i=0; i<config.N.size(); i++) {
-            AP.set(i, AP.getDouble(i) + ap[i] / releItems.size());
+        for (int i=0; i<N.size(); i++) {
+            RR.set(i, RR.getDouble(i) + rr[i] / releItems.size());
         }
         cnt += 1;
     }
 
     public MetricResult getResults() {
-        List<ObjectNode> results = new ArrayList<>(config.N.size());
+        List<ObjectNode> results = new ArrayList<>(N.size());
         ObjectNode metricPara = Json.newObject();
-        metricPara.put("threshold", config.threshold);
-        metricPara.put("minValue", config.minValue);
+        metricPara.put("threshold", threshold);
+        metricPara.put("minValue", minValue);
         boolean pass = true;
-        for (int i=0; i<config.N.size(); i++) {
+        for (int i=0; i<N.size(); i++) {
             ObjectNode result = Json.newObject();
-            result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "MAP");
-            metricPara.put("N", config.N.get(i));
+            result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "MRR");
+            metricPara.put("N", N.get(i));
             result.put(ConfigKey.EVALUATOR_METRIC_PARA.get(),
                     metricPara.toString());
             double value = 0.0;
             if (cnt > 0) {
-                value = AP.getDouble(i) / cnt;
+                value = RR.getDouble(i) / cnt;
             }
             result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
             results.add(result);
-            if (value < config.minValue) {
+            if (value < minValue) {
                 pass = false;
             }
         }

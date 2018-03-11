@@ -24,9 +24,9 @@ package org.grouplens.samantha.server.evaluator;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.config.ConfigKey;
-import org.grouplens.samantha.server.evaluator.metric.Metric;
+import org.grouplens.samantha.modeler.metric.Metric;
 import org.grouplens.samantha.server.evaluator.metric.MetricConfig;
-import org.grouplens.samantha.server.evaluator.metric.MetricResult;
+import org.grouplens.samantha.modeler.metric.MetricResult;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.grouplens.samantha.server.indexer.Indexer;
 import org.grouplens.samantha.server.io.RequestContext;

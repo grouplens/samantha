@@ -22,6 +22,8 @@
 
 package org.grouplens.samantha.server.evaluator.metric;
 
+import org.grouplens.samantha.modeler.metric.MRR;
+import org.grouplens.samantha.modeler.metric.Metric;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -29,11 +31,11 @@ import play.inject.Injector;
 import java.util.List;
 
 public class MRRConfig implements MetricConfig {
-    final List<Integer> N;
-    final List<String> itemKeys;
-    final String relevanceKey;
-    final double threshold;
-    final double minValue;
+    private final List<Integer> N;
+    private final List<String> itemKeys;
+    private final String relevanceKey;
+    private final double threshold;
+    private final double minValue;
 
     private MRRConfig(List<Integer> N, List<String> itemKeys, String relevanceKey,
                       double threshold, double minValue) {
@@ -60,6 +62,6 @@ public class MRRConfig implements MetricConfig {
     }
 
     public Metric getMetric(RequestContext requestContext) {
-        return new MRR(this);
+        return new MRR(N, itemKeys, relevanceKey, threshold, minValue);
     }
 }

@@ -22,6 +22,8 @@
 
 package org.grouplens.samantha.server.evaluator.metric;
 
+import org.grouplens.samantha.modeler.metric.Metric;
+import org.grouplens.samantha.modeler.metric.NDCG;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -29,10 +31,10 @@ import play.inject.Injector;
 import java.util.List;
 
 public class NDCGConfig implements MetricConfig {
-    final List<Integer> N;
-    final List<String> itemKeys;
-    final String relevanceKey;
-    final double minValue;
+    private final List<Integer> N;
+    private final List<String> itemKeys;
+    private final String relevanceKey;
+    private final double minValue;
 
     private NDCGConfig(List<Integer> N, List<String> itemKeys, String relevanceKey, double minValue) {
         this.N = N;
@@ -53,6 +55,6 @@ public class NDCGConfig implements MetricConfig {
     }
 
     public Metric getMetric(RequestContext requestContext) {
-        return new NDCG(this);
+        return new NDCG(N, itemKeys, relevanceKey, minValue);
     }
 }

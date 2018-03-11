@@ -20,34 +20,14 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.evaluator.metric;
+package org.grouplens.samantha.modeler.metric;
 
-import org.grouplens.samantha.modeler.metric.MAE;
-import org.grouplens.samantha.modeler.metric.Metric;
-import org.grouplens.samantha.server.io.RequestContext;
-import play.Configuration;
-import play.inject.Injector;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.server.predictor.Prediction;
 
-public class MAEConfig implements MetricConfig {
-    final private String labelName;
-    final private double maxValue;
+import java.util.List;
 
-    private MAEConfig(String labelName, double maxValue) {
-        this.labelName = labelName;
-        this.maxValue = maxValue;
-    }
-
-    public static MetricConfig getMetricConfig(Configuration metricConfig,
-                                               Injector injector) {
-        String labelName = metricConfig.getString("labelName");
-        double maxValue = Double.MAX_VALUE;
-        if (metricConfig.asMap().containsKey("maxValue")) {
-            maxValue = metricConfig.getDouble("maxValue");
-        }
-        return new MAEConfig(labelName, maxValue);
-    }
-
-    public Metric getMetric(RequestContext requestContext) {
-        return new MAE(labelName, maxValue);
-    }
+public interface Metric {
+    void add(List<ObjectNode> groundTruth, List<Prediction> results);
+    MetricResult getResults();
 }

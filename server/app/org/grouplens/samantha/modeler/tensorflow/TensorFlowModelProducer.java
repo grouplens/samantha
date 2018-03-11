@@ -74,6 +74,7 @@ public class TensorFlowModelProducer {
                                                                   String initOper,
                                                                   String topKOper,
                                                                   String topKId,
+                                                                  String topKValue,
                                                                   String itemIndex) {
         IndexSpace indexSpace = getIndexSpace(modelName, spaceMode);
         for (String indexKey : indexKeys) {
@@ -93,6 +94,6 @@ public class TensorFlowModelProducer {
         }
         return new TensorFlowModel(graph, indexSpace, variableSpace,
                 featureExtractors, lossOper, updateOper, topKId, itemIndex,
-                outputOper, topKOper, initOper, groupKeys, equalSizeChecks);
+                topKValue, outputOper, topKOper, initOper, groupKeys, equalSizeChecks);
     }
 }

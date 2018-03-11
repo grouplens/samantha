@@ -23,7 +23,7 @@
 package org.grouplens.samantha.server.evaluator;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.grouplens.samantha.server.evaluator.metric.MetricResult;
+import org.grouplens.samantha.modeler.metric.MetricResult;
 
 import java.util.List;
 

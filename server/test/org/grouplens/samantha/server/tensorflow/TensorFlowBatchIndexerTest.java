@@ -79,9 +79,8 @@ public class TensorFlowBatchIndexerTest extends WithApplication {
                         "name", SpaceMode.DEFAULT, "shouldNotExist.graph",
                         null, null, Lists.newArrayList("ITEM", "ATTR", "SEQ_LEN"),
                         featureExtractors, "loss", "update",
-                        "output",
-                        "init"
-                );
+                        "output", "init", "top_k",
+                        "topKId", "topKValue", "ITEM");
         TensorFlowBatchIndexer batchIndexer = new TensorFlowBatchIndexer(
                 configService, config, injector, config, "daoConfig", mockIndexer,
                 model, 1, "tstamp");

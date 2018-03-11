@@ -68,6 +68,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     private final String topKOper;
     private final String initOper;
     private final String topKId;
+    private final String topKValue;
     private final String itemIndex;
     private final List<String> groupKeys;
     private final List<List<String>> equalSizeChecks;
@@ -81,7 +82,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                            IndexSpace indexSpace, VariableSpace variableSpace,
                            List<FeatureExtractor> featureExtractors,
                            String lossOper, String updateOper, String topKId, String itemIndex,
-                           String outputOper, String topKOper, String initOper,
+                           String topKValue, String outputOper, String topKOper, String initOper,
                            List<String> groupKeys, List<List<String>> equalSizeChecks) {
         super(indexSpace, variableSpace);
         this.groupKeys = groupKeys;
@@ -91,6 +92,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         this.updateOper = updateOper;
         this.outputOper = outputOper;
         this.topKId = topKId;
+        this.topKValue = topKValue;
         this.itemIndex = itemIndex;
         this.topKOper = topKOper;
         this.initOper = initOper;
@@ -160,31 +162,36 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             entry.getValue().close();
         }
-        Tensor<?> tensorOutput = results.get(0);
-        if (tensorOutput.numDimensions() != 2) {
+        Tensor<?> topKValues = results.get(0);
+        Tensor<?> topKIndices = results.get(1);
+        if (topKValues.numDimensions() != 2 || topKIndices.numDimensions() != 2) {
             throw new BadRequestException(
                     "The TensorFlow model should always recommend with a two dimensional tensor.");
         }
-        long[] outputShape = tensorOutput.shape();
+        long[] outputShape = topKIndices.shape();
         int k = (int)outputShape[1];
-        IntBuffer buffer = IntBuffer.allocate(tensorOutput.numElements());
-        tensorOutput.writeTo(buffer);
+        IntBuffer idxBuffer = IntBuffer.allocate(topKIndices.numElements());
+        DoubleBuffer valBuffer = DoubleBuffer.allocate(topKValues.numElements());
+        topKIndices.writeTo(idxBuffer);
+        topKValues.writeTo(valBuffer);
         List<ObjectNode> recs = new ArrayList<>();
         int iter = 0;
         for (int i=0; i<instances.size(); i++) {
-            ObjectNode rec = Json.newObject();
-            rec.put(topKId, i);
             for (int j=0; j<k; j++) {
-                int itemIdx = buffer.get(iter++);
+                ObjectNode rec = Json.newObject();
+                rec.put(topKId, i);
+                int itemIdx = idxBuffer.get(iter++);
                 String fea = (String) indexSpace.getKeyForIndex(itemIndex, itemIdx);
                 IOUtilities.parseEntityFromStringMap(rec, FeatureExtractorUtilities.decomposeKey(fea));
+                rec.put(topKValue, valBuffer.get(iter++));
+                recs.add(rec);
             }
-            recs.add(rec);
         }
         for (int i=0; i<results.size(); i++) {
             results.get(i).close();
         }
-        buffer.clear();
+        idxBuffer.clear();
+        valBuffer.clear();
         return recs;
     }
 
