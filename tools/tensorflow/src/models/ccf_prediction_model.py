@@ -78,27 +78,32 @@ class CCFSoftmaxModel(PredictionModel):
         used_display = tf.gather_nd(display, indices)
         weights = tf.gather(paras['weights'], used_display)
         biases = tf.gather(paras['biases'], used_display)
-        logits = tf.matmul(used_model, tf.transpose(weights)) + biases
+        logits = tf.reduce_sum(used_model * weights, axis=1) + biases
         logits = tf.reshape(logits, [tf.shape(logits)[0] / self._context_size, self._context_size])
 
         user = context[self._user_attr]
         batch_idx = tf.reshape(
             tf.slice(indices,
                      begin=[0, 0],
-                     size=[tf.shape(indices)[0], 1]), [-1])
+                     size=[tf.shape(indices)[0], 1]),
+            [tf.shape(indices)[0] / self._context_size, self._context_size])
+        batch_idx = tf.reshape(
+            tf.slice(batch_idx,
+                     begin=[0, 0],
+                     size=[tf.shape(batch_idx)[0], 1]), [-1])
         used_user = tf.gather(tf.reshape(user, [-1]), batch_idx)
         inaction_logits = tf.gather(paras['inactions'], used_user)
         inaction_logits = tf.reshape(inaction_logits,
-                                     [tf.shape(inaction_logits)[0] / self._context_size, self._context_size])
+                                     [tf.shape(inaction_logits)[0], 1])
 
-        extended_logits = tf.concat([logits, inaction_logits], axis=0)
+        extended_logits = tf.concat([logits, inaction_logits], axis=1)
         extended_probs = tf.nn.softmax(extended_logits)
 
         used_labels = tf.gather_nd(labels, indices)
         used_labels = tf.reshape(used_labels, [tf.shape(used_labels)[0] / self._context_size, self._context_size])
         used_mask = used_labels > 0
-        inaction_mask = tf.reduce_all(used_labels == 0)
-        extended_mask = tf.concat([used_mask, tf.expand_dims(inaction_mask, 1)], axis=0)
+        inaction_mask = tf.reduce_all(tf.equal(used_labels, 0), axis=1)
+        extended_mask = tf.concat([used_mask, tf.expand_dims(inaction_mask, 1)], axis=1)
 
         probs = tf.boolean_mask(extended_probs, extended_mask),
         losses = -tf.log(tf.maximum(probs, 1e-07))
