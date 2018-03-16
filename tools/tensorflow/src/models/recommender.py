@@ -160,11 +160,11 @@ class RecommenderBuilder(ModelBuilder):
         return tf.boolean_mask(
             indices, tf.logical_and(step_idx >= start_limit, step_idx <= end_limit))
 
-    def _get_train_eval_indices_by_tstamp(self, labels, tstamp):
+    def _get_train_eval_indices_by_tstamp(self, tstamp):
         train_indices = tf.cast(tf.where(
-            tf.logical_and(labels >= 0, tstamp < self._split_tstamp)), tf.int32)
+            tf.logical_and(tstamp > 0, tstamp < self._split_tstamp)), tf.int32)
         eval_indices = tf.cast(tf.where(
-            tf.logical_and(labels >= 0, tstamp >= self._split_tstamp)), tf.int32)
+            tf.logical_and(tstamp > 0, tstamp >= self._split_tstamp)), tf.int32)
         if self._train_steps < self._max_train_steps:
             train_indices = self._get_constrained_steps(train_indices, 'train')
         if self._eval_steps < self._max_train_steps:
@@ -193,7 +193,7 @@ class RecommenderBuilder(ModelBuilder):
                         attr2input[target], start_limit, split_limit, length_limit)
                 else:
                     train_indices, eval_indices = self._get_train_eval_indices_by_tstamp(
-                        attr2input[target], attr2input[self._tstamp_attr])
+                        attr2input[self._tstamp_attr])
                 self._test_tensors['train_indices'] = train_indices
                 self._test_tensors['eval_indices'] = eval_indices
                 num_target_train_labels = tf.shape(train_indices)[0]

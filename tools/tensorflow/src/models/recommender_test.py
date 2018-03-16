@@ -59,10 +59,6 @@ class RecommenderTest(unittest.TestCase):
                 np.testing.assert_array_equal(tensor_vals['eval_indices'], np.array([
                     [0, 3, 0], [1, 6, 0],
                 ]))
-                np.testing.assert_array_equal(tensor_vals['train_labels'], np.array([
-                    10, 9,
-                ]))
-                np.testing.assert_array_equal(tensor_vals['eval_labels'], np.array([14, 8]))
 
     def test_run_seq_flat_tstamp_eval(self):
         embedding_dim = 10
@@ -114,8 +110,6 @@ class RecommenderTest(unittest.TestCase):
                 np.testing.assert_array_equal(tensor_vals['eval_indices'], np.array([
                     [0, 1, 0], [1, 4, 0],
                 ]))
-                np.testing.assert_array_equal(tensor_vals['train_labels'], np.array([4, 11, 2]))
-                np.testing.assert_array_equal(tensor_vals['eval_labels'], np.array([9, 4]))
 
     def test_train_sequence_hsm_model(self):
         embedding_dim = 10
