@@ -81,10 +81,10 @@ class SoftmaxPredictionModel(PredictionModel):
                 labels=used_labels, logits=logits)
         else:
             losses = tf.nn.sampled_softmax_loss(paras['weights'], paras['biases'],
-                    tf.expand_dims(used_labels, 1), used_model,
-                    target_softmax['num_sampled'], target_softmax['vocab_size'])
+                                                tf.expand_dims(used_labels, 1), used_model,
+                                                target_softmax['num_sampled'], target_softmax['vocab_size'])
         loss = tf.reduce_sum(losses)
-        return loss, []
+        return tf.shape(used_labels)[0], loss, []
 
     def get_target_prediction(self, used_model, paras, target, config):
         logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']

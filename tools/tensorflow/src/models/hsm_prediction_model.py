@@ -127,7 +127,7 @@ class HierarchicalPredictionModel(PredictionModel):
             updates = self._compute_metrics(paras, hierarchical_labels,
                                             labels, indices, user_model, target)
         loss = tf.reduce_sum(losses)
-        return loss, updates
+        return tf.shape(used_labels)[0], loss, updates
 
     def _compute_predictions(self, used_model, paras, target, limit=None):
         weights = paras['weights']

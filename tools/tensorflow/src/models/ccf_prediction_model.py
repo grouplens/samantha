@@ -108,7 +108,7 @@ class CCFSoftmaxModel(PredictionModel):
         probs = tf.boolean_mask(extended_probs, extended_mask),
         losses = -tf.log(tf.maximum(probs, 1e-07))
         loss = tf.reduce_sum(losses)
-        return loss, []
+        return tf.shape(losses)[0], loss, []
 
     def get_target_prediction(self, used_model, paras, target, config):
         logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']

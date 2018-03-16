@@ -83,6 +83,7 @@ class RecommenderBuilder(ModelBuilder):
         if self._loss_split_steps < self._max_train_steps and mode == 'train':
             mask_idx = tf.reshape(step_idx, [-1])
             loss = 0
+            num_labels = 0
             updates = []
             for i in range(0, self._max_train_steps, self._loss_split_steps):
                 with tf.variable_scope('mask_%s' % i):
@@ -90,16 +91,17 @@ class RecommenderBuilder(ModelBuilder):
                             mask_idx >= i, mask_idx < i + self._loss_split_steps)
                     masked_output = tf.boolean_mask(used_model, loss_mask)
                     masked_indices = tf.boolean_mask(indices, loss_mask)
-                    masked_loss, model_updates = self._prediction_model.get_target_loss(
+                    masked_num, masked_loss, model_updates = self._prediction_model.get_target_loss(
                         masked_output, labels, masked_indices,
                         user_model, paras, target, config, mode, context)
+                    num_labels += masked_num
                     loss += masked_loss
                     updates += model_updates
         else:
-            loss, updates = self._prediction_model.get_target_loss(
+            num_labels, loss, updates = self._prediction_model.get_target_loss(
                 used_model, labels, indices, user_model,
                 paras, target, config, mode, context)
-        return loss, updates
+        return num_labels, loss, updates
 
     def _compute_target_metrics(self, user_model, indices, labels, paras, target, config):
         used_labels = tf.gather_nd(labels, indices)
@@ -175,6 +177,7 @@ class RecommenderBuilder(ModelBuilder):
         length_limit = tf.minimum(
             tf.reshape(sequence_length, [-1]),
             self._max_train_steps)
+        # TODO: remove this for it's expensive
         tf.summary.histogram('batch_sequence_length', length_limit)
         split_limit = tf.maximum(length_limit - self._eval_steps, 0)
         start_limit = tf.maximum(split_limit - self._train_steps, 0)
@@ -196,22 +199,20 @@ class RecommenderBuilder(ModelBuilder):
                         attr2input[self._tstamp_attr])
                 self._test_tensors['train_indices'] = train_indices
                 self._test_tensors['eval_indices'] = eval_indices
-                num_target_train_labels = tf.shape(train_indices)[0]
-                num_target_eval_labels = tf.shape(eval_indices)[0]
-                num_train_labels += config['weight'] * tf.cast(num_target_train_labels, tf.float32)
-                num_eval_labels += config['weight'] * tf.cast(num_target_eval_labels, tf.float32)
-                tf.summary.scalar('num_train_labels', num_target_train_labels)
-                tf.summary.scalar('num_eval_labels', num_target_eval_labels)
                 with tf.variable_scope('train'):
-                    train_target_loss, model_updates = self._compute_target_loss(
+                    num_target_train_labels, train_target_loss, model_updates = self._compute_target_loss(
                         user_model, train_indices, attr2input[target], target2paras[target],
                         target, config, 'train', attr2input)
                     updates += model_updates
+                    tf.summary.scalar('num_labels', num_target_train_labels)
+                    num_train_labels += config['weight'] * tf.cast(num_target_train_labels, tf.float32)
                 with tf.variable_scope('eval'):
-                    eval_target_loss, model_updates = self._compute_target_loss(
+                    num_target_eval_labels, eval_target_loss, model_updates = self._compute_target_loss(
                         user_model, eval_indices, attr2input[target], target2paras[target],
                         target, config, 'eval', attr2input)
                     updates += model_updates
+                    tf.summary.scalar('num_labels', num_target_eval_labels)
+                    num_eval_labels += config['weight'] * tf.cast(num_target_eval_labels, tf.float32)
                     if self._eval_metrics is not None:
                         updates += self._compute_target_metrics(
                             user_model, eval_indices, attr2input[target],
