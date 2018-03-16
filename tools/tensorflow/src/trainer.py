@@ -1,4 +1,6 @@
 
+from tensorflow.python import debug as tf_debug
+
 import random
 import string
 import logging
@@ -27,6 +29,7 @@ class ModelTrainer(object):
         graph = tf.Graph()
         with graph.as_default():
             session = tf.Session(graph=graph)
+            # session = tf_debug.LocalCLIDebugWrapperSession(session)
             with session.as_default():
                 logger.info('Building the model graph.')
                 loss, updates = self._builder.build_model()

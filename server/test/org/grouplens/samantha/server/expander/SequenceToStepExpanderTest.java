@@ -34,19 +34,19 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class SequenceExpanderTest {
+public class SequenceToStepExpanderTest {
     private final List<ObjectNode> entities = new ArrayList<>();
     private final List<String> nameAttrs = Lists.newArrayList("item", "action");
     private final List<String> valueAttrs = Lists.newArrayList("item", "action");
     private final List<String> historyAttrs = Lists.newArrayList("hitem", "haction");
 
-    public SequenceExpanderTest() {
+    public SequenceToStepExpanderTest() {
         TestUtilities.setUpUserSequence(entities);
     }
 
     @Test
     public void testExpandWithoutLimit() {
-        SequenceExpander expander = new SequenceExpander(
+        SequenceToStepExpander expander = new SequenceToStepExpander(
                 nameAttrs, valueAttrs, historyAttrs, "\\|", "|", null, false, null, 0);
         List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
         assertEquals(7, expanded.size());
@@ -69,7 +69,7 @@ public class SequenceExpanderTest {
 
     @Test
     public void testExpandWithLimit() {
-        SequenceExpander expander = new SequenceExpander(
+        SequenceToStepExpander expander = new SequenceToStepExpander(
                 nameAttrs, valueAttrs, historyAttrs, "\\|", "|", 3, false, null, 0);
         List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
         assertEquals(4, expanded.size());
@@ -82,7 +82,7 @@ public class SequenceExpanderTest {
 
     @Test
     public void testExpandWithBackwardLimit() {
-        SequenceExpander expander = new SequenceExpander(
+        SequenceToStepExpander expander = new SequenceToStepExpander(
                 nameAttrs, valueAttrs, historyAttrs, "\\|", "|", 3, true, null, 0);
         List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
         assertEquals(4, expanded.size());
@@ -95,7 +95,7 @@ public class SequenceExpanderTest {
 
     @Test
     public void testExpandWithSplitTstampLimit() {
-        SequenceExpander expander = new SequenceExpander(
+        SequenceToStepExpander expander = new SequenceToStepExpander(
                 nameAttrs, valueAttrs, historyAttrs, "\\|", "|", 2, false, "tstamp", 4);
         List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
         assertEquals(2, expanded.size());
@@ -103,7 +103,7 @@ public class SequenceExpanderTest {
 
     @Test
     public void testExpandWithSplitTstampBackwardLimit() {
-        SequenceExpander expander = new SequenceExpander(
+        SequenceToStepExpander expander = new SequenceToStepExpander(
                 nameAttrs, valueAttrs, historyAttrs, "\\|", "|", 2, true, "tstamp", 4);
         List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
         assertEquals(3, expanded.size());

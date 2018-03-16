@@ -65,7 +65,7 @@ public class AUC implements Metric {
         double getAUC(AUC auc);
     }
 
-    enum AUCType implements aucMethods {
+    public enum AUCType implements aucMethods {
 
         GLOBAL("global") {
             public void add(List<ObjectNode> groundTruth, List<Prediction> predictions, AUC auc) {

@@ -32,48 +32,32 @@ import play.inject.Injector;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SequenceExpander implements EntityExpander {
+public class SequenceTstampSplitExpander implements EntityExpander {
     final private List<String> nameAttrs;
-    final private List<String> valueAttrs;
-    final private List<String> historyAttrs;
     final private String tstampAttr;
     final private int splitTstamp;
     final private String separator;
     final private String joiner;
-    final private Integer maxStepNum;
-    final private boolean backward;
 
-    public SequenceExpander(List<String> nameAttrs, List<String> valueAttrs,
-                            List<String> historyAttrs, String separator, String joiner,
-                            Integer maxStepNum, boolean backward, String tstampAttr, int splitTstamp) {
+    public SequenceTstampSplitExpander(List<String> nameAttrs, String separator, String joiner,
+                                       String tstampAttr, int splitTstamp) {
         this.nameAttrs = nameAttrs;
-        this.valueAttrs = valueAttrs;
-        this.historyAttrs = historyAttrs;
         this.joiner = joiner;
         this.separator = separator;
-        this.maxStepNum = maxStepNum;
-        this.backward = backward;
         this.splitTstamp = splitTstamp;
         this.tstampAttr = tstampAttr;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
-        Boolean backward = expanderConfig.getBoolean("backward");
-        if (backward == null) {
-            backward = false;
-        }
         Integer splitTstamp = expanderConfig.getInt("splitTstamp");
         if (splitTstamp == null) {
             splitTstamp = 0;
         }
-        return new SequenceExpander(
+        return new SequenceTstampSplitExpander(
                 expanderConfig.getStringList("nameAttrs"),
-                expanderConfig.getStringList("valueAttrs"),
-                expanderConfig.getStringList("historyAttrs"),
                 expanderConfig.getString("separator"),
                 expanderConfig.getString("joiner"),
-                expanderConfig.getInt("maxStepNum"), backward,
                 expanderConfig.getString("tstampAttr"), splitTstamp);
     }
 
@@ -81,50 +65,28 @@ public class SequenceExpander implements EntityExpander {
                                    RequestContext requestContext) {
         List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
-            List<ObjectNode> oneExpanded = new ArrayList<>();
             List<String[]> values = new ArrayList<>();
-            int size = 0;
             for (String nameAttr : nameAttrs) {
                 String[] splitted = entity.get(nameAttr).asText().split(separator, -1);
-                size = splitted.length;
                 values.add(splitted);
             }
-            int start = 0;
-            int end = size;
-            if (tstampAttr != null) {
-                String[] fstamp = entity.get(tstampAttr).asText().split(separator, -1);
-                int i;
-                for (i=0; i<size; i++) {
-                    String tstamp = fstamp[i];
-                    int istamp = Integer.parseInt(tstamp);
-                    if (istamp >= splitTstamp) {
-                        break;
-                    }
-                }
-                if (backward) {
-                    end = i;
-                } else {
-                    start = i;
-                }
-                size = end - start;
-            }
-            if (maxStepNum != null && maxStepNum < size) {
-                if (backward) {
-                    start = end - maxStepNum;
-                } else {
-                    end = start + maxStepNum;
+            String[] fstamp = entity.get(tstampAttr).asText().split(separator, -1);
+            int size = fstamp.length;
+            int split;
+            for (split=0; split<size; split++) {
+                String tstamp = fstamp[split];
+                int istamp = Integer.parseInt(tstamp);
+                if (istamp >= splitTstamp) {
+                    break;
                 }
             }
-            for (int i=start; i<end; i++) {
-                ObjectNode newEntity = entity.deepCopy();
-                for (int j=0; j<values.size(); j++) {
-                    newEntity.put(valueAttrs.get(j), values.get(j)[i]);
-                    newEntity.put(historyAttrs.get(j), StringUtils.join(
-                            ArrayUtils.subarray(values.get(j), 0, i), joiner));
-                }
-                oneExpanded.add(newEntity);
+            for (int i=0; i<nameAttrs.size(); i++) {
+                String nameAttr = nameAttrs.get(i);
+                entity.put(nameAttr + "Before", StringUtils.join(
+                        ArrayUtils.subarray(values.get(i), 0, split), joiner));
+                entity.put(nameAttr + "After", StringUtils.join(
+                        ArrayUtils.subarray(values.get(i), split, size), joiner));
             }
-            expanded.addAll(oneExpanded);
         }
         return expanded;
     }

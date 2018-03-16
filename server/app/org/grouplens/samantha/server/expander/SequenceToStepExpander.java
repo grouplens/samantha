@@ -25,7 +25,6 @@ package org.grouplens.samantha.server.expander;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -33,101 +32,99 @@ import play.inject.Injector;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Display2ActionExpander implements EntityExpander {
+public class SequenceToStepExpander implements EntityExpander {
     final private List<String> nameAttrs;
     final private List<String> valueAttrs;
-    final private String actionName;
-    final private String separator;
-    final private String joiner;
+    final private List<String> historyAttrs;
     final private String tstampAttr;
     final private int splitTstamp;
-    final private int maxGrpNum;
-    final private int grpSize;
-    final private String inGrpRank;
+    final private String separator;
+    final private String joiner;
+    final private Integer maxStepNum;
+    final private boolean backward;
 
-    public Display2ActionExpander(List<String> nameAttrs, List<String> valueAttrs, String separator,
-                                  String actionName, String joiner, String tstampAttr, int splitTstamp,
-                                  int maxGrpNum, int grpSize, String inGrpRank) {
+    public SequenceToStepExpander(List<String> nameAttrs, List<String> valueAttrs,
+                                  List<String> historyAttrs, String separator, String joiner,
+                                  Integer maxStepNum, boolean backward, String tstampAttr, int splitTstamp) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
-        this.separator = separator;
-        this.actionName = actionName;
+        this.historyAttrs = historyAttrs;
         this.joiner = joiner;
-        this.tstampAttr = tstampAttr;
+        this.separator = separator;
+        this.maxStepNum = maxStepNum;
+        this.backward = backward;
         this.splitTstamp = splitTstamp;
-        this.maxGrpNum = maxGrpNum;
-        this.grpSize = grpSize;
-        this.inGrpRank = inGrpRank;
+        this.tstampAttr = tstampAttr;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
+        Boolean backward = expanderConfig.getBoolean("backward");
+        if (backward == null) {
+            backward = false;
+        }
         Integer splitTstamp = expanderConfig.getInt("splitTstamp");
         if (splitTstamp == null) {
             splitTstamp = 0;
         }
-        Integer maxGrpNum = expanderConfig.getInt("maxGrpNum");
-        if (maxGrpNum == null) {
-            maxGrpNum = Integer.MAX_VALUE;
-        }
-        Integer grpSize = expanderConfig.getInt("grpSize");
-        if (grpSize == null) {
-            grpSize = 1;
-        }
-        return new Display2ActionExpander(
+        return new SequenceToStepExpander(
                 expanderConfig.getStringList("nameAttrs"),
                 expanderConfig.getStringList("valueAttrs"),
+                expanderConfig.getStringList("historyAttrs"),
                 expanderConfig.getString("separator"),
-                expanderConfig.getString("actionName"),
                 expanderConfig.getString("joiner"),
-                expanderConfig.getString("tstampAttr"),
-                splitTstamp, maxGrpNum, grpSize,
-                expanderConfig.getString("inGrpRank"));
+                expanderConfig.getInt("maxStepNum"), backward,
+                expanderConfig.getString("tstampAttr"), splitTstamp);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                    RequestContext requestContext) {
         List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
+            List<ObjectNode> oneExpanded = new ArrayList<>();
             List<String[]> values = new ArrayList<>();
-            List<List<String>> valueStrs = new ArrayList<>();
+            int size = 0;
             for (String nameAttr : nameAttrs) {
-                values.add(entity.get(nameAttr).asText().split(separator, -1));
-                valueStrs.add(new ArrayList<>());
+                String[] splitted = entity.get(nameAttr).asText().split(separator, -1);
+                size = splitted.length;
+                values.add(splitted);
             }
-            String[] actions = entity.get(actionName).asText().split(separator, -1);
-            int end = actions.length;
+            int start = 0;
+            int end = size;
             if (tstampAttr != null) {
                 String[] fstamp = entity.get(tstampAttr).asText().split(separator, -1);
                 int i;
-                for (i=0; i<fstamp.length; i++) {
+                for (i=0; i<size; i++) {
                     String tstamp = fstamp[i];
                     int istamp = Integer.parseInt(tstamp);
                     if (istamp >= splitTstamp) {
                         break;
                     }
                 }
-                String[] indices = entity.get(inGrpRank).asText().split(separator, -1);
-                end = i + FeatureExtractorUtilities.getForwardEnd(
-                        ArrayUtils.subarray(indices, i, end), maxGrpNum, grpSize);
+                if (backward) {
+                    end = i;
+                } else {
+                    start = i;
+                }
+                size = end - start;
             }
-            boolean include = false;
-            for (int i=0; i<end; i++) {
-                String act = actions[i];
-                if (Double.parseDouble(act) > 0.0) {
-                    for (int j=0; j<valueStrs.size(); j++) {
-                        valueStrs.get(j).add(values.get(j)[i]);
-                    }
-                    include = true;
+            if (maxStepNum != null && maxStepNum < size) {
+                if (backward) {
+                    start = end - maxStepNum;
+                } else {
+                    end = start + maxStepNum;
                 }
             }
-            if (include) {
+            for (int i=start; i<end; i++) {
                 ObjectNode newEntity = entity.deepCopy();
-                for (int j=0; j<valueAttrs.size(); j++) {
-                    newEntity.put(valueAttrs.get(j), StringUtils.join(valueStrs.get(j), joiner));
+                for (int j=0; j<values.size(); j++) {
+                    newEntity.put(valueAttrs.get(j), values.get(j)[i]);
+                    newEntity.put(historyAttrs.get(j), StringUtils.join(
+                            ArrayUtils.subarray(values.get(j), 0, i), joiner));
                 }
-                expanded.add(newEntity);
+                oneExpanded.add(newEntity);
             }
+            expanded.addAll(oneExpanded);
         }
         return expanded;
     }
