@@ -106,6 +106,16 @@ public class FeatureExtractorUtilities {
         return composeKey(multiples);
     }
 
+    static public String composeConcatenatedKeyWithoutName(JsonNode entity, List<String> attrNames) {
+        List<String> multiples = new ArrayList<>();
+        for (String attrName : attrNames) {
+            if (entity.has(attrName)) {
+                multiples.add(entity.get(attrName).asText());
+            }
+        }
+        return composeKey(multiples);
+    }
+
     static public Map.Entry<Integer, Integer> getStartAndNumGroup(String[] indices, Integer maxGrpNum, int grpSize) {
         int len = indices.length;
         int numGrp = 0;

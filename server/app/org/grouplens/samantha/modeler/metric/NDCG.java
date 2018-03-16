@@ -30,13 +30,10 @@ import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.retriever.RetrieverUtilities;
 import play.Logger;
-import play.libs.Json;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class NDCG implements Metric {
@@ -61,7 +58,7 @@ public class NDCG implements Metric {
     public void add(List<ObjectNode> groundTruth, List<Prediction> recommendations) {
         Object2DoubleMap<String> releItems = new Object2DoubleOpenHashMap<>();
         for (JsonNode entity : groundTruth) {
-            String item = FeatureExtractorUtilities.composeConcatenatedKey(entity, itemKeys);
+            String item = FeatureExtractorUtilities.composeConcatenatedKeyWithoutName(entity, itemKeys);
             releItems.put(item, entity.get(relevanceKey).asDouble());
         }
         int maxN = 0;
@@ -77,7 +74,7 @@ public class NDCG implements Metric {
         double[] dcg = new double[N.size()];
         for (int i=0; i<recommendations.size(); i++) {
             int rank = i + 1;
-            String recItem = FeatureExtractorUtilities.composeConcatenatedKey(
+            String recItem = FeatureExtractorUtilities.composeConcatenatedKeyWithoutName(
                     recommendations.get(i).getEntity(), itemKeys);
             if (releItems.containsKey(recItem)) {
                 for (int j=0; j<N.size(); j++) {
@@ -118,26 +115,6 @@ public class NDCG implements Metric {
     }
 
     public MetricResult getResults() {
-        List<ObjectNode> results = new ArrayList<>(N.size());
-        ObjectNode metricPara = Json.newObject();
-        metricPara.put("minValue", minValue);
-        boolean pass = true;
-        for (int i=0; i<N.size(); i++) {
-            ObjectNode result = Json.newObject();
-            result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "NDCG");
-            metricPara.put("N", N.get(i));
-            result.put(ConfigKey.EVALUATOR_METRIC_PARA.get(),
-                    metricPara.toString());
-            double value = 0.0;
-            if (cnt > 0) {
-                value = DCG.getDouble(i) / cnt;
-            }
-            result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
-            results.add(result);
-            if (value < minValue) {
-                pass = false;
-            }
-        }
-        return new MetricResult(results, pass);
+        return MetricUtilities.getTopNResults("nDCG", N, null, minValue, DCG, cnt);
     }
 }

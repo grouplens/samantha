@@ -65,6 +65,7 @@ public class TensorFlowModelProducer {
                                                                   SpaceMode spaceMode,
                                                                   String graphDefFilePath,
                                                                   List<String> groupKeys,
+                                                                  List<String> feedFeas,
                                                                   List<List<String>> equalSizeChecks,
                                                                   List<String> indexKeys,
                                                                   List<FeatureExtractor> featureExtractors,
@@ -94,6 +95,7 @@ public class TensorFlowModelProducer {
         }
         return new TensorFlowModel(graph, indexSpace, variableSpace,
                 featureExtractors, lossOper, updateOper, topKId, itemIndex,
-                topKValue, outputOper, topKOper, initOper, groupKeys, equalSizeChecks);
+                topKValue, outputOper, topKOper, initOper, groupKeys, feedFeas,
+                equalSizeChecks);
     }
 }

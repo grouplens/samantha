@@ -51,11 +51,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TensorFlowModel extends AbstractLearningModel implements Featurizer, UncollectableModel {
     private static final long serialVersionUID = 1L;
@@ -71,6 +69,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     private final String topKValue;
     private final String itemIndex;
     private final List<String> groupKeys;
+    private final Set<String> feedFeas;
     private final List<List<String>> equalSizeChecks;
 
     public static final String OOV = "";
@@ -83,9 +82,10 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                            List<FeatureExtractor> featureExtractors,
                            String lossOper, String updateOper, String topKId, String itemIndex,
                            String topKValue, String outputOper, String topKOper, String initOper,
-                           List<String> groupKeys, List<List<String>> equalSizeChecks) {
+                           List<String> groupKeys, List<String> feedFeas, List<List<String>> equalSizeChecks) {
         super(indexSpace, variableSpace);
         this.groupKeys = groupKeys;
+        this.feedFeas = new HashSet<>(feedFeas);
         this.equalSizeChecks = equalSizeChecks;
         this.featureExtractors = featureExtractors;
         this.lossOper = lossOper;
@@ -157,7 +157,8 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             runner.feed(entry.getKey(), entry.getValue());
         }
-        runner.fetch(topKOper);
+        runner.fetch(topKOper, 0);
+        runner.fetch(topKOper, 1);
         List<Tensor<?>> results = runner.run();
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             entry.getValue().close();
@@ -171,7 +172,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         long[] outputShape = topKIndices.shape();
         int k = (int)outputShape[1];
         IntBuffer idxBuffer = IntBuffer.allocate(topKIndices.numElements());
-        DoubleBuffer valBuffer = DoubleBuffer.allocate(topKValues.numElements());
+        FloatBuffer valBuffer = FloatBuffer.allocate(topKValues.numElements());
         topKIndices.writeTo(idxBuffer);
         topKValues.writeTo(valBuffer);
         List<ObjectNode> recs = new ArrayList<>();
@@ -309,6 +310,8 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                     }
                 }
             }
+            valBuffer.rewind();
+            idxBuffer.rewind();
             valBufferMap.put(name, valBuffer);
             idxBufferMap.put(name, idxBuffer);
         }
@@ -326,14 +329,18 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             int numCol = entry.getValue();
             long[] shape = {batch, numCol};
             if (valBufferMap.containsKey(name)) {
-                DoubleBuffer buffer = valBufferMap.get(name).asDoubleBuffer();
-                buffer.rewind();
-                tensorMap.put(name + VALUE_APPENDIX, Tensor.create(shape, buffer));
+                String feaName = name + VALUE_APPENDIX;
+                if (feedFeas.contains(feaName)) {
+                    DoubleBuffer buffer = valBufferMap.get(name).asDoubleBuffer();
+                    tensorMap.put(feaName, Tensor.create(shape, buffer));
+                }
             }
             if (idxBufferMap.containsKey(name)) {
-                IntBuffer buffer = idxBufferMap.get(name).asIntBuffer();
-                buffer.rewind();
-                tensorMap.put(name + INDEX_APPENDIX, Tensor.create(shape, buffer));
+                String feaName = name + INDEX_APPENDIX;
+                if (feedFeas.contains(feaName)) {
+                    IntBuffer buffer = idxBufferMap.get(name).asIntBuffer();
+                    tensorMap.put(feaName, Tensor.create(shape, buffer));
+                }
             }
         }
         return tensorMap;

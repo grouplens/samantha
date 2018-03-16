@@ -111,7 +111,7 @@ class RecommenderBuilder(ModelBuilder):
             predictions = self._prediction_model.get_target_prediction(
                     used_model, paras, target, config)
             return metrics.compute_eval_label_metrics(
-                    self._eval_metrics, predictions, used_labels, tf.shape(labels), indices,
+                    self._eval_metrics, predictions, used_labels, labels, indices,
                     uniq_batch_idx, ori_batch_idx, step_idx)
         else:
             used_model = metrics.get_per_step_eval_user_model(user_model, indices)
@@ -234,10 +234,13 @@ class RecommenderBuilder(ModelBuilder):
                 size = 1
             if config['is_numerical']:
                 name = '%s_val' % attr
+                inputs = tf.cast(
+                    tf.placeholder(tf.float64, shape=(None, size), name=name),
+                    tf.float32)
             else:
                 name = '%s_idx' % attr
-            inputs = tf.placeholder(
-                tf.int32, shape=(None, size), name=name)
+                inputs = tf.placeholder(
+                    tf.int32, shape=(None, size), name=name)
             if config['level'] == 'item':
                 max_seq_len = tf.shape(inputs)[1] / self._page_size
                 inputs = tf.reshape(inputs, [tf.shape(inputs)[0], max_seq_len, self._page_size])
@@ -247,7 +250,8 @@ class RecommenderBuilder(ModelBuilder):
         if max_seq_len is None:
             raise Exception('There must be an item level attribute in attr2config.')
         sequence_length = tf.placeholder(
-                tf.int32, shape=(None, 1), name='sequence_length_val') / self._page_size
+                tf.float64, shape=(None, 1), name='sequence_length_val') / self._page_size
+        sequence_length = tf.cast(sequence_length, tf.int32)
         return max_seq_len, sequence_length, attr2input
 
     def _get_embedders(self):

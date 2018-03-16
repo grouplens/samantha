@@ -27,12 +27,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
-import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.predictor.Prediction;
 import play.Logger;
-import play.libs.Json;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -63,7 +60,7 @@ public class MRR implements Metric {
         Set<String> releItems = new HashSet<>();
         for (JsonNode entity : groundTruth) {
             if (relevanceKey == null || entity.get(relevanceKey).asDouble() >= threshold) {
-                String item = FeatureExtractorUtilities.composeConcatenatedKey(entity, itemKeys);
+                String item = FeatureExtractorUtilities.composeConcatenatedKeyWithoutName(entity, itemKeys);
                 releItems.add(item);
             }
         }
@@ -83,7 +80,7 @@ public class MRR implements Metric {
         double[] rr = new double[N.size()];
         for (int i=0; i<recommendations.size(); i++) {
             int rank = i + 1;
-            String recItem = FeatureExtractorUtilities.composeConcatenatedKey(
+            String recItem = FeatureExtractorUtilities.composeConcatenatedKeyWithoutName(
                     recommendations.get(i).getEntity(), itemKeys);
             if (releItems.contains(recItem)) {
                 for (int j=0; j<N.size(); j++) {
@@ -104,27 +101,6 @@ public class MRR implements Metric {
     }
 
     public MetricResult getResults() {
-        List<ObjectNode> results = new ArrayList<>(N.size());
-        ObjectNode metricPara = Json.newObject();
-        metricPara.put("threshold", threshold);
-        metricPara.put("minValue", minValue);
-        boolean pass = true;
-        for (int i=0; i<N.size(); i++) {
-            ObjectNode result = Json.newObject();
-            result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "MRR");
-            metricPara.put("N", N.get(i));
-            result.put(ConfigKey.EVALUATOR_METRIC_PARA.get(),
-                    metricPara.toString());
-            double value = 0.0;
-            if (cnt > 0) {
-                value = RR.getDouble(i) / cnt;
-            }
-            result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
-            results.add(result);
-            if (value < minValue) {
-                pass = false;
-            }
-        }
-        return new MetricResult(results, pass);
+        return MetricUtilities.getTopNResults("MRR", N, threshold, minValue, RR, cnt);
     }
 }

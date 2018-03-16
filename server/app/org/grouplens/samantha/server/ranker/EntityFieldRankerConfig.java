@@ -55,8 +55,12 @@ public class EntityFieldRankerConfig implements RankerConfig {
         if (rankerConfig.asMap().containsKey("whetherOrder")) {
             whetherOrder = rankerConfig.getBoolean("whetherOrder"); 
         }
+        Boolean ascending = rankerConfig.getBoolean("ascending");
+        if (ascending == null) {
+            ascending = false;
+        }
         return new EntityFieldRankerConfig(rankerConfig, pageSize, rankerConfig.getString("orderField"),
-                whetherOrder, rankerConfig.getBoolean("ascending"));
+                whetherOrder, ascending);
     }
 
     public Ranker getRanker(RequestContext requestContext) {

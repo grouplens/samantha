@@ -34,16 +34,18 @@ public class MAPConfig implements MetricConfig {
     private final List<Integer> N;
     private final List<String> itemKeys;
     private final String relevanceKey;
+    private final String separator;
     private final double threshold;
     private final double minValue;
 
     private MAPConfig(List<Integer> N, List<String> itemKeys, String relevanceKey,
-                      double threshold, double minValue) {
+                      double threshold, double minValue, String separator) {
         this.N = N;
         this.itemKeys = itemKeys;
         this.relevanceKey = relevanceKey;
         this.threshold = threshold;
         this.minValue = minValue;
+        this.separator = separator;
     }
 
     public static MetricConfig getMetricConfig(Configuration metricConfig,
@@ -58,10 +60,10 @@ public class MAPConfig implements MetricConfig {
         }
         return new MAPConfig(metricConfig.getIntList("N"),
                 metricConfig.getStringList("itemKeys"), metricConfig.getString("relevanceKey"),
-                threshold, minValue);
+                threshold, minValue, metricConfig.getString("separator"));
     }
 
     public Metric getMetric(RequestContext requestContext) {
-        return new MAP(N, itemKeys, relevanceKey, threshold, minValue);
+        return new MAP(N, itemKeys, relevanceKey, separator, threshold, minValue);
     }
 }

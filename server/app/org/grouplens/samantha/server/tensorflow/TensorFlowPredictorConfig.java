@@ -52,6 +52,7 @@ import java.util.List;
 
 public class TensorFlowPredictorConfig implements PredictorConfig {
     private final List<String> groupKeys;
+    private final List<String> feedFeas;
     private final List<List<String>> equalSizeChecks;
     private final List<String> indexKeys;
     private final List<String> evaluatorNames;
@@ -75,7 +76,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
     private final String graphDefFilePath;
     private final Configuration config;
 
-    private TensorFlowPredictorConfig(List<String> groupKeys, List<String> indexKeys,
+    private TensorFlowPredictorConfig(List<String> groupKeys, List<String> feedFeas, List<String> indexKeys,
                                       List<List<String>> equalSizeChecks, List<String> evaluatorNames,
                                       String modelFile, String modelName,
                                       List<FeatureExtractorConfig> feaExtConfigs,
@@ -88,6 +89,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                                       String topKId, String topKValue, String itemIndex,
                                       String graphDefFilePath, Configuration config) {
         this.groupKeys = groupKeys;
+        this.feedFeas = feedFeas;
         this.indexKeys = indexKeys;
         this.equalSizeChecks = equalSizeChecks;
         this.evaluatorNames = evaluatorNames;
@@ -134,6 +136,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
         }
         return new TensorFlowPredictorConfig(
                 predictorConfig.getStringList("groupKeys"),
+                predictorConfig.getStringList("feedFeas"),
                 predictorConfig.getStringList("indexKeys"),
                 equalSizeChecks, evaluatorNames,
                 predictorConfig.getString("modelFile"),
@@ -170,7 +173,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
             TensorFlowModelProducer producer = injector.instanceOf(TensorFlowModelProducer.class);
             return producer.createTensorFlowModelModelFromGraphDef(
                     modelName, spaceMode, graphDefFilePath,
-                    groupKeys, equalSizeChecks, indexKeys,
+                    groupKeys, feedFeas, equalSizeChecks, indexKeys,
                     featureExtractors,
                     lossOper, updateOper,
                     outputOper, initOper, topKOper,
