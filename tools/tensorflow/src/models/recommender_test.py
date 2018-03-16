@@ -7,7 +7,10 @@ import tensorflow as tf
 from src.trainer import ModelTrainer
 from src.datasets.json_list import JsonListDataSet
 from src.models.sequence_user_model import SequenceUserModel
+from src.models.svdpp_user_model import SVDPPUserModel
 from src.models.softmax_prediction_model import SoftmaxPredictionModel
+from src.models.ccf_prediction_model import CCFSoftmaxModel
+from src.models.bpr_prediction_model import BPRPredictionModel
 from src.models.hsm_prediction_model import HierarchicalPredictionModel
 from src.models.recommender import RecommenderBuilder
 
@@ -59,10 +62,6 @@ class RecommenderTest(unittest.TestCase):
                 np.testing.assert_array_equal(tensor_vals['eval_indices'], np.array([
                     [0, 3, 0], [1, 6, 0],
                 ]))
-                np.testing.assert_array_equal(tensor_vals['train_labels'], np.array([
-                    10, 9,
-                ]))
-                np.testing.assert_array_equal(tensor_vals['eval_labels'], np.array([14, 8]))
 
     def test_run_seq_flat_tstamp_eval(self):
         embedding_dim = 10
@@ -114,8 +113,6 @@ class RecommenderTest(unittest.TestCase):
                 np.testing.assert_array_equal(tensor_vals['eval_indices'], np.array([
                     [0, 1, 0], [1, 4, 0],
                 ]))
-                np.testing.assert_array_equal(tensor_vals['train_labels'], np.array([4, 11, 2]))
-                np.testing.assert_array_equal(tensor_vals['eval_labels'], np.array([9, 4]))
 
     def test_train_sequence_hsm_model(self):
         embedding_dim = 10
@@ -239,6 +236,144 @@ class RecommenderTest(unittest.TestCase):
             train_data, builder=model_builder, max_steps=10,
             tensorboard_dir=self._test_path)
         model_trainer.train('recommender_test_sequence_softmax_model_run0')
+
+    def test_train_ccf_softmax_model(self):
+        user_vocab_size = 15
+        item_vocab_size = 20
+        embedding_dim = 5
+        softmax_dim = embedding_dim
+        page_size = 3
+        user_model = SVDPPUserModel(item_attrs=[])
+        softmax_model = CCFSoftmaxModel('user', user_vocab_size, 'display', page_size, config={
+            'item': {'vocab_size': item_vocab_size, 'softmax_dim': softmax_dim}})
+        model_builder = RecommenderBuilder(
+            user_model, softmax_model,
+            page_size=page_size,
+            attr2config={
+                'display': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'item': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'user': {
+                    'vocab_size': user_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'user'
+                }
+            },
+            embedding_attrs=['user'],
+            target2config={
+                'item': {
+                    'weight': 1.0
+                }
+            },
+        )
+        batches = []
+        batch_size = 4
+        for i in range(10):
+            max_seq_len = random.randint(5, 10)
+            batch = {'user_idx': [], 'item_idx': [], 'display_idx': [], 'sequence_length_val': []}
+            for l in range(batch_size):
+                batch['user_idx'].append([random.randint(1, user_vocab_size - 1)])
+                batch['sequence_length_val'].append([random.randint(2, max_seq_len) * page_size])
+                batch['item_idx'].append([])
+                batch['display_idx'].append([])
+                for j in range(max_seq_len):
+                    for k in range(page_size):
+                        if j < batch['sequence_length_val'][l][0] / page_size:
+                            idx = random.randint(1, item_vocab_size - 1)
+                            batch['display_idx'][l].append(idx)
+                            act_dice = random.random()
+                            if act_dice < 0.01:
+                                batch['item_idx'][l].append(idx)
+                            else:
+                                batch['item_idx'][l].append(0)
+                        else:
+                            batch['display_idx'][l].append(0)
+                            batch['item_idx'][l].append(0)
+            batches.append(batch)
+        train_data = JsonListDataSet(batches)
+        model_trainer = ModelTrainer(
+            train_data, builder=model_builder, max_steps=10,
+            tensorboard_dir=self._test_path)
+        model_trainer.train('recommender_test_ccf_softmax_model_run0')
+
+    def test_train_bpr_model(self):
+        user_vocab_size = 15
+        item_vocab_size = 20
+        embedding_dim = 5
+        sigmoid_dim = embedding_dim
+        page_size = 3
+        user_model = SVDPPUserModel(item_attrs=[])
+        softmax_model = BPRPredictionModel('display', page_size, config={
+            'item': {'vocab_size': item_vocab_size, 'sigmoid_dim': sigmoid_dim}})
+        model_builder = RecommenderBuilder(
+            user_model, softmax_model,
+            page_size=page_size,
+            attr2config={
+                'display': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'item': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'user': {
+                    'vocab_size': user_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'user'
+                }
+            },
+            embedding_attrs=['user'],
+            target2config={
+                'item': {
+                    'weight': 1.0
+                }
+            },
+        )
+        batches = []
+        batch_size = 4
+        for i in range(10):
+            max_seq_len = random.randint(5, 10)
+            batch = {'user_idx': [], 'item_idx': [], 'display_idx': [], 'sequence_length_val': []}
+            for l in range(batch_size):
+                batch['user_idx'].append([random.randint(1, user_vocab_size - 1)])
+                batch['sequence_length_val'].append([random.randint(2, max_seq_len) * page_size])
+                batch['item_idx'].append([])
+                batch['display_idx'].append([])
+                for j in range(max_seq_len):
+                    for k in range(page_size):
+                        if j < batch['sequence_length_val'][l][0] / page_size:
+                            idx = random.randint(1, item_vocab_size - 1)
+                            batch['display_idx'][l].append(idx)
+                            act_dice = random.random()
+                            if act_dice < 0.5:
+                                batch['item_idx'][l].append(idx)
+                            else:
+                                batch['item_idx'][l].append(0)
+                        else:
+                            batch['display_idx'][l].append(0)
+                            batch['item_idx'][l].append(0)
+            batches.append(batch)
+        train_data = JsonListDataSet(batches)
+        model_trainer = ModelTrainer(
+            train_data, builder=model_builder, max_steps=10,
+            tensorboard_dir=self._test_path)
+        model_trainer.train('recommender_test_bpr_model_run0')
 
 if __name__ == '__main__':
     unittest.main()

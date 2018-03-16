@@ -20,14 +20,29 @@
  * SOFTWARE.
  */
 
-package org.grouplens.samantha.server.evaluator.metric;
+package org.grouplens.samantha.modeler.metric;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.grouplens.samantha.server.predictor.Prediction;
 
 import java.util.List;
 
-public interface Metric {
-    void add(List<ObjectNode> groundTruth, List<Prediction> results);
-    MetricResult getResults();
+public class MetricResult {
+    @JsonProperty
+    private final List<ObjectNode> values;
+    @JsonProperty
+    private final boolean pass;
+
+    public MetricResult(List<ObjectNode> values, boolean pass) {
+        this.values = values;
+        this.pass = pass;
+    }
+
+    public List<ObjectNode> getValues() {
+        return values;
+    }
+
+    public boolean getPass() {
+        return pass;
+    }
 }

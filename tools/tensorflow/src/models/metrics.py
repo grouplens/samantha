@@ -108,7 +108,7 @@ def get_eval_user_model(user_model, indices):
     return used_model, uniq_batch_idx, ori_batch_idx, step_idx
 
 
-def compute_eval_label_metrics(metrics, predictions, used_labels, label_shape, indices,
+def compute_eval_label_metrics(metrics, predictions, used_labels, labels, indices,
         uniq_batch_idx, ori_batch_idx, step_idx):
     new_batch_idx = tf.gather(tf.range(tf.shape(uniq_batch_idx)[0]), ori_batch_idx)
     new_indices = tf.concat([
@@ -118,6 +118,7 @@ def compute_eval_label_metrics(metrics, predictions, used_labels, label_shape, i
                  begin=[0, 2],
                  size=[tf.shape(indices)[0], 1])],
         axis=1)
+    label_shape = tf.shape(labels)
     eval_labels = tf.sparse_reshape(
         tf.SparseTensor(
             tf.cast(new_indices, tf.int64),

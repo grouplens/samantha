@@ -28,7 +28,7 @@ import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.dao.EntityDAOUtilities;
-import org.grouplens.samantha.server.evaluator.metric.Metric;
+import org.grouplens.samantha.modeler.metric.Metric;
 import org.grouplens.samantha.server.evaluator.metric.MetricConfig;
 import org.grouplens.samantha.server.indexer.Indexer;
 import org.grouplens.samantha.server.io.RequestContext;

@@ -5,15 +5,18 @@ import tensorflow as tf
 from src.models.prediction_model import PredictionModel
 
 
-class SoftmaxPredictionModel(PredictionModel):
+class CCFSoftmaxModel(PredictionModel):
 
-    def __init__(self, config=None):
+    def __init__(self, user_attr, user_vocab_size, context_attr, context_size, config=None):
+        self._user_attr = user_attr
+        self._user_vocab_size = user_vocab_size
+        self._context_attr = context_attr
+        self._context_size = context_size
         if config is None:
             self._softmax_config = {
                 'item': {
                     'vocab_size':  10,
                     'softmax_dim': 10,
-                    'num_sampled': 10,
                     'attrs': {
                         'tag': [random.randint(0, 5) for _ in range(10)],
                         'genre': [random.randint(0, 3) for _ in range(10)],
@@ -26,13 +29,10 @@ class SoftmaxPredictionModel(PredictionModel):
                 'genre': {
                     'vocab_size':  3,
                     'softmax_dim': 10,
-                }
+                },
             }
         else:
             self._softmax_config = config
-            for key, val in self._softmax_config.iteritems():
-                if 'num_sampled' not in val:
-                    val['num_sampled'] = val['vocab_size']
 
     def _get_softmax_paras(self, target, target_softmax):
         weights = tf.get_variable(
@@ -62,29 +62,53 @@ class SoftmaxPredictionModel(PredictionModel):
     def get_target_paras(self, target, config):
         target_softmax = self._softmax_config[target]
         weights, biases = self._get_softmax_paras(target, target_softmax)
+        inactions = tf.get_variable(
+            'inactions', shape=[self._user_vocab_size],
+            dtype=tf.float32, initializer=tf.zeros_initializer)
         paras = {
             'weights': weights,
             'biases': biases,
+            'inactions': inactions,
         }
         return paras
 
     def get_target_loss(self, used_model, labels, indices, user_model,
-            paras, target, config, mode, context):
-        target_softmax = self._softmax_config[target]
-        mask = tf.gather_nd(labels, indices) > 0
-        indices = tf.boolean_mask(indices, mask)
+                        paras, target, config, mode, context):
+        display = context[self._context_attr]
+        used_display = tf.gather_nd(display, indices)
+        weights = tf.gather(paras['weights'], used_display)
+        biases = tf.gather(paras['biases'], used_display)
+        logits = tf.reduce_sum(used_model * weights, axis=1) + biases
+        logits = tf.reshape(logits, [tf.shape(logits)[0] / self._context_size, self._context_size])
+
+        user = context[self._user_attr]
+        batch_idx = tf.reshape(
+            tf.slice(indices,
+                     begin=[0, 0],
+                     size=[tf.shape(indices)[0], 1]),
+            [tf.shape(indices)[0] / self._context_size, self._context_size])
+        batch_idx = tf.reshape(
+            tf.slice(batch_idx,
+                     begin=[0, 0],
+                     size=[tf.shape(batch_idx)[0], 1]), [-1])
+        used_user = tf.gather(tf.reshape(user, [-1]), batch_idx)
+        inaction_logits = tf.gather(paras['inactions'], used_user)
+        inaction_logits = tf.reshape(inaction_logits,
+                                     [tf.shape(inaction_logits)[0], 1])
+
+        extended_logits = tf.concat([logits, inaction_logits], axis=1)
+        extended_probs = tf.nn.softmax(extended_logits)
+
         used_labels = tf.gather_nd(labels, indices)
-        used_model = tf.boolean_mask(used_model, mask)
-        if target_softmax['num_sampled'] >= target_softmax['vocab_size'] - 1:
-            logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
-            losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
-                labels=used_labels, logits=logits)
-        else:
-            losses = tf.nn.sampled_softmax_loss(paras['weights'], paras['biases'],
-                                                tf.expand_dims(used_labels, 1), used_model,
-                                                target_softmax['num_sampled'], target_softmax['vocab_size'])
+        used_labels = tf.reshape(used_labels, [tf.shape(used_labels)[0] / self._context_size, self._context_size])
+        used_mask = used_labels > 0
+        inaction_mask = tf.reduce_all(tf.equal(used_labels, 0), axis=1)
+        extended_mask = tf.concat([used_mask, tf.expand_dims(inaction_mask, 1)], axis=1)
+
+        probs = tf.boolean_mask(extended_probs, extended_mask),
+        losses = -tf.log(tf.maximum(probs, 1e-07))
         loss = tf.reduce_sum(losses)
-        return tf.shape(used_labels)[0], loss, []
+        return tf.shape(losses)[0], loss, []
 
     def get_target_prediction(self, used_model, paras, target, config):
         logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']

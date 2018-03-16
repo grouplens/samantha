@@ -70,6 +70,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
     private final String initOper;
     private final String topKOper;
     private final String topKId;
+    private final String topKValue;
     private final String itemIndex;
     private final String graphDefFilePath;
     private final Configuration config;
@@ -84,7 +85,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                                       List<Configuration> expandersConfig, String daoConfigKey,
                                       String outputOper, String updateOper,
                                       String lossOper, String initOper, String topKOper,
-                                      String topKId, String itemIndex,
+                                      String topKId, String topKValue, String itemIndex,
                                       String graphDefFilePath, Configuration config) {
         this.groupKeys = groupKeys;
         this.indexKeys = indexKeys;
@@ -101,6 +102,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
         this.lossOper = lossOper;
         this.initOper = initOper;
         this.topKId = topKId;
+        this.topKValue = topKValue;
         this.topKOper = topKOper;
         this.itemIndex = itemIndex;
         this.graphDefFilePath = graphDefFilePath;
@@ -147,6 +149,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                 predictorConfig.getString("initOper"),
                 predictorConfig.getString("topKOper"),
                 predictorConfig.getString("topKId"),
+                predictorConfig.getString("topKValue"),
                 predictorConfig.getString("itemIndex"),
                 predictorConfig.getString("graphDefFilePath"),
                 predictorConfig);
@@ -170,7 +173,8 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                     groupKeys, equalSizeChecks, indexKeys,
                     featureExtractors,
                     lossOper, updateOper,
-                    outputOper, initOper, topKOper, topKId, itemIndex);
+                    outputOper, initOper, topKOper,
+                    topKId, topKValue, itemIndex);
         }
 
         public Object buildModel(Object model, RequestContext requestContext) {

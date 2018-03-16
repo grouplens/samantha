@@ -22,6 +22,7 @@
 
 package org.grouplens.samantha.server.evaluator.metric;
 
+import org.grouplens.samantha.modeler.metric.Metric;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
