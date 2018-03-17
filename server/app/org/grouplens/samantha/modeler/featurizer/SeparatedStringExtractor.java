@@ -68,20 +68,22 @@ public class SeparatedStringExtractor implements FeatureExtractor {
             if (entity.has(attrName)) {
                 attr = entity.get(attrName).asText();
             }
-            String[] fields = attr.split(separator, -1);
-            int start = 0;
-            if (maxFeatures != null && fields.length > maxFeatures) {
-                start = fields.length - maxFeatures;
-            }
-            double val = 1.0;
-            if (fields.length > 0 && normalize) {
-                val = 1.0 / Math.sqrt(fields.length - start);
-            }
-            for (int i=start; i<fields.length; i++) {
-                String field = fields[i];
-                String key = FeatureExtractorUtilities.composeKey(attrName, field);
-                FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                        indexSpace, indexName, key, val);
+            if (!"".equals(attr)) {
+                String[] fields = attr.split(separator, -1);
+                int start = 0;
+                if (maxFeatures != null && fields.length > maxFeatures) {
+                    start = fields.length - maxFeatures;
+                }
+                double val = 1.0;
+                if (fields.length > 0 && normalize) {
+                    val = 1.0 / Math.sqrt(fields.length - start);
+                }
+                for (int i = start; i < fields.length; i++) {
+                    String field = fields[i];
+                    String key = FeatureExtractorUtilities.composeKey(attrName, field);
+                    FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
+                            indexSpace, indexName, key, val);
+                }
             }
             feaMap.put(feaName, features);
         }

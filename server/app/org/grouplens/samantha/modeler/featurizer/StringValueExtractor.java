@@ -52,9 +52,12 @@ public class StringValueExtractor implements FeatureExtractor {
         Map<String, List<Feature>> feaMap = new HashMap<>();
         if (entity.has(attrName)) {
             List<Feature> features = new ArrayList<>();
-            String key = FeatureExtractorUtilities.composeKey(attrName, entity.get(attrName).asText());
-            FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                    indexSpace, indexName, key, 1.0);
+            String valStr = entity.get(attrName).asText();
+            if (!"".equals(valStr)) {
+                String key = FeatureExtractorUtilities.composeKey(attrName, valStr);
+                FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
+                        indexSpace, indexName, key, 1.0);
+            }
             feaMap.put(feaName, features);
         } else {
             logger.warn("{} is not present in {}", attrName, entity);

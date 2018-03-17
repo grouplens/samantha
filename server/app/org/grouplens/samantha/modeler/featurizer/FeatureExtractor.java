@@ -54,6 +54,7 @@ public interface FeatureExtractor extends Serializable {
      *                   {@link org.grouplens.samantha.modeler.model.SpaceModel SpaceModel}
      * @return a map of feature lists from the feature name to the actual list of features.
      */
+    //TODO: make it a convention that if the value of an attribute is "", set an empty feature list
     Map<String, List<Feature>> extract(JsonNode entity, boolean update,
                                        IndexSpace indexSpace);
 }

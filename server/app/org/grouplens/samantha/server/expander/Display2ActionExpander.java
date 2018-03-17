@@ -98,23 +98,26 @@ public class Display2ActionExpander implements EntityExpander {
             String[] actions = entity.get(actionName).asText().split(separator, -1);
             int end = actions.length;
             if (tstampAttr != null) {
-                String[] fstamp = entity.get(tstampAttr).asText().split(separator, -1);
-                int i;
-                for (i=0; i<fstamp.length; i++) {
-                    String tstamp = fstamp[i];
-                    int istamp = Integer.parseInt(tstamp);
-                    if (istamp >= splitTstamp) {
-                        break;
+                String tstampStr = entity.get(tstampAttr).asText();
+                if (!"".equals(tstampStr)) {
+                    String[] fstamp = tstampStr.split(separator, -1);
+                    int i;
+                    for (i=0; i<fstamp.length; i++) {
+                        String tstamp = fstamp[i];
+                        int istamp = Integer.parseInt(tstamp);
+                        if (istamp >= splitTstamp) {
+                            break;
+                        }
                     }
+                    String[] indices = entity.get(inGrpRank).asText().split(separator, -1);
+                    end = i + FeatureExtractorUtilities.getForwardEnd(
+                            ArrayUtils.subarray(indices, i, end), maxGrpNum, grpSize);
                 }
-                String[] indices = entity.get(inGrpRank).asText().split(separator, -1);
-                end = i + FeatureExtractorUtilities.getForwardEnd(
-                        ArrayUtils.subarray(indices, i, end), maxGrpNum, grpSize);
             }
             boolean include = false;
             for (int i=0; i<end; i++) {
                 String act = actions[i];
-                if (Double.parseDouble(act) > 0.0) {
+                if ("".equals(act) || Double.parseDouble(act) > 0.0) {
                     for (int j=0; j<valueStrs.size(); j++) {
                         valueStrs.get(j).add(values.get(j)[i]);
                     }

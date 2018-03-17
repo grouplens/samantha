@@ -71,6 +71,9 @@ public class SeparatedStringSizeExtractor implements FeatureExtractor {
             List<Feature> features = new ArrayList<>();
             String attr = entity.get(attrName).asText();
             int size = StringUtils.countMatches(attr, separator) + 1;
+            if ("".equals(attr)) {
+                size = 0;
+            }
             if (maxFeatures != null && size > maxFeatures) {
                 size = maxFeatures;
             }
