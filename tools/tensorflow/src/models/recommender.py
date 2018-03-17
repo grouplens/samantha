@@ -219,8 +219,8 @@ class RecommenderBuilder(ModelBuilder):
                             target2paras[target], target, config)
             train_loss += config['weight'] * train_target_loss
             eval_loss += config['weight'] * eval_target_loss
-        train_loss = train_loss / tf.maximum(1.0, num_train_labels)
-        eval_loss = eval_loss / tf.maximum(1.0, num_eval_labels)
+        train_loss = tf.div(train_loss, tf.maximum(1.0, num_train_labels), name='train_loss')
+        eval_loss = tf.div(eval_loss, tf.maximum(1.0, num_eval_labels), name='eval_loss')
         tf.summary.scalar('train_loss', train_loss)
         tf.summary.scalar('eval_loss', eval_loss)
         return train_loss, updates, target2paras
