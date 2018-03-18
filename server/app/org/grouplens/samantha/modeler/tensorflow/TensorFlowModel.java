@@ -179,15 +179,16 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         int iter = 0;
         for (int i=0; i<instances.size(); i++) {
             for (int j=0; j<k; j++) {
-                int itemIdx = idxBuffer.get(iter++);
+                int itemIdx = idxBuffer.get(iter);
                 if (indexSpace.getKeyMapSize(itemIndex) > itemIdx) {
                     String fea = (String) indexSpace.getKeyForIndex(itemIndex, itemIdx);
                     ObjectNode rec = Json.newObject();
                     rec.put(topKId, i);
                     IOUtilities.parseEntityFromStringMap(rec, FeatureExtractorUtilities.decomposeKey(fea));
-                    rec.put(topKValue, valBuffer.get(iter++));
+                    rec.put(topKValue, valBuffer.get(iter));
                     recs.add(rec);
                 }
+                iter++;
             }
         }
         for (int i=0; i<results.size(); i++) {
