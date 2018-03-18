@@ -28,4 +28,6 @@ def get_normalized_sum(embedding):
 
 def get_rnn_output(inputs, rnn_size):
     rnn_layer = tf.keras.layers.GRU(rnn_size, return_sequences=True, dtype=tf.float32)
-    return rnn_layer(inputs)
+    return tf.cond(tf.shape(inputs)[1] > 0,
+                   lambda: rnn_layer(inputs),
+                   lambda: tf.zeros([tf.shape(inputs)[0], 0, rnn_size]))
