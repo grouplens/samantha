@@ -39,14 +39,17 @@ import java.util.List;
 public class NDCG implements Metric {
     private final List<Integer> N;
     private final List<String> itemKeys;
+    private final List<String> recKeys;
     private final String relevanceKey;
     private final double minValue;
     private int cnt = 0;
     private DoubleList DCG;
 
-    public NDCG(List<Integer> N, List<String> itemKeys, String relevanceKey, double minValue) {
+    public NDCG(List<Integer> N, List<String> itemKeys, List<String> recKeys,
+                String relevanceKey, double minValue) {
         this.N = N;
         this.itemKeys = itemKeys;
+        this.recKeys = recKeys;
         this.relevanceKey = relevanceKey;
         this.minValue = minValue;
         this.DCG = new DoubleArrayList(N.size());
@@ -75,7 +78,7 @@ public class NDCG implements Metric {
         for (int i=0; i<recommendations.size(); i++) {
             int rank = i + 1;
             String recItem = FeatureExtractorUtilities.composeConcatenatedKeyWithoutName(
-                    recommendations.get(i).getEntity(), itemKeys);
+                    recommendations.get(i).getEntity(), recKeys);
             if (releItems.containsKey(recItem)) {
                 for (int j=0; j<N.size(); j++) {
                     int n = N.get(j);

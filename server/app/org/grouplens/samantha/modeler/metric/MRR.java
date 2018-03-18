@@ -37,16 +37,18 @@ import java.util.Set;
 public class MRR implements Metric {
     private final List<Integer> N;
     private final List<String> itemKeys;
+    private final List<String> recKeys;
     private final String relevanceKey;
     private final double threshold;
     private final double minValue;
     private int cnt = 0;
     private DoubleList RR;
 
-    public MRR(List<Integer> N, List<String> itemKeys, String relevanceKey,
+    public MRR(List<Integer> N, List<String> itemKeys, List<String> recKeys, String relevanceKey,
                double threshold, double minValue) {
         this.N = N;
         this.itemKeys = itemKeys;
+        this.recKeys = recKeys;
         this.relevanceKey = relevanceKey;
         this.threshold = threshold;
         this.minValue = minValue;
@@ -81,7 +83,7 @@ public class MRR implements Metric {
         for (int i=0; i<recommendations.size(); i++) {
             int rank = i + 1;
             String recItem = FeatureExtractorUtilities.composeConcatenatedKeyWithoutName(
-                    recommendations.get(i).getEntity(), itemKeys);
+                    recommendations.get(i).getEntity(), recKeys);
             if (releItems.contains(recItem)) {
                 for (int j=0; j<N.size(); j++) {
                     int n = N.get(j);
