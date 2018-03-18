@@ -22,8 +22,6 @@
 
 package org.grouplens.samantha.modeler.metric;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
@@ -31,7 +29,6 @@ import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.server.predictor.Prediction;
 import play.Logger;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -40,15 +37,17 @@ public class MAP implements Metric {
     private DoubleList AP;
     private final List<Integer> N;
     private final List<String> itemKeys;
+    private final List<String> recKeys;
     private final String relevanceKey;
     private final String separator;
     private final double threshold;
     private final double minValue;
 
-    public MAP(List<Integer> N, List<String> itemKeys, String relevanceKey,
+    public MAP(List<Integer> N, List<String> itemKeys, List<String> recKeys, String relevanceKey,
                String separator, double threshold, double minValue) {
         this.N = N;
         this.itemKeys = itemKeys;
+        this.recKeys = recKeys;
         this.relevanceKey = relevanceKey;
         this.separator = separator;
         this.threshold = threshold;
@@ -80,7 +79,7 @@ public class MAP implements Metric {
         for (int i=0; i<recommendations.size(); i++) {
             int rank = i + 1;
             String recItem = FeatureExtractorUtilities.composeConcatenatedKeyWithoutName(
-                    recommendations.get(i).getEntity(), itemKeys);
+                    recommendations.get(i).getEntity(), recKeys);
             int hit = 0;
             if (releItems.contains(recItem)) {
                 hit = 1;

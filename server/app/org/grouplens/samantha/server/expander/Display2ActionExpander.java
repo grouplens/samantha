@@ -123,7 +123,7 @@ public class Display2ActionExpander implements EntityExpander {
             boolean include = false;
             for (int i=0; i<end; i++) {
                 String act = actions[i];
-                if ("".equals(act) || Double.parseDouble(act) > 0.0) {
+                if (!"".equals(act) && Double.parseDouble(act) > 0.0) {
                     for (int j=0; j<valueStrs.size(); j++) {
                         valueStrs.get(j).add(values.get(j)[i]);
                     }
