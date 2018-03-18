@@ -243,7 +243,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                 String name = entry.getKey();
                 int[] values = entry.getValue();
                 int cur = numCols.getOrDefault(name, 0);
-                if (values.length > cur) {
+                if (values.length >= cur) {
                     numCols.put(name, values.length);
                 }
             }

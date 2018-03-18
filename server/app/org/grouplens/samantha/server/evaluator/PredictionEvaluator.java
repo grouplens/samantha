@@ -25,6 +25,8 @@ package org.grouplens.samantha.server.evaluator;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.instance.GroupedEntityList;
 import org.grouplens.samantha.modeler.metric.MetricResult;
+import org.grouplens.samantha.server.expander.EntityExpander;
+import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.modeler.metric.Metric;
 import org.grouplens.samantha.server.indexer.Indexer;
@@ -39,6 +41,7 @@ import java.util.List;
 public class PredictionEvaluator implements Evaluator {
     final private Predictor predictor;
     final private EntityDAO entityDAO;
+    final private List<EntityExpander> expanders;
     final private List<String> groupKeys;
     final private List<Metric> metrics;
     final private List<Indexer> indexers;
@@ -46,12 +49,14 @@ public class PredictionEvaluator implements Evaluator {
 
     public PredictionEvaluator(Predictor predictor,
                                EntityDAO entityDAO,
+                               List<EntityExpander> expanders,
                                List<String> groupKeys,
                                List<Metric> metrics,
                                List<Indexer> indexers,
                                List<Indexer> predIndexers) {
         this.predictor = predictor;
         this.entityDAO = entityDAO;
+        this.expanders = expanders;
         this.metrics = metrics;
         this.indexers = indexers;
         this.groupKeys = groupKeys;
@@ -80,13 +85,21 @@ public class PredictionEvaluator implements Evaluator {
         GroupedEntityList groupedEntityList = new GroupedEntityList(groupKeys, 1, entityDAO);
         List<ObjectNode> entityList;
         int cnt = 0;
+        int skipped = 0;
         while ((entityList = groupedEntityList.getNextGroup()).size() > 0) {
-            getPredictionMetrics(requestContext, entityList);
-            cnt++;
-            if (cnt % 10000 == 0) {
-                Logger.info("Evaluated on {} groups.", cnt);
+            entityList = ExpanderUtilities.expand(entityList, expanders, requestContext);
+            if (entityList.size() > 0) {
+                getPredictionMetrics(requestContext, entityList);
+                cnt++;
+                if (cnt % 10000 == 0) {
+                    Logger.info("Evaluated on {} groups.", cnt);
+                }
+            } else {
+                skipped++;
             }
         }
+        Logger.info("Evaluated on {} groups.", cnt);
+        Logger.info("Skipped {} groups to evaluate on because of empty ground truth.", skipped);
         List<MetricResult> metricResults = EvaluatorUtilities.indexMetrics(predictor.getConfig(),
                 requestContext, metrics, indexers);
         return new Evaluation(metricResults);
