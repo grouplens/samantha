@@ -77,7 +77,8 @@ public class TensorFlowBatchIndexerTest extends WithApplication {
         TensorFlowModel model = new TensorFlowModelProducer(spaceProducer)
                 .createTensorFlowModelModelFromGraphDef(
                         "name", SpaceMode.DEFAULT, "shouldNotExist.graph",
-                        null, null, Lists.newArrayList("ITEM", "ATTR", "SEQ_LEN"),
+                        null, new ArrayList<>(), null,
+                        Lists.newArrayList("ITEM", "ATTR", "SEQ_LEN"),
                         featureExtractors, "loss", "update",
                         "output", "init", "top_k",
                         "topKId", "topKValue", "ITEM");

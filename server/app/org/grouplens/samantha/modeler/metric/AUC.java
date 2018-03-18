@@ -136,7 +136,7 @@ public class AUC implements Metric {
         para.put("type", aucType.get());
         para.put("threshold", threshold);
         para.put("N", N);
-        result.put(ConfigKey.EVALUATOR_METRIC_PARA.get(), para.toString());
+        result.set(ConfigKey.EVALUATOR_METRIC_PARA.get(), para);
         double value = aucType.getAUC(this);
         result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
         List<ObjectNode> results = new ArrayList<>(1);

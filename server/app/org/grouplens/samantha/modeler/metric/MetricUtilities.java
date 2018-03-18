@@ -52,8 +52,7 @@ public class MetricUtilities {
             ObjectNode result = Json.newObject();
             result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), metricName);
             metricPara.put("N", N.get(i));
-            result.put(ConfigKey.EVALUATOR_METRIC_PARA.get(),
-                    metricPara.toString());
+            result.set(ConfigKey.EVALUATOR_METRIC_PARA.get(), metricPara);
             double value = 0.0;
             if (cnt > 0) {
                 value = metrics.getDouble(i) / cnt;

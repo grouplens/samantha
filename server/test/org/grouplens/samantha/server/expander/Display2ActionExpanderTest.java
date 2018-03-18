@@ -47,7 +47,8 @@ public class Display2ActionExpanderTest {
     @Test
     public void testExpand() {
         Display2ActionExpander expander = new Display2ActionExpander(nameAttrs, valueAttrs, "\\|",
-                actionName, "|", null, 0, 0, 1, null);
+                actionName, "|", null,
+                0, 0, 1, null, false);
         List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
         assertEquals(1, expanded.size());
         assertEquals("1|6", expanded.get(0).get("tstamp").asText());
@@ -58,7 +59,8 @@ public class Display2ActionExpanderTest {
     @Test
     public void testExpandWithLimit() {
         Display2ActionExpander expander = new Display2ActionExpander(nameAttrs, valueAttrs, "\\|",
-                actionName, "|", "tstamp", 3, 2, 2, "rank");
+                actionName, "|", "tstamp",
+                3, 2, 2, "rank", false);
         List<ObjectNode> expanded = expander.expand(entities, new RequestContext(Json.newObject(), "test"));
         assertEquals(1, expanded.size());
         assertEquals("1", expanded.get(0).get("tstamp").asText());
