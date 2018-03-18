@@ -22,7 +22,6 @@
 
 package org.grouplens.samantha.modeler.metric;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
@@ -30,7 +29,6 @@ import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.server.predictor.Prediction;
 import play.Logger;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -39,17 +37,20 @@ public class MRR implements Metric {
     private final List<String> itemKeys;
     private final List<String> recKeys;
     private final String relevanceKey;
+    private final String separator;
     private final double threshold;
     private final double minValue;
     private int cnt = 0;
     private DoubleList RR;
 
-    public MRR(List<Integer> N, List<String> itemKeys, List<String> recKeys, String relevanceKey,
+    public MRR(List<Integer> N, List<String> itemKeys, List<String> recKeys,
+               String relevanceKey, String separator,
                double threshold, double minValue) {
         this.N = N;
         this.itemKeys = itemKeys;
         this.recKeys = recKeys;
         this.relevanceKey = relevanceKey;
+        this.separator = separator;
         this.threshold = threshold;
         this.minValue = minValue;
         this.RR = new DoubleArrayList(N.size());
@@ -59,13 +60,8 @@ public class MRR implements Metric {
     }
 
     public void add(List<ObjectNode> groundTruth, List<Prediction> recommendations) {
-        Set<String> releItems = new HashSet<>();
-        for (JsonNode entity : groundTruth) {
-            if (relevanceKey == null || entity.get(relevanceKey).asDouble() >= threshold) {
-                String item = FeatureExtractorUtilities.composeConcatenatedKeyWithoutName(entity, itemKeys);
-                releItems.add(item);
-            }
-        }
+        Set<String> releItems = MetricUtilities.getRelevantItems(itemKeys, separator, relevanceKey,
+                threshold, groundTruth);
         if (releItems.size() == 0) {
             return;
         }

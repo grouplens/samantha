@@ -61,7 +61,8 @@ public class EntityFieldRanker extends AbstractRanker {
         }
         List<Prediction> scoredList = new ArrayList<>(entityList.size());
         for (ObjectNode entity : entityList) {
-            scoredList.add(new Prediction(entity, null, 0.0, null));
+            scoredList.add(new Prediction(entity, null,
+                    entity.get(orderField).asDouble(), null));
         }
         List<Prediction> candidates;
         if (whetherOrder) {

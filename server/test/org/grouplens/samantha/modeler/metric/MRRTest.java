@@ -34,11 +34,11 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class MAPTest {
+public class MRRTest {
 
     @Test
-    public void testMAP() {
-        MAP map = new MAP(
+    public void testMRR() {
+        MRR mrr = new MRR(
                 Lists.newArrayList(1, 3),
                 Lists.newArrayList("item"),
                 Lists.newArrayList("item"),
@@ -54,13 +54,13 @@ public class MAPTest {
         Prediction rec3 = new Prediction(
                 gt2, null, 1.0, null);
         List<Prediction> recs1 = Lists.newArrayList(rec1, rec2, rec3);
-        map.add(gts1, recs1);
+        mrr.add(gts1, recs1);
         rec1 = new Prediction(gt1, null, 3.0, null);
         rec2 = new Prediction(ot1, null, 2.0, null);
         rec3 = new Prediction(gt2, null, 1.0, null);
         List<Prediction> recs2 = Lists.newArrayList(rec1, rec2, rec3);
-        map.add(gts1, recs2);
-        MetricResult results = map.getResults();
+        mrr.add(gts1, recs2);
+        MetricResult results = mrr.getResults();
         assertEquals(true, results.getPass());
         assertEquals(2, results.getValues().size());
         for (JsonNode result : results.getValues()) {

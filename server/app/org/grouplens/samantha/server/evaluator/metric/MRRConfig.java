@@ -35,15 +35,18 @@ public class MRRConfig implements MetricConfig {
     private final List<String> itemKeys;
     private final List<String> recKeys;
     private final String relevanceKey;
+    private final String separator;
     private final double threshold;
     private final double minValue;
 
-    private MRRConfig(List<Integer> N, List<String> itemKeys, List<String> recKeys, String relevanceKey,
+    private MRRConfig(List<Integer> N, List<String> itemKeys, List<String> recKeys,
+                      String relevanceKey, String separator,
                       double threshold, double minValue) {
         this.N = N;
         this.itemKeys = itemKeys;
         this.recKeys = recKeys;
         this.relevanceKey = relevanceKey;
+        this.separator = separator;
         this.threshold = threshold;
         this.minValue = minValue;
     }
@@ -65,10 +68,11 @@ public class MRRConfig implements MetricConfig {
         }
         return new MRRConfig(metricConfig.getIntList("N"),
                 itemKeys, recKeys, metricConfig.getString("relevanceKey"),
+                metricConfig.getString("separator"),
                 threshold, minValue);
     }
 
     public Metric getMetric(RequestContext requestContext) {
-        return new MRR(N, itemKeys, recKeys, relevanceKey, threshold, minValue);
+        return new MRR(N, itemKeys, recKeys, relevanceKey, separator, threshold, minValue);
     }
 }

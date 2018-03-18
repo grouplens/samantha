@@ -22,13 +22,11 @@
 
 package org.grouplens.samantha.modeler.metric;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
-import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.retriever.RetrieverUtilities;
@@ -41,16 +39,18 @@ public class NDCG implements Metric {
     private final List<String> itemKeys;
     private final List<String> recKeys;
     private final String relevanceKey;
+    private final String separator;
     private final double minValue;
     private int cnt = 0;
     private DoubleList DCG;
 
     public NDCG(List<Integer> N, List<String> itemKeys, List<String> recKeys,
-                String relevanceKey, double minValue) {
+                String relevanceKey, String separator, double minValue) {
         this.N = N;
         this.itemKeys = itemKeys;
         this.recKeys = recKeys;
         this.relevanceKey = relevanceKey;
+        this.separator = separator;
         this.minValue = minValue;
         this.DCG = new DoubleArrayList(N.size());
         for (int i=0; i<N.size(); i++) {
@@ -59,11 +59,8 @@ public class NDCG implements Metric {
     }
 
     public void add(List<ObjectNode> groundTruth, List<Prediction> recommendations) {
-        Object2DoubleMap<String> releItems = new Object2DoubleOpenHashMap<>();
-        for (JsonNode entity : groundTruth) {
-            String item = FeatureExtractorUtilities.composeConcatenatedKeyWithoutName(entity, itemKeys);
-            releItems.put(item, entity.get(relevanceKey).asDouble());
-        }
+        Object2DoubleMap<String> releItems = MetricUtilities.getRelevantItemsWithValues(
+                itemKeys, separator, relevanceKey, groundTruth);
         int maxN = 0;
         for (Integer n : N) {
             if (n > maxN) {

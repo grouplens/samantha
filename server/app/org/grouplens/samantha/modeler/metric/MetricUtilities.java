@@ -58,6 +58,7 @@ public class MetricUtilities {
                 value = metrics.getDouble(i) / cnt;
             }
             result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
+            result.put(ConfigKey.EVALUATOR_METRIC_SUPPORT.get(), cnt);
             results.add(result);
             if (value < minValue) {
                 pass = false;

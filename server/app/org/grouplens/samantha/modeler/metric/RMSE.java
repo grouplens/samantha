@@ -55,13 +55,13 @@ public class RMSE implements Metric {
         ObjectNode result = Json.newObject();
         result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "RMSE");
         ObjectNode para = Json.newObject();
-        para.put("N", n);
         result.set(ConfigKey.EVALUATOR_METRIC_PARA.get(), para);
         double value = 0.0;
         if (n > 0) {
             value = Math.sqrt(errorSquared / n);
         }
         result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
+        result.put(ConfigKey.EVALUATOR_METRIC_SUPPORT.get(), n);
         List<ObjectNode> results = new ArrayList<>(1);
         results.add(result);
         boolean pass = true;
