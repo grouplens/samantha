@@ -357,7 +357,8 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             entry.getValue().close();
         }
-        StochasticOracle oracle = new StochasticOracle(results.get(0).doubleValue(), 0.0, 1.0);
+        StochasticOracle oracle = new StochasticOracle(
+                (double)results.get(0).floatValue(), 0.0, 1.0);
         results.get(0).close();
         List<StochasticOracle> oracles = new ArrayList<>(1);
         oracles.add(oracle);
