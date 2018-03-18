@@ -44,10 +44,11 @@ public class Display2ActionExpander implements EntityExpander {
     final private int maxGrpNum;
     final private int grpSize;
     final private String inGrpRank;
+    final private boolean alwaysInclude;
 
     public Display2ActionExpander(List<String> nameAttrs, List<String> valueAttrs, String separator,
                                   String actionName, String joiner, String tstampAttr, int splitTstamp,
-                                  int maxGrpNum, int grpSize, String inGrpRank) {
+                                  int maxGrpNum, int grpSize, String inGrpRank, boolean alwaysInclude) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
         this.separator = separator;
@@ -58,6 +59,7 @@ public class Display2ActionExpander implements EntityExpander {
         this.maxGrpNum = maxGrpNum;
         this.grpSize = grpSize;
         this.inGrpRank = inGrpRank;
+        this.alwaysInclude = alwaysInclude;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
@@ -74,6 +76,10 @@ public class Display2ActionExpander implements EntityExpander {
         if (grpSize == null) {
             grpSize = 1;
         }
+        Boolean alwaysInclude = expanderConfig.getBoolean("alwaysInclude");
+        if (alwaysInclude == null) {
+            alwaysInclude = true;
+        }
         return new Display2ActionExpander(
                 expanderConfig.getStringList("nameAttrs"),
                 expanderConfig.getStringList("valueAttrs"),
@@ -82,7 +88,7 @@ public class Display2ActionExpander implements EntityExpander {
                 expanderConfig.getString("joiner"),
                 expanderConfig.getString("tstampAttr"),
                 splitTstamp, maxGrpNum, grpSize,
-                expanderConfig.getString("inGrpRank"));
+                expanderConfig.getString("inGrpRank"), alwaysInclude);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
@@ -124,7 +130,7 @@ public class Display2ActionExpander implements EntityExpander {
                     include = true;
                 }
             }
-            if (include) {
+            if (include || alwaysInclude) {
                 ObjectNode newEntity = entity.deepCopy();
                 for (int j=0; j<valueAttrs.size(); j++) {
                     newEntity.put(valueAttrs.get(j), StringUtils.join(valueStrs.get(j), joiner));
