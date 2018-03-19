@@ -73,12 +73,19 @@ public class SeparatedIdentityGroupExtractor implements FeatureExtractor {
         Map<String, List<Feature>> feaMap = new HashMap<>();
         if (entity.has(attrName) && entity.has(inGrpRankName)) {
             List<Feature> features = new ArrayList<>();
-            String[] fields = entity.get(attrName).asText().split(separator, -1);
-            String[] indices = entity.get(inGrpRankName).asText().split(separator, -1);
-            Map.Entry<Integer, Integer> entry = FeatureExtractorUtilities.getStartAndNumGroup(
-                    indices, maxGrpNum, grpSize);
-            int start = entry.getKey();
-            int numGrp = entry.getValue();
+            String attrStr = entity.get(attrName).asText();
+            int start = 0;
+            int numGrp = 0;
+            String[] fields = {};
+            String[] indices = {};
+            if (!"".equals(attrStr)) {
+                fields = attrStr.split(separator, -1);
+                indices = entity.get(inGrpRankName).asText().split(separator, -1);
+                Map.Entry<Integer, Integer> entry = FeatureExtractorUtilities.getStartAndNumGroup(
+                        indices, maxGrpNum, grpSize);
+                start = entry.getKey();
+                numGrp = entry.getValue();
+            }
             double val = 0.0;
             int prevRank = Integer.MIN_VALUE;
             int inGrpSize = 0;
@@ -101,9 +108,11 @@ public class SeparatedIdentityGroupExtractor implements FeatureExtractor {
                 inGrpSize++;
                 prevRank = curRank;
             }
-            for (int j=0; j<grpSize - inGrpSize; j++) {
-                FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                        indexSpace, indexName, attrName, val);
+            if (numGrp > 0) {
+                for (int j = 0; j < grpSize - inGrpSize; j++) {
+                    FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
+                            indexSpace, indexName, attrName, val);
+                }
             }
             feaMap.put(feaName, features);
             if (sizeFeaIndexName != null && sizeFeaName != null) {

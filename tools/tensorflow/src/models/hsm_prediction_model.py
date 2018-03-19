@@ -144,7 +144,7 @@ class HierarchicalPredictionModel(PredictionModel):
             level = hierarchy[i]
             if i == 0:
                 logits = tf.matmul(used_model, tf.transpose(weights[level['attr']])) + biases[level['attr']]
-                preds = tf.nn.softmax(logits, name='%s_probs' % level['attr'])
+                preds = tf.nn.softmax(logits, name='%s_prob_op' % level['attr'])
             else:
                 parent_level = hierarchy[i-1]
                 preds = hsm.layer_wise_inference(

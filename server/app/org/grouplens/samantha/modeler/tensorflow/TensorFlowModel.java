@@ -210,7 +210,13 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                 int size = -1;
                 for (String fea : features) {
                     if (size < 0) {
-                        size = feaMap.get(fea).size();
+                        if (feaMap.containsKey(fea)) {
+                            size = feaMap.get(fea).size();
+                        } else {
+                            throw new BadRequestException(
+                                    "Feature " + fea + " is not present in the extracted feature map with keys " +
+                                            feaMap.keySet().toString());
+                        }
                     } else if (size != feaMap.get(fea).size()) {
                         throw new ConfigurationException(
                                 "Equal size checks with " + features.toString() +

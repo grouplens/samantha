@@ -74,15 +74,21 @@ public class SeparatedStringGroupExtractor implements FeatureExtractor {
         Map<String, List<Feature>> feaMap = new HashMap<>();
         if (entity.has(attrName) && entity.has(inGrpRankName)) {
             List<Feature> features = new ArrayList<>();
-            String[] fields = entity.get(attrName).asText().split(separator, -1);
-            String[] indices = entity.get(inGrpRankName).asText().split(separator, -1);
-            Map.Entry<Integer, Integer> entry = FeatureExtractorUtilities.getStartAndNumGroup(
-                    indices, maxGrpNum, grpSize);
-            int start = entry.getKey();
-            int numGrp = entry.getValue();
+            String attrStr = entity.get(attrName).asText();
+            int start = 0;
+            String[] fields = {};
+            String[] indices = {};
             double val = 1.0;
-            if (numGrp > 0 && normalize) {
-                val = 1.0 / Math.sqrt(numGrp);
+            if (!"".equals(attrStr)) {
+                fields = attrStr.split(separator, -1);
+                indices = entity.get(inGrpRankName).asText().split(separator, -1);
+                Map.Entry<Integer, Integer> entry = FeatureExtractorUtilities.getStartAndNumGroup(
+                        indices, maxGrpNum, grpSize);
+                start = entry.getKey();
+                int numGrp = entry.getValue();
+                if (numGrp > 0 && normalize) {
+                    val = 1.0 / Math.sqrt(numGrp);
+                }
             }
             int prevRank = Integer.MIN_VALUE;
             int inGrpSize = 0;
@@ -103,9 +109,11 @@ public class SeparatedStringGroupExtractor implements FeatureExtractor {
                 inGrpSize++;
                 prevRank = curRank;
             }
-            for (int j=0; j<grpSize - inGrpSize; j++) {
-                FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                        indexSpace, indexName, TensorFlowModel.OOV, val);
+            if (len > 0) {
+                for (int j = 0; j < grpSize - inGrpSize; j++) {
+                    FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
+                            indexSpace, indexName, TensorFlowModel.OOV, val);
+                }
             }
             feaMap.put(feaName, features);
             if (sizeFeaIndexName != null && sizeFeaName != null) {

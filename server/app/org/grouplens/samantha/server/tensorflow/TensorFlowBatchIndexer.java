@@ -61,10 +61,13 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
     }
 
     public void index(JsonNode documents, RequestContext requestContext) {
+        if (documents.isArray() && documents.size() == 0) {
+            return;
+        }
         int timestamp = (int) (System.currentTimeMillis() / 1000);
         List<LearningInstance> instances = new ArrayList<>();
         JsonNode last;
-        if (documents.isArray() && documents.size() > 0) {
+        if (documents.isArray()) {
             for (JsonNode document : documents) {
                 LearningInstance instance = model.featurize(document, true);
                 instances.add(instance);

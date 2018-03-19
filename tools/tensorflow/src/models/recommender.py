@@ -104,6 +104,8 @@ class RecommenderBuilder(ModelBuilder):
         return num_labels, loss, updates
 
     def _compute_target_metrics(self, user_model, indices, labels, paras, target, config):
+        mask = tf.gather_nd(labels, indices) > 0
+        indices = tf.boolean_mask(indices, mask)
         used_labels = tf.gather_nd(labels, indices)
         if not self._eval_per_step:
             used_model, uniq_batch_idx, ori_batch_idx, step_idx = metrics.get_eval_user_model(
@@ -206,6 +208,7 @@ class RecommenderBuilder(ModelBuilder):
                     updates += model_updates
                     tf.summary.scalar('num_labels', num_target_train_labels)
                     num_train_labels += config['weight'] * tf.cast(num_target_train_labels, tf.float32)
+                    train_loss += config['weight'] * train_target_loss
                 with tf.variable_scope('eval'):
                     num_target_eval_labels, eval_target_loss, model_updates = self._compute_target_loss(
                         user_model, eval_indices, attr2input[target], target2paras[target],
@@ -213,14 +216,13 @@ class RecommenderBuilder(ModelBuilder):
                     updates += model_updates
                     tf.summary.scalar('num_labels', num_target_eval_labels)
                     num_eval_labels += config['weight'] * tf.cast(num_target_eval_labels, tf.float32)
+                    eval_loss += config['weight'] * eval_target_loss
                     if self._eval_metrics is not None:
                         updates += self._compute_target_metrics(
                             user_model, eval_indices, attr2input[target],
                             target2paras[target], target, config)
-            train_loss += config['weight'] * train_target_loss
-            eval_loss += config['weight'] * eval_target_loss
-        train_loss = tf.div(train_loss, tf.maximum(1.0, num_train_labels), name='train_loss')
-        eval_loss = tf.div(eval_loss, tf.maximum(1.0, num_eval_labels), name='eval_loss')
+        train_loss = tf.div(train_loss, tf.maximum(1.0, num_train_labels), name='train_loss_op')
+        eval_loss = tf.div(eval_loss, tf.maximum(1.0, num_eval_labels), name='eval_loss_op')
         tf.summary.scalar('train_loss', train_loss)
         tf.summary.scalar('eval_loss', eval_loss)
         return train_loss, updates, target2paras
@@ -290,7 +292,7 @@ class RecommenderBuilder(ModelBuilder):
         for target, config in self._target2config.iteritems():
             target2preds[target] = self._prediction_model.get_target_prediction(
                 model_output, target2paras[target], target, config)
-            tf.nn.top_k(target2preds[target], k=self._top_k, sorted=True, name='%s_top_k' % target)
+            tf.nn.top_k(target2preds[target], k=self._top_k, sorted=True, name='%s_top_k_op' % target)
         return target2preds
 
     def build_model(self):

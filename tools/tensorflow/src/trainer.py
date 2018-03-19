@@ -63,6 +63,6 @@ class ModelTrainer(object):
                     self._train_data.reset()
                 train_writer.close()
             builder = tf.saved_model.builder.SavedModelBuilder(self._export_dir)
-            builder.add_meta_graph_and_variables(session, 'train_eval_serve')
+            builder.add_meta_graph_and_variables(session, ['train_eval_serve'])
             builder.save()
             session.close()

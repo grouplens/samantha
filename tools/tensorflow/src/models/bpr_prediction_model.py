@@ -94,8 +94,8 @@ class BPRPredictionModel(PredictionModel):
         losses = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.ones_like(logits), logits=logits)
         losses = tf.boolean_mask(losses, loss_mask)
         loss = tf.reduce_sum(losses)
-        return tf.shape(losses)[0], loss, []
+        return tf.size(losses), loss, []
 
     def get_target_prediction(self, used_model, paras, target, config):
         logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
-        return tf.sigmoid(logits, name='%s_prob' % target)
+        return tf.sigmoid(logits, name='%s_prob_op' % target)

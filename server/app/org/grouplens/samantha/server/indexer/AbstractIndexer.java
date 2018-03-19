@@ -107,8 +107,10 @@ abstract public class AbstractIndexer implements Indexer {
                 toIndex.removeAll();
             }
         }
-        index(toIndex, requestContext);
-        notifyDataSubscribers(toIndex, requestContext);
+        if (toIndex.size() > 0) {
+            index(toIndex, requestContext);
+            notifyDataSubscribers(toIndex, requestContext);
+        }
         expandedEntityDAO.close();
         entityDAO.close();
     }
