@@ -65,7 +65,8 @@ public class AUC implements Metric {
                     numNeg, numPos);
             return 0.5;
         }
-        return area / (numNeg * numPos);
+        double auc = area / (numNeg * numPos);
+        return auc;
     }
 
     private interface aucMethods {

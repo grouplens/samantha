@@ -44,7 +44,7 @@ public class AUCTest {
         ObjectNode gt3 = Json.newObject().put("item", 5).put("click", false);
         ObjectNode gt4 = Json.newObject().put("item", 4).put("click", true);
         ObjectNode gt5 = Json.newObject().put("item", 2).put("click", true);
-        List<ObjectNode> gts1 = Lists.newArrayList(gt1, gt2);
+        List<ObjectNode> gts1 = Lists.newArrayList(gt1, gt2, gt3, gt4, gt5);
         Prediction pred1 = new Prediction(
                 gt1, null, 3.0, null);
         Prediction pred2 = new Prediction(
@@ -62,8 +62,9 @@ public class AUCTest {
         pred3 = new Prediction(gt2, null, 2.3, null);
         pred4 = new Prediction(gt5, null, 1.5, null);
         pred5 = new Prediction(gt3, null, 0.2, null);
+        List<ObjectNode> gts2 = Lists.newArrayList(gt1, gt4, gt2, gt5, gt3);
         List<Prediction> preds2 = Lists.newArrayList(pred1, pred2, pred3, pred4, pred5);
-        auc.add(gts1, preds2);
+        auc.add(gts2, preds2);
         MetricResult results = auc.getResults();
         assertEquals(true, results.getPass());
         assertEquals(1, results.getValues().size());
@@ -71,7 +72,7 @@ public class AUCTest {
         int support = result.get(ConfigKey.EVALUATOR_METRIC_SUPPORT.get()).asInt();
         double value = result.get(ConfigKey.EVALUATOR_METRIC_VALUE.get()).asDouble();
         assertEquals(10, support);
-        assertEquals(0.76, value, 0.001);
+        assertEquals(0.583, value, 0.001);
     }
 
     @Test
@@ -82,7 +83,7 @@ public class AUCTest {
         ObjectNode gt3 = Json.newObject().put("item", 5).put("click", false);
         ObjectNode gt4 = Json.newObject().put("item", 4).put("click", true);
         ObjectNode gt5 = Json.newObject().put("item", 2).put("click", true);
-        List<ObjectNode> gts1 = Lists.newArrayList(gt1, gt2);
+        List<ObjectNode> gts1 = Lists.newArrayList(gt1, gt2, gt3, gt4, gt5);
         Prediction pred1 = new Prediction(
                 gt1, null, 3.0, null);
         Prediction pred2 = new Prediction(
@@ -101,7 +102,8 @@ public class AUCTest {
         pred4 = new Prediction(gt5, null, 1.5, null);
         pred5 = new Prediction(gt3, null, 0.2, null);
         List<Prediction> preds2 = Lists.newArrayList(pred1, pred2, pred3, pred4, pred5);
-        auc.add(gts1, preds2);
+        List<ObjectNode> gts2 = Lists.newArrayList(gt1, gt4, gt2, gt5, gt3);
+        auc.add(gts2, preds2);
         MetricResult results = auc.getResults();
         assertEquals(true, results.getPass());
         assertEquals(1, results.getValues().size());

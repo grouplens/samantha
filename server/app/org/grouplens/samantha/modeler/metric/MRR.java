@@ -83,7 +83,7 @@ public class MRR implements Metric {
             if (releItems.contains(recItem)) {
                 for (int j=0; j<N.size(); j++) {
                     int n = N.get(j);
-                    if (rank <= n) {
+                    if (rank <= n && rr[j] <= 0.0) {
                         rr[j] += (1.0 / rank);
                     }
                 }
@@ -93,7 +93,7 @@ public class MRR implements Metric {
             }
         }
         for (int i=0; i<N.size(); i++) {
-            RR.set(i, RR.getDouble(i) + rr[i] / releItems.size());
+            RR.set(i, RR.getDouble(i) + rr[i]);
         }
         cnt += 1;
     }

@@ -68,9 +68,9 @@ public class MRRTest {
             double value = result.get(ConfigKey.EVALUATOR_METRIC_VALUE.get()).asDouble();
             assertTrue(n == 1 || n == 3);
             if (n == 1) {
-                assertEquals(0.25, value, 0.001);
+                assertEquals(0.500, value, 0.001);
             } else if (n == 3) {
-                assertEquals(0.708, value, 0.001);
+                assertEquals(0.750, value, 0.001);
             }
         }
     }

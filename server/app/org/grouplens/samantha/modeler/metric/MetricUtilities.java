@@ -42,15 +42,15 @@ public class MetricUtilities {
                                               List<Integer> N, Double threshold, double minValue,
                                               DoubleList metrics, int cnt) {
         List<ObjectNode> results = new ArrayList<>(N.size());
-        ObjectNode metricPara = Json.newObject();
-        if (threshold != null) {
-            metricPara.put("threshold", threshold);
-        }
-        metricPara.put("minValue", minValue);
         boolean pass = true;
         for (int i=0; i<N.size(); i++) {
             ObjectNode result = Json.newObject();
             result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), metricName);
+            ObjectNode metricPara = Json.newObject();
+            if (threshold != null) {
+                metricPara.put("threshold", threshold);
+            }
+            metricPara.put("minValue", minValue);
             metricPara.put("N", N.get(i));
             result.set(ConfigKey.EVALUATOR_METRIC_PARA.get(), metricPara);
             double value = 0.0;

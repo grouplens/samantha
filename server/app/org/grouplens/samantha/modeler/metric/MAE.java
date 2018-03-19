@@ -45,8 +45,8 @@ public class MAE implements Metric {
         int num = groundTruth.size();
         n += num;
         for (int i=0; i<num; i++) {
-            error += Math.abs(groundTruth.get(i).get(labelName).asDouble()
-                    - predictions.get(i).getScore());
+            error += (Math.abs(groundTruth.get(i).get(labelName).asDouble()
+                    - predictions.get(i).getScore()));
         }
     }
 

@@ -41,6 +41,7 @@ public class NDCG implements Metric {
     private final String relevanceKey;
     private final String separator;
     private final double minValue;
+    private final double log2 = Math.log(2.0);
     private int cnt = 0;
     private DoubleList DCG;
 
@@ -80,7 +81,7 @@ public class NDCG implements Metric {
                 for (int j=0; j<N.size(); j++) {
                     int n = N.get(j);
                     if (rank <= n) {
-                        dcg[j] += (Math.pow(2.0, releItems.getDouble(recItem)) / Math.log(1.0 + rank));
+                        dcg[j] += releItems.getDouble(recItem) * log2 / Math.log(1.0 + rank);
                     }
                 }
             }
@@ -101,7 +102,7 @@ public class NDCG implements Metric {
                 for (int j=0; j<N.size(); j++) {
                     int n = N.get(j);
                     if (rank <= n) {
-                        maxDcg[j] += (Math.pow(2.0, relevance) / Math.log(1.0 + rank));
+                        maxDcg[j] += relevance * log2 / Math.log(1.0 + rank);
                     }
                 }
             } else {
