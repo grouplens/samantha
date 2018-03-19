@@ -42,13 +42,13 @@ import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.tensorflow.Graph;
+import org.tensorflow.SavedModelBundle;
 import org.tensorflow.Session;
 import org.tensorflow.Tensor;
 import play.libs.Json;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
@@ -59,6 +59,8 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     private static final long serialVersionUID = 1L;
     transient private Graph graph;
     transient private Session session;
+    private final String graphDefFile;
+    private final String exportDir;
     private final List<FeatureExtractor> featureExtractors;
     private final String lossOper;
     private final String updateOper;
@@ -72,12 +74,14 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     private final Set<String> feedFeas;
     private final List<List<String>> equalSizeChecks;
 
+    public static final String SAVED_MODEL_TAG = "train_eval_serve";
     public static final String OOV = "";
     public static final int OOV_INDEX = 0;
     public static final String INDEX_APPENDIX = "_idx";
     public static final String VALUE_APPENDIX = "_val";
 
-    public TensorFlowModel(Graph graph,
+    public TensorFlowModel(Graph graph, Session session,
+                           String graphDefFile, String exportDir,
                            IndexSpace indexSpace, VariableSpace variableSpace,
                            List<FeatureExtractor> featureExtractors,
                            String lossOper, String updateOper, String topKId, String itemIndex,
@@ -97,10 +101,9 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         this.topKOper = topKOper;
         this.initOper = initOper;
         this.graph = graph;
-        if (graph != null) {
-            this.session = new Session(graph);
-            session.runner().addTarget(initOper).run();
-        }
+        this.session = session;
+        this.graphDefFile = graphDefFile;
+        this.exportDir = exportDir;
     }
 
     public double[] predict(LearningInstance ins) {
@@ -381,21 +384,20 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         }
     }
 
-    private void writeObject(ObjectOutputStream stream) throws IOException {
-        stream.defaultWriteObject();
-        byte[] graphDef = graph.toGraphDef();
-        stream.writeInt(graphDef.length);
-        stream.write(graph.toGraphDef());
-    }
-
     private void readObject(ObjectInputStream stream) throws ClassNotFoundException, IOException {
         stream.defaultReadObject();
-        int len = stream.readInt();
-        byte[] graphDef = new byte[len];
-        stream.readFully(graphDef);
-        graph = new Graph();
-        graph.importGraphDef(graphDef);
-        session = new Session(graph);
-        session.runner().addTarget(initOper).run();
+        if (exportDir != null) {
+            SavedModelBundle savedModel = TensorFlowModelProducer.loadTensorFlowSavedModel(exportDir);
+            if (savedModel != null) {
+                graph = savedModel.graph();
+                session = savedModel.session();
+            }
+        } else if (graphDefFile != null) {
+            graph = TensorFlowModelProducer.loadTensorFlowGraph(graphDefFile);
+            if (graph != null) {
+                session = new Session(graph);
+                session.runner().addTarget(initOper).run();
+            }
+        }
     }
 }

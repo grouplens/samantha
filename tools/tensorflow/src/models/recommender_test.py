@@ -1,6 +1,7 @@
 
 import unittest
 import random
+import shutil
 import numpy as np
 import tensorflow as tf
 
@@ -19,6 +20,7 @@ class RecommenderTest(unittest.TestCase):
 
     def setUp(self):
         self._test_path = '/tmp/tflearn_logs/'
+        self._export_dir = '/tmp/tflearn_models/'
 
     def test_run_seq_flat_default_eval(self):
         embedding_dim = 10
@@ -178,10 +180,14 @@ class RecommenderTest(unittest.TestCase):
                             batch['item_idx'][l].append(0)
             batches.append(batch)
         train_data = JsonListDataSet(batches)
+        run_name = 'test_sequence_hsm_model_run0'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
-            tensorboard_dir=self._test_path)
-        model_trainer.train('recommender_test_sequence_hsm_model_run0')
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
 
     def test_train_sequence_softmax_model(self):
         embedding_dim = 10
@@ -232,10 +238,14 @@ class RecommenderTest(unittest.TestCase):
                             batch['item_idx'][l].append(0)
             batches.append(batch)
         train_data = JsonListDataSet(batches)
+        run_name = 'test_sequence_softmax_model_run0'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
-            tensorboard_dir=self._test_path)
-        model_trainer.train('recommender_test_sequence_softmax_model_run0')
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
 
     def test_train_ccf_softmax_model(self):
         user_vocab_size = 15
@@ -301,10 +311,14 @@ class RecommenderTest(unittest.TestCase):
                             batch['item_idx'][l].append(0)
             batches.append(batch)
         train_data = JsonListDataSet(batches)
+        run_name = 'test_ccf_softmax_model_run0'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
-            tensorboard_dir=self._test_path)
-        model_trainer.train('recommender_test_ccf_softmax_model_run0')
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
 
     def test_train_bpr_model(self):
         user_vocab_size = 15
@@ -370,10 +384,14 @@ class RecommenderTest(unittest.TestCase):
                             batch['item_idx'][l].append(0)
             batches.append(batch)
         train_data = JsonListDataSet(batches)
+        run_name = 'test_bpr_softmax_model_run0'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
-            tensorboard_dir=self._test_path)
-        model_trainer.train('recommender_test_bpr_model_run0')
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
 
 if __name__ == '__main__':
     unittest.main()
