@@ -96,7 +96,8 @@ public class MAP implements Metric {
             }
         }
         for (int i=0; i<N.size(); i++) {
-            AP.set(i, AP.getDouble(i) + ap[i] / releItems.size());
+            AP.set(i, AP.getDouble(i) +
+                    ap[i] / Math.min(releItems.size(), N.get(i)));
         }
         cnt += 1;
     }

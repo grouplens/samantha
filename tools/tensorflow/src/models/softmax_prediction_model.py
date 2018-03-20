@@ -88,4 +88,5 @@ class SoftmaxPredictionModel(PredictionModel):
 
     def get_target_prediction(self, used_model, paras, target, config):
         logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
-        return tf.nn.softmax(logits, name='%s_prob_op' % target)
+        probs = tf.nn.softmax(logits, name='%s_prob_op' % target)
+        return probs

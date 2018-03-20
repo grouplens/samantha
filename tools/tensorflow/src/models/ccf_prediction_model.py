@@ -65,6 +65,7 @@ class CCFSoftmaxModel(PredictionModel):
         inactions = tf.get_variable(
             'inactions', shape=[self._user_vocab_size],
             dtype=tf.float32, initializer=tf.zeros_initializer)
+        tf.summary.histogram('inaction_biases', inactions)
         paras = {
             'weights': weights,
             'biases': biases,
