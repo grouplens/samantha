@@ -31,7 +31,7 @@ public class InactionUtilities {
 
     static public final String[] historyAttrs = {
             "sessionIds", "movieIds", "tstamps", "ranks", "ratings",
-            "pageNames", "clicks", "stops", "wishlists", "dwells", "hovers",
+            "pageNames", "pageSizes", "clicks", "stops", "wishlists", "dwells", "hovers",
             "reasons", "notices", "familiars", "whens", "rates", "skips", "futures",
     };
 
@@ -62,7 +62,7 @@ public class InactionUtilities {
     what section and page was the item displayed
         pageName
     how many items were displayed
-        numPageItems
+        pageSize
     what items were displayed together with the item
     dwell time on the page
         pageDwell
@@ -87,9 +87,17 @@ public class InactionUtilities {
     if labelAttr is "notice", set familiar, when, reason
     if labelAttr is "future", set inaction, familiar, when
     */
+
+    static private void extractPageLevel(ObjectNode features, Map<String, String[]> attr2seq, int index) {
+        features.put("pageName", attr2seq.get("pageNames")[index]);
+        features.put("pageSize", attr2seq.get("pageSizes")[index]);
+    }
+
     static public ObjectNode getFeatures(
             Map<String, String[]> attr2seq, int index, String user, String item, String labelAttr) {
-        // if index is negative, extract default features
-        return Json.newObject();
+        ObjectNode features = Json.newObject();
+        //extractUserLevel(features);
+        extractPageLevel(features, attr2seq, index);
+        return features;
     }
 }
