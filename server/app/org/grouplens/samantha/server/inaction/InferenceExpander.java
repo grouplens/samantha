@@ -68,7 +68,9 @@ public class InferenceExpander implements EntityExpander {
                 }
             }
             if (index >= 0) {
-                ObjectNode features = InactionUtilities.getFeatures(attr2seq, index, user, item, labelAttr);
+                ObjectNode features = InactionUtilities.getFeatures(attr2seq, index, labelAttr);
+                features.put(userAttr, user);
+                features.put(itemAttr, item);
                 // make predictions on the features and set the output into entity
             } else {
                 // set the default output

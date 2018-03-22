@@ -75,6 +75,7 @@ public enum ConfigKey {
     OBJECTIVE_CLASS("objectiveClass"),
     DATA_SUBSCRIBERS("dataSubscribers"),
     DATA_OPERATION("dataOperation"),
+    LABEL_INDEX_NAME("CLASS"),
     ;
     private final String key;
 

@@ -53,9 +53,11 @@ public class LabelExpander implements EntityExpander {
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                    RequestContext requestContext) {
         String userAttr = "userId";
+        String itemAttr = "movieId";
+        String tstampAttr = "tstamp";
         String[] historyAttrs = InactionUtilities.historyAttrs;
         Map<String, String[]> attr2seq = new HashMap<>();
-        int splitTstamp = 1530401212; // to be set
+        int splitTstamp = 1517464800; //2018-02-01
         List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
             String user = entity.get(userAttr).asText();
@@ -64,15 +66,17 @@ public class LabelExpander implements EntityExpander {
                 attr2seq.put(attr, seq);
             }
             String[] tstamps = attr2seq.get("tstamps");
-            String[] labels = attr2seq.get(labelAttr);
+            String[] labels = attr2seq.get(labelAttr + "s");
             String[] items = attr2seq.get("movieIds");
             for (int i=0; i<tstamps.length; i++) {
                 if (modeledLabels.contains(labels[i])) {
                     int tstamp = Integer.parseInt(tstamps[i]);
                     if ((tstamp < splitTstamp && backward) || (tstamp >= splitTstamp && !backward)) {
-                        ObjectNode features = InactionUtilities.getFeatures(
-                                attr2seq, i, user, items[i], labelAttr);
+                        ObjectNode features = InactionUtilities.getFeatures(attr2seq, i, labelAttr);
                         features.put(labelAttr, labels[i]);
+                        features.put(userAttr, user);
+                        features.put(itemAttr, items[i]);
+                        features.put(tstampAttr, tstamp);
                         expanded.add(features);
                     }
                 }

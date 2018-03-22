@@ -25,21 +25,28 @@ package org.grouplens.samantha.server.inaction;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.libs.Json;
 
+import java.util.AbstractMap;
 import java.util.Map;
 
 public class InactionUtilities {
 
     static public final String[] historyAttrs = {
-            "sessionIds", "movieIds", "tstamps", "ranks", "ratings",
-            "pageNames", "pageSizes", "clicks", "stops", "wishlists", "dwells", "hovers",
-            "reasons", "notices", "familiars", "whens", "rates", "skips", "futures",
+            "notices",
+            "tstamps", "sessionIds", "pageNames", "pageSizes", "dwells", "movieIds", "ranks",
+            "clicks", "ratings", "highRates", "lowRates", "trailers", "wishlists", "hovers", "stops",
+            "positives", "negatives", "actions",
+            "reasons", "familiars", "whens", "rates", "futures", "skips",
     };
 
     /*
     user history level
 
     how many times the item has been shown, in what context was it displayed, in-system familiarity estimation
-        numHistShown, numHistFront, numHistExplore, mostPromRow, mostPromCol, prevPage, prevRow, prevCol
+        numHistShown, numHistFront, numHistExplore
+    the most prominent item display's page information
+        mostPromPage, mostPromRow, mostPromCol
+    the last item display's page information
+        lastPage, lastRow, lastCol
     user tenure and engagement level
         userTenure, items(pages)PerWeek, items(pages)LastWeek
     user activity distribution
@@ -47,8 +54,14 @@ public class InactionUtilities {
 
     session level
 
-    whether the item has been displayed previously in the session, in what context
-        numSessShown, numSessFront, numSessExplore, minSessRank, prevSessPage, prevSessRank
+    whether the item has been displayed previously in the session
+        numSessShown, numSessFront, numSessExplore
+    the most prominent display's page information in the session
+        mostSessPromRow, mostSessPromCol
+    the last item display's page information in the session
+        lastSessPage, lastSessRow, lastSessCol
+    the previous page information in the session
+        prevSessPage, ...
     is this coming back to visit again
         sessPageReview
     how long the session has lasted, engagement level in the session
@@ -64,12 +77,17 @@ public class InactionUtilities {
     how many items were displayed
         pageSize
     what items were displayed together with the item
+        maxPredRating
+        meanPredRating
+        medianPredRating
+        minPredRating
     dwell time on the page
         pageDwell
     what position was the item displayed
         row, col
     were there any type of actions on the page
         pageWishlist, pageRating, pageClick, pageStop, pageShortHover, pageLongHover, pageAction,
+        pagePositive, pageNegative
 
     single item level
 
@@ -88,16 +106,54 @@ public class InactionUtilities {
     if labelAttr is "future", set inaction, familiar, when
     */
 
+    static private Map.Entry<Integer, Integer> getPageRange(int index, String[] ranks) {
+        int begin = index;
+        int end = index + 1;
+        int cur = Integer.parseInt(ranks[index]);
+
+        int prev = cur;
+        while (end < ranks.length) {
+            int rank = Integer.parseInt(ranks[end]);
+            if (rank > prev) {
+                end++;
+                prev = rank;
+            } else {
+                break;
+            }
+        }
+        prev = cur;
+        while (begin > 0) {
+            int rank = Integer.parseInt(ranks[begin-1]);
+            if (rank < prev) {
+                begin--;
+                prev = rank;
+            } else {
+                break;
+            }
+        }
+        return new AbstractMap.SimpleEntry<>(begin, end);
+    }
+
     static private void extractPageLevel(ObjectNode features, Map<String, String[]> attr2seq, int index) {
         features.put("pageName", attr2seq.get("pageNames")[index]);
-        features.put("pageSize", attr2seq.get("pageSizes")[index]);
+        features.put("pageSize", Integer.parseInt(attr2seq.get("pageSizes")[index]));
+        features.put("dwell", Float.parseFloat(attr2seq.get("dwells")[index]));
+        int rank = Integer.parseInt(attr2seq.get("ranks")[index]);
+        features.put("row", rank / 8);
+        features.put("col", rank % 8);
+        Map.Entry<Integer, Integer> pageRange = getPageRange(index, attr2seq.get("ranks"));
+    }
+
+    static private void extractItemLevel(ObjectNode features, Map<String, String[]> attr2seq, int index) {
+        features.put("hover", attr2seq.get("hovers")[index]);
     }
 
     static public ObjectNode getFeatures(
-            Map<String, String[]> attr2seq, int index, String user, String item, String labelAttr) {
+            Map<String, String[]> attr2seq, int index, String labelAttr) {
         ObjectNode features = Json.newObject();
         //extractUserLevel(features);
         extractPageLevel(features, attr2seq, index);
+        extractItemLevel(features, attr2seq, index);
         return features;
     }
 }
