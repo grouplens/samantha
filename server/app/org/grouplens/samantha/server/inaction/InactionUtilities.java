@@ -24,6 +24,9 @@ package org.grouplens.samantha.server.inaction;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import org.apache.commons.lang3.ArrayUtils;
 import play.libs.Json;
 
 import java.util.AbstractMap;
@@ -73,43 +76,60 @@ public class InactionUtilities {
         return new AbstractMap.SimpleEntry<>(begin, end);
     }
 
+    static private Map.Entry<Integer, Integer> getSessionRange(
+            int index, String[] sessionIds, Map.Entry<Integer, Integer> pageRange) {
+        String cur = sessionIds[index];
+        while (index - 1 >= 0) {
+            if (!sessionIds[index - 1].equals(cur)) {
+                break;
+            }
+            index--;
+        }
+        return new AbstractMap.SimpleEntry<>(index, pageRange.getValue());
+    }
+
     static private double getInverseDistance(int row1, int col1, int row2, int col2) {
         double dist = Math.sqrt((row1 - row2) * (row1 - row2) + (col1 - col2) * (col1 - col2));
         return 1.0 / (dist + 1.0);
     }
 
-    static private void extractPageInfo(ObjectNode features, Map<String, String[]> attr2seq,
-                                        String appendix, int begin, int end, int index) {
-        features.put("name" + appendix, "none");
-        features.put("size" + appendix, 0);
-        features.put("dwell" + appendix, 0.0);
-        features.put("row" + appendix, -1);
-        features.put("col" + appendix, -1);
-        features.put("closestAction" + appendix, "none");
-        features.put("closestInvDist" + appendix, -1);
-        features.put("closestRow" + appendix, -1);
-        features.put("closestCol" + appendix, -1);
+    static private void getRangeActionAndRate(
+            ObjectNode features, Map<String, String[]> attr2seq,
+            String appendix, int begin, int end) {
         for (String act : acts) {
             features.put(act + appendix, 0);
-        }
-        if (index >= 0) {
-            features.put("name" + appendix, attr2seq.get("pageNames")[index]);
-            features.put("size" + appendix, Integer.parseInt(attr2seq.get("pageSizes")[index]));
-            features.put("dwell" + appendix, Float.parseFloat(attr2seq.get("dwells")[index]));
-            int rank = Integer.parseInt(attr2seq.get("ranks")[index]);
-            features.put("row" + appendix, rank / 8);
-            features.put("col" + appendix, rank % 8);
         }
         for (int i=begin; i<end; i++) {
             for (String act : acts) {
                 if (Integer.parseInt(attr2seq.get(act + "s")[i]) > 0) {
                     features.put(act + appendix, features.get(act + appendix).asInt() + 1);
-                    if (index >= 0) {
+                }
+            }
+        }
+        for (String act : acts) {
+            features.put(act + "Rate" + appendix, -1);
+            if (end > begin) {
+                features.put(act + "Rate" + appendix, features.get(act + appendix).asDouble() / (end - begin));
+            }
+        }
+    }
+
+    static private void extractClosestActionInfo(
+            ObjectNode features, Map<String, String[]> attr2seq,
+            String appendix, int begin, int end, int index) {
+        features.put("closestAction" + appendix, "none");
+        features.put("closestInvDist" + appendix, -1);
+        features.put("closestRow" + appendix, -1);
+        features.put("closestCol" + appendix, -1);
+        if (index >= 0) {
+            int targetRank = Integer.parseInt(attr2seq.get("ranks")[index]);
+            for (int i = begin; i < end; i++) {
+                for (String act : acts) {
+                    if (Integer.parseInt(attr2seq.get(act + "s")[i]) > 0) {
                         int rank = Integer.parseInt(attr2seq.get("ranks")[i]);
                         double invDist = getInverseDistance(
                                 rank / 8, rank % 8,
-                                features.get("row" + appendix).asInt(),
-                                features.get("col" + appendix).asInt());
+                                targetRank / 8, targetRank % 8);
                         if (invDist >= features.get("closestInvDist" + appendix).asDouble()) {
                             features.put("closestAction" + appendix, act);
                             features.put("closestInvDist" + appendix, invDist);
@@ -122,15 +142,148 @@ public class InactionUtilities {
         }
     }
 
-    static private void extractUserLevel(ObjectNode features, Map<String, String[]> attr2seq, int index) {
-
+    static private void extractPageInfo(ObjectNode features, Map<String, String[]> attr2seq,
+                                        String appendix, int index) {
+        features.put("name" + appendix, "none");
+        features.put("size" + appendix, 0);
+        features.put("dwell" + appendix, 0.0);
+        features.put("row" + appendix, -1);
+        features.put("col" + appendix, -1);
+        if (index >= 0) {
+            features.put("name" + appendix, attr2seq.get("pageNames")[index]);
+            features.put("size" + appendix, Integer.parseInt(attr2seq.get("pageSizes")[index]));
+            features.put("dwell" + appendix, Float.parseFloat(attr2seq.get("dwells")[index]));
+            int rank = Integer.parseInt(attr2seq.get("ranks")[index]);
+            features.put("row" + appendix, rank / 8);
+            features.put("col" + appendix, rank % 8);
+        }
     }
 
-    static private void extractPageLevel(ObjectNode features, Map<String, String[]> attr2seq, int index) {
-        Map.Entry<Integer, Integer> pageRange = getPageRange(index, attr2seq.get("ranks"));
+    static private IntList searchHitsInRange(String[] items, int index, int begin, int end) {
+        IntList hits = new IntArrayList();
+        String item = items[index];
+        for (int i=begin; i<end; i++) {
+            if (items[i].equals(item)) {
+                hits.add(i);
+            }
+        }
+        return hits;
+    }
+
+    static private void extractUserLevel(
+            ObjectNode features, Map<String, String[]> attr2seq, int index,
+            Map.Entry<Integer, Integer> pageRange,
+            Map.Entry<Integer, Integer> sessRange) {
+        getRangeActivity(features, attr2seq, 0, sessRange.getValue(), "Hist");
+        getRangeActionAndRate(features, attr2seq, "Hist", 0, sessRange.getValue());
+        getRangeHitsInfo(features, attr2seq, "Hist", index, 0, index);
+        getRangeHitsInfo(features, attr2seq, "OutSess", index, 0, sessRange.getKey());
+        getInverseLastPageReview(features, attr2seq, 0, sessRange.getValue(),
+                pageRange.getKey(), pageRange.getValue(), "Hist");
+        getInverseLastPageReview(features, attr2seq, 0, sessRange.getKey(),
+                pageRange.getKey(), pageRange.getValue(), "OutSess");
+    }
+
+    static private void getRangeActivity(
+            ObjectNode features, Map<String, String[]> attr2seq, int begin, int end, String appendix) {
+        int beginTstamp = Integer.parseInt(attr2seq.get("tstamps")[begin]);
+        int endTstamp = Integer.parseInt(attr2seq.get("tstamps")[end]);
+        int length = endTstamp - beginTstamp;
+        int numItem = end - begin;
+        double meanNumItem = -1.0;
+        if (length > 0) {
+            meanNumItem = numItem * 1.0 / length;
+        }
+        features.put("lengthSess", length);
+        features.put("numItemSess", numItem);
+        features.put("meanNumItemSess", meanNumItem);
+    }
+
+    static private void getRangeHitsInfo(
+            ObjectNode features, Map<String, String[]> attr2seq,  String appendix,
+            int index, int begin, int end) {
+        IntList hits = searchHitsInRange(attr2seq.get("movieIds"), index, begin, end);
+        features.put("numShow" + appendix, hits.size());
+        int numExploreShow = 0;
+        int numFrontShow = 0;
+        for (int i : hits) {
+            if (attr2seq.get("pageNames")[i].equals("base.explore")) {
+                numExploreShow++;
+            } else {
+                numFrontShow++;
+            }
+        }
+        features.put("numExploreShow" + appendix, numExploreShow);
+        features.put("numFrontShow" + appendix, numFrontShow);
+        int lastHit = -1;
+        if (hits.size() > 1) {
+            lastHit = hits.get(hits.size() - 1);
+        }
+        extractPageInfo(features, attr2seq, "PrevShowSess", lastHit);
+    }
+
+    static private boolean checkSamePage(String[] items1, String[] items2) {
+        if (items1.length != items2.length) {
+            return false;
+        }
+        for (int i=0; i<items1.length; i++) {
+            if (!items1[i].equals(items2[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static private void getInverseLastPageReview(
+            ObjectNode features, Map<String, String[]> attr2seq,
+            int rangeBegin, int rangeEnd, int pageBegin, int pageEnd, String appendix) {
+        String[] items = attr2seq.get("movieIds");
+        String[] ranks = attr2seq.get("ranks");
+        String[] pageItems = ArrayUtils.subarray(items, pageBegin, pageEnd);
+        int cur = rangeEnd - 1;
+        int cnt = 0;
+        int dist = 0;
+        while (cur >= rangeBegin) {
+            Map.Entry<Integer, Integer> pageRange = getPageRange(cur, ranks);
+            if (checkSamePage(pageItems, ArrayUtils.subarray(items, pageRange.getKey(), pageRange.getValue()))) {
+                cnt += 1;
+            }
+            if (cnt <= 1) {
+                dist++;
+            }
+            cur = pageRange.getKey() - 1;
+        }
+        if (dist == 0) {
+            features.put("invReviewDist" + appendix, 0.0);
+        } else {
+            features.put("invReviewDist" + appendix, 1.0 / dist);
+        }
+        features.put("numReview" + appendix, cnt);
+    }
+
+    static private Map.Entry<Integer, Integer> extractSessionLevel(
+            ObjectNode features, Map<String, String[]> attr2seq, int index,
+            Map.Entry<Integer, Integer> pageRange) {
+        Map.Entry<Integer, Integer> sessRange = getSessionRange(index, attr2seq.get("sessionIds"), pageRange);
+        getRangeActivity(features, attr2seq, sessRange.getKey(), sessRange.getValue(), "Sess");
+        getRangeActionAndRate(features, attr2seq, "Sess", sessRange.getKey(), sessRange.getValue());
+        extractPageInfo(features, attr2seq, "Prev", pageRange.getKey() - 1);
+        getRangeHitsInfo(features, attr2seq, "Sess", index, sessRange.getKey(), index);
+        getInverseLastPageReview(features, attr2seq, sessRange.getKey(), sessRange.getValue(),
+                pageRange.getKey(), pageRange.getValue(), "Sess");
+        return sessRange;
+    }
+
+    static private Map.Entry<Integer, Integer> extractPageLevel(
+            ObjectNode features, Map<String, String[]> attr2seq, int index) {
+        String[] ranks = attr2seq.get("ranks");
+        Map.Entry<Integer, Integer> pageRange = getPageRange(index, ranks);
         int begin = pageRange.getKey();
         int end = pageRange.getValue();
-        extractPageInfo(features, attr2seq, "Page", begin, end, index);
+        extractPageInfo(features, attr2seq, "Page", index);
+        getRangeActionAndRate(features, attr2seq, "Page", begin, end);
+        extractClosestActionInfo(features, attr2seq, "Page", begin, end, index);
+        return pageRange;
     }
 
     static private void extractItemLevel(ObjectNode features, Map<String, String[]> attr2seq, int index) {
@@ -139,7 +292,6 @@ public class InactionUtilities {
 
     static private void extractSurvey(ObjectNode features, Map<String, String[]> attr2seq,
                                       int index, String labelAttr) {
-        // set inaction
         String inaction = "Unknown";
         String detailInaction = "Unknown";
         if (!attr2seq.get("notices")[index].equals("Noticed")) {
@@ -178,9 +330,10 @@ public class InactionUtilities {
     static public ObjectNode getFeatures(
             Map<String, String[]> attr2seq, int index, String labelAttr) {
         ObjectNode features = Json.newObject();
-        extractUserLevel(features, attr2seq, index);
-        extractPageLevel(features, attr2seq, index);
         extractItemLevel(features, attr2seq, index);
+        Map.Entry<Integer, Integer> pageRange = extractPageLevel(features, attr2seq, index);
+        Map.Entry<Integer, Integer> sessRange = extractSessionLevel(features, attr2seq, index, pageRange);
+        extractUserLevel(features, attr2seq, index, pageRange, sessRange);
         extractSurvey(features, attr2seq, index, labelAttr);
         return features;
     }
