@@ -60,9 +60,9 @@ public class InferenceExpander implements EntityExpander {
                 attr2seq.put(attr, seq);
             }
             int index = -1;
-            String[] itemIds = attr2seq.get("movieIds");
+            String[] itemIds = attr2seq.get(itemAttr + "s");
             for (int i=0; i<itemIds.length; i++) {
-                String[] tstamps = attr2seq.get("tstamps");
+                String[] tstamps = attr2seq.get(tstampAttr + "s");
                 if (Integer.parseInt(tstamps[i]) < tstamp && itemIds[i].equals(item)) {
                     index = i;
                 }
@@ -71,6 +71,7 @@ public class InferenceExpander implements EntityExpander {
                 ObjectNode features = InactionUtilities.getFeatures(attr2seq, index, labelAttr);
                 features.put(userAttr, user);
                 features.put(itemAttr, item);
+                features.put(tstampAttr, attr2seq.get(tstampAttr + "s")[index]);
                 // make predictions on the features and set the output into entity
             } else {
                 // set the default output

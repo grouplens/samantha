@@ -23,10 +23,13 @@
 package org.grouplens.samantha.server.inaction;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 import play.libs.Json;
 
 import java.util.AbstractMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class InactionUtilities {
 
@@ -37,74 +40,10 @@ public class InactionUtilities {
             "positives", "negatives", "actions",
             "reasons", "familiars", "whens", "rates", "futures", "skips",
     };
-
-    /*
-    user history level
-
-    how many times the item has been shown, in what context was it displayed, in-system familiarity estimation
-        numHistShown, numHistFront, numHistExplore
-    the most prominent item display's page information
-        mostPromPage, mostPromRow, mostPromCol
-    the last item display's page information
-        lastPage, lastRow, lastCol
-    user tenure and engagement level
-        userTenure, items(pages)PerWeek, items(pages)LastWeek
-    user activity distribution
-        wishlistRate, ratingRate, clickRate, stopRate, actionRate, positiveRate, negativeRate
-
-    session level
-
-    whether the item has been displayed previously in the session
-        numSessShown, numSessFront, numSessExplore
-    the most prominent display's page information in the session
-        mostSessPromRow, mostSessPromCol
-    the last item display's page information in the session
-        lastSessPage, lastSessRow, lastSessCol
-    the previous page information in the session
-        prevSessPage, ...
-    is this coming back to visit again
-        sessPageReview
-    how long the session has lasted, engagement level in the session
-        sessLength, items(pages)InSess
-    user activity distribution in the session
-        wishlistSessRate, ratingSessRate, clickSessRate, stopSessRate, actionSessRate,
-        positiveSessRate, negativeSessRate
-
-    page view level
-
-    what section and page was the item displayed
-        pageName
-    how many items were displayed
-        pageSize
-    what items were displayed together with the item
-        maxPredRating
-        meanPredRating
-        medianPredRating
-        minPredRating
-    dwell time on the page
-        pageDwell
-    what position was the item displayed
-        row, col
-    were there any type of actions on the page
-        pageWishlist, pageRating, pageClick, pageStop, pageShortHover, pageLongHover, pageAction,
-        pagePositive, pageNegative
-
-    single item level
-
-    were there mouse hover event on the item and other items displayed together
-        hover
-    predicted rating
-        predRating
-    other attributes like release year, popularity
-        popularity, lastYearPop, releaseYear
-
-    survey response
-
-    if labelAttr is "inaction" which is a combination of notice and skipping, no more set
-    if labelAttr is "familiar", no more set
-    if labelAttr is "notice", set familiar, when, reason
-    if labelAttr is "future", set inaction, familiar, when
-    */
+    static public final String[] acts = {
+            "action", "positive", "negative",
+            "wishlist", "rating", "highRate", "lowRate",
+            "click", "stop", "hover"};
 
     static private Map.Entry<Integer, Integer> getPageRange(int index, String[] ranks) {
         int begin = index;
@@ -134,26 +73,115 @@ public class InactionUtilities {
         return new AbstractMap.SimpleEntry<>(begin, end);
     }
 
+    static private double getInverseDistance(int row1, int col1, int row2, int col2) {
+        double dist = Math.sqrt((row1 - row2) * (row1 - row2) + (col1 - col2) * (col1 - col2));
+        return 1.0 / (dist + 1.0);
+    }
+
+    static private void extractPageInfo(ObjectNode features, Map<String, String[]> attr2seq,
+                                        String appendix, int begin, int end, int index) {
+        features.put("name" + appendix, "none");
+        features.put("size" + appendix, 0);
+        features.put("dwell" + appendix, 0.0);
+        features.put("row" + appendix, -1);
+        features.put("col" + appendix, -1);
+        features.put("closestAction" + appendix, "none");
+        features.put("closestInvDist" + appendix, -1);
+        features.put("closestRow" + appendix, -1);
+        features.put("closestCol" + appendix, -1);
+        for (String act : acts) {
+            features.put(act + appendix, 0);
+        }
+        if (index >= 0) {
+            features.put("name" + appendix, attr2seq.get("pageNames")[index]);
+            features.put("size" + appendix, Integer.parseInt(attr2seq.get("pageSizes")[index]));
+            features.put("dwell" + appendix, Float.parseFloat(attr2seq.get("dwells")[index]));
+            int rank = Integer.parseInt(attr2seq.get("ranks")[index]);
+            features.put("row" + appendix, rank / 8);
+            features.put("col" + appendix, rank % 8);
+        }
+        for (int i=begin; i<end; i++) {
+            for (String act : acts) {
+                if (Integer.parseInt(attr2seq.get(act + "s")[i]) > 0) {
+                    features.put(act + appendix, features.get(act + appendix).asInt() + 1);
+                    if (index >= 0) {
+                        int rank = Integer.parseInt(attr2seq.get("ranks")[i]);
+                        double invDist = getInverseDistance(
+                                rank / 8, rank % 8,
+                                features.get("row" + appendix).asInt(),
+                                features.get("col" + appendix).asInt());
+                        if (invDist >= features.get("closestInvDist" + appendix).asDouble()) {
+                            features.put("closestAction" + appendix, act);
+                            features.put("closestInvDist" + appendix, invDist);
+                            features.put("closestRow" + appendix, rank / 8);
+                            features.put("closestCol" + appendix, rank % 8);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    static private void extractUserLevel(ObjectNode features, Map<String, String[]> attr2seq, int index) {
+
+    }
+
     static private void extractPageLevel(ObjectNode features, Map<String, String[]> attr2seq, int index) {
-        features.put("pageName", attr2seq.get("pageNames")[index]);
-        features.put("pageSize", Integer.parseInt(attr2seq.get("pageSizes")[index]));
-        features.put("dwell", Float.parseFloat(attr2seq.get("dwells")[index]));
-        int rank = Integer.parseInt(attr2seq.get("ranks")[index]);
-        features.put("row", rank / 8);
-        features.put("col", rank % 8);
         Map.Entry<Integer, Integer> pageRange = getPageRange(index, attr2seq.get("ranks"));
+        int begin = pageRange.getKey();
+        int end = pageRange.getValue();
+        extractPageInfo(features, attr2seq, "Page", begin, end, index);
     }
 
     static private void extractItemLevel(ObjectNode features, Map<String, String[]> attr2seq, int index) {
         features.put("hover", attr2seq.get("hovers")[index]);
     }
 
+    static private void extractSurvey(ObjectNode features, Map<String, String[]> attr2seq,
+                                      int index, String labelAttr) {
+        // set inaction
+        String inaction = "Unknown";
+        String detailInaction = "Unknown";
+        if (!attr2seq.get("notices")[index].equals("Noticed")) {
+            inaction = "NotNoticed";
+            detailInaction = "NotNoticed";
+        } else if (attr2seq.get("familiars")[index].equals("Watched")) {
+            inaction = "Watched";
+            detailInaction = "Watched";
+            String when = attr2seq.get("whens")[index];
+            if (when.equals("PastWeek") || when.equals("PastMonth")) {
+                detailInaction = "PastMonth";
+            } else if (when.equals("Months6") || when.equals("Months12")) {
+                detailInaction = "PastYear";
+            } else if (when.equals("Years3") || when.equals("Years3More") || when.equals("DidNotRemember")) {
+                detailInaction = "YearsAgo";
+            }
+        } else {
+            String skip = attr2seq.get("skips")[index];
+            String[] considered = {
+                    "DecidedToWatch", "ExploreLater", "OthersBetter", "NotNow", "WouldNotEnjoy"};
+            Set<String> set = new HashSet<>(Lists.newArrayList(considered));
+            if (set.contains(skip)) {
+                inaction = skip;
+                detailInaction = skip;
+            }
+        }
+        features.put("inaction", inaction);
+        features.put("detailInaction", detailInaction);
+        features.put("reason", attr2seq.get("reasons")[index]);
+        if (!labelAttr.equals("familiar")) {
+            features.put("familiar", attr2seq.get("familiars")[index]);
+            features.put("when", attr2seq.get("whens")[index]);
+        }
+    }
+
     static public ObjectNode getFeatures(
             Map<String, String[]> attr2seq, int index, String labelAttr) {
         ObjectNode features = Json.newObject();
-        //extractUserLevel(features);
+        extractUserLevel(features, attr2seq, index);
         extractPageLevel(features, attr2seq, index);
         extractItemLevel(features, attr2seq, index);
+        extractSurvey(features, attr2seq, index, labelAttr);
         return features;
     }
 }

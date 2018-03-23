@@ -121,34 +121,45 @@ public class GroupedIndexer extends AbstractIndexer {
                     writers.get(i).close();
                 }
                 writers.clear();
-                for (int i = 0; i < usedBuckets; i++) {
-                    String tmpFilePath = prefix + Integer.valueOf(i).toString() + ".tmp";
-                    File tmpFile = new File(tmpFilePath);
-                    if (tmpFile.isFile()) {
-                        List<ObjectNode> buffer = new ArrayList<>();
-                        EntityDAO csvDao = new CSVFileDAO(separator, tmpFilePath);
-                        while (csvDao.hasNextEntity()) {
-                            buffer.add(csvDao.getNextEntity());
+            } catch (IOException e) {
+                throw new BadRequestException(e);
+            } finally {
+                entityDAO.close();
+            }
+            List<Integer> buckets = new ArrayList<>(usedBuckets);
+            for (int i=0; i<usedBuckets; i++) {
+                files.add(null);
+                buckets.add(i);
+            }
+            buckets.parallelStream().forEach(i -> {
+                String tmpFilePath = prefix + Integer.valueOf(i).toString() + ".tmp";
+                File tmpFile = new File(tmpFilePath);
+                if (tmpFile.isFile()) {
+                    List<ObjectNode> buffer = new ArrayList<>();
+                    EntityDAO csvDao = new CSVFileDAO(separator, tmpFilePath);
+                    while (csvDao.hasNextEntity()) {
+                        buffer.add(csvDao.getNextEntity());
+                    }
+                    csvDao.close();
+                    tmpFile.delete();
+                    Comparator<ObjectNode> comparator;
+                    if (orderFields == null || orderFields.size() == 0) {
+                        comparator = RetrieverUtilities.jsonTypedFieldsComparator(groupKeys, groupKeysTypes);
+                    } else {
+                        List<String> sortFields = new ArrayList<>();
+                        sortFields.addAll(groupKeys);
+                        sortFields.addAll(orderFields);
+                        List<String> sortFieldsTypes = new ArrayList<>();
+                        sortFieldsTypes.addAll(groupKeysTypes);
+                        sortFieldsTypes.addAll(orderFieldsTypes);
+                        comparator = RetrieverUtilities.jsonTypedFieldsComparator(sortFields, sortFieldsTypes);
+                        if (descending != null && descending) {
+                            comparator = comparator.reversed();
                         }
-                        csvDao.close();
-                        tmpFile.delete();
-                        Comparator<ObjectNode> comparator;
-                        if (orderFields == null || orderFields.size() == 0) {
-                            comparator = RetrieverUtilities.jsonTypedFieldsComparator(groupKeys, groupKeysTypes);
-                        } else {
-                            List<String> sortFields = new ArrayList<>();
-                            sortFields.addAll(groupKeys);
-                            sortFields.addAll(orderFields);
-                            List<String> sortFieldsTypes = new ArrayList<>();
-                            sortFieldsTypes.addAll(groupKeysTypes);
-                            sortFieldsTypes.addAll(orderFieldsTypes);
-                            comparator = RetrieverUtilities.jsonTypedFieldsComparator(sortFields, sortFieldsTypes);
-                            if (descending != null && descending) {
-                                comparator = comparator.reversed();
-                            }
-                        }
-                        buffer.sort(comparator);
-                        String resultFile = prefix + Integer.valueOf(i).toString() + ".csv";
+                    }
+                    buffer.sort(comparator);
+                    String resultFile = prefix + Integer.valueOf(i).toString() + ".csv";
+                    try {
                         BufferedWriter writer = new BufferedWriter(new FileWriter(resultFile));
                         IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
                         for (ObjectNode entity : buffer) {
@@ -156,14 +167,12 @@ public class GroupedIndexer extends AbstractIndexer {
                         }
                         buffer.clear();
                         writer.close();
-                        files.add(resultFile);
+                    } catch (IOException e) {
+                        throw new BadRequestException(e);
                     }
+                    files.set(i, resultFile);
                 }
-            } catch (IOException e) {
-                throw new BadRequestException(e);
-            } finally {
-                entityDAO.close();
-            }
+            });
         }
         ObjectNode reqDao = Json.newObject();
         reqDao.set(filesKey, Json.toJson(files));

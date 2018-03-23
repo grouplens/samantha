@@ -53,7 +53,11 @@ public class SequenceToStepExpander implements EntityExpander {
                                   String tstampAttr, int splitTstamp) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
-        this.excludedLabels = new HashSet<>(excludedLabels);
+        if (excludedLabels != null) {
+            this.excludedLabels = new HashSet<>(excludedLabels);
+        } else {
+            this.excludedLabels = new HashSet<>();
+        }
         this.historyAttrs = historyAttrs;
         this.joiner = joiner;
         this.separator = separator;
@@ -88,7 +92,6 @@ public class SequenceToStepExpander implements EntityExpander {
                                    RequestContext requestContext) {
         List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
-            List<ObjectNode> oneExpanded = new ArrayList<>();
             List<String[]> values = new ArrayList<>();
             int size = 0;
             for (String nameAttr : nameAttrs) {
@@ -130,10 +133,9 @@ public class SequenceToStepExpander implements EntityExpander {
                         newEntity.put(historyAttrs.get(j), StringUtils.join(
                                 ArrayUtils.subarray(values.get(j), 0, i), joiner));
                     }
-                    oneExpanded.add(newEntity);
+                    expanded.add(newEntity);
                 }
             }
-            expanded.addAll(oneExpanded);
         }
         return expanded;
     }
