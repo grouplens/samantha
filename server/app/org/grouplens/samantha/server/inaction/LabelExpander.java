@@ -77,6 +77,7 @@ public class LabelExpander implements EntityExpander {
                 String[] seq = entity.get(raw).asText().split(",", -1);
                 attr2seq.put(attr, seq);
             }
+            InactionUtilities.getInaction(attr2seq);
             String[] tstamps = attr2seq.get(tstampAttr + "s");
             String[] labels = attr2seq.get(labelAttr + "s");
             String[] items = attr2seq.get(itemAttr + "s");
@@ -84,8 +85,7 @@ public class LabelExpander implements EntityExpander {
                 if (!excludedLabels.contains(labels[i])) {
                     int tstamp = Integer.parseInt(tstamps[i]);
                     if ((tstamp < splitTstamp && backward) || (tstamp >= splitTstamp && !backward)) {
-                        ObjectNode features = InactionUtilities.getFeatures(attr2seq, i, labelAttr);
-                        features.put(labelAttr, labels[i]);
+                        ObjectNode features = InactionUtilities.getFeatures(attr2seq, i);
                         features.put(userAttr, user);
                         features.put(itemAttr, items[i]);
                         features.put(tstampAttr, tstamp);

@@ -43,10 +43,16 @@ public class InactionUtilities {
             "positives", "negatives", "actions",
             "reasons", "familiars", "whens", "rates", "futures", "skips",
     };
+
     static public final String[] acts = {
             "action", "positive", "negative",
             "wishlist", "rating", "highRate", "lowRate",
-            "click", "stop", "hover"};
+            "click", "stop", "hover",
+    };
+
+    static public final String[] surs = {
+            "reason", "notice", "familiar", "when", "rate", "skip", "future", "inaction", "detailInaction"
+    };
 
     static private Map.Entry<Integer, Integer> getPageRange(int index, String[] ranks) {
         int begin = index;
@@ -187,16 +193,16 @@ public class InactionUtilities {
     static private void getRangeActivity(
             ObjectNode features, Map<String, String[]> attr2seq, int begin, int end, String appendix) {
         int beginTstamp = Integer.parseInt(attr2seq.get("tstamps")[begin]);
-        int endTstamp = Integer.parseInt(attr2seq.get("tstamps")[end]);
+        int endTstamp = Integer.parseInt(attr2seq.get("tstamps")[end - 1]);
         int length = endTstamp - beginTstamp;
         int numItem = end - begin;
         double meanNumItem = -1.0;
         if (length > 0) {
             meanNumItem = numItem * 1.0 / length;
         }
-        features.put("lengthSess", length);
-        features.put("numItemSess", numItem);
-        features.put("meanNumItemSess", meanNumItem);
+        features.put("length" + appendix, length);
+        features.put("numItem" + appendix, numItem);
+        features.put("meanNumItem" + appendix, meanNumItem);
     }
 
     static private void getRangeHitsInfo(
@@ -290,51 +296,59 @@ public class InactionUtilities {
         features.put("hover", attr2seq.get("hovers")[index]);
     }
 
-    static private void extractSurvey(ObjectNode features, Map<String, String[]> attr2seq,
-                                      int index, String labelAttr) {
-        String inaction = "Unknown";
-        String detailInaction = "Unknown";
-        if (!attr2seq.get("notices")[index].equals("Noticed")) {
-            inaction = "NotNoticed";
-            detailInaction = "NotNoticed";
-        } else if (attr2seq.get("familiars")[index].equals("Watched")) {
-            inaction = "Watched";
-            detailInaction = "Watched";
-            String when = attr2seq.get("whens")[index];
-            if (when.equals("PastWeek") || when.equals("PastMonth")) {
-                detailInaction = "PastMonth";
-            } else if (when.equals("Months6") || when.equals("Months12")) {
-                detailInaction = "PastYear";
-            } else if (when.equals("Years3") || when.equals("Years3More") || when.equals("DidNotRemember")) {
-                detailInaction = "YearsAgo";
+    static public void getInaction(Map<String, String[]> attr2seq) {
+        String[] reasons = attr2seq.get("reasons");
+        String[] inactions = new String[reasons.length];
+        String[] detailInactions = new String[reasons.length];
+        for (int index=0; index<reasons.length; index++) {
+            String inaction = "NoPop";
+            String detailInaction = "NoPop";
+            if (attr2seq.get("notices")[index].equals("DidNotNotice") ||
+                    attr2seq.get("notices")[index].equals("NotDisplayed")) {
+                inaction = "NotNoticed";
+                detailInaction = "NotNoticed";
+            } else if (attr2seq.get("familiars")[index].equals("Watched")) {
+                inaction = "Watched";
+                detailInaction = "Watched";
+                String when = attr2seq.get("whens")[index];
+                if (when.equals("PastWeek") || when.equals("PastMonth")) {
+                    detailInaction = "PastMonth";
+                } else if (when.equals("Months6") || when.equals("Months12")) {
+                    detailInaction = "PastYear";
+                } else if (when.equals("Years3") || when.equals("Years3More") || when.equals("DidNotRemember")) {
+                    detailInaction = "YearsAgo";
+                }
+            } else {
+                String skip = attr2seq.get("skips")[index];
+                String[] considered = {
+                        "DecidedToWatch", "ExploreLater", "OthersBetter", "NotNow", "WouldNotEnjoy"};
+                Set<String> set = new HashSet<>(Lists.newArrayList(considered));
+                if (set.contains(skip)) {
+                    inaction = skip;
+                    detailInaction = skip;
+                }
             }
-        } else {
-            String skip = attr2seq.get("skips")[index];
-            String[] considered = {
-                    "DecidedToWatch", "ExploreLater", "OthersBetter", "NotNow", "WouldNotEnjoy"};
-            Set<String> set = new HashSet<>(Lists.newArrayList(considered));
-            if (set.contains(skip)) {
-                inaction = skip;
-                detailInaction = skip;
-            }
+            inactions[index] = inaction;
+            detailInactions[index] = detailInaction;
         }
-        features.put("inaction", inaction);
-        features.put("detailInaction", detailInaction);
-        features.put("reason", attr2seq.get("reasons")[index]);
-        if (!labelAttr.equals("familiar")) {
-            features.put("familiar", attr2seq.get("familiars")[index]);
-            features.put("when", attr2seq.get("whens")[index]);
+        attr2seq.put("inactions", inactions);
+        attr2seq.put("detailInactions", detailInactions);
+    }
+
+    static private void extractSurvey(ObjectNode features, Map<String, String[]> attr2seq, int index) {
+        for (String sur : surs) {
+            features.put(sur + "Sur", attr2seq.get(sur + "s")[index]);
         }
     }
 
     static public ObjectNode getFeatures(
-            Map<String, String[]> attr2seq, int index, String labelAttr) {
+            Map<String, String[]> attr2seq, int index) {
         ObjectNode features = Json.newObject();
         extractItemLevel(features, attr2seq, index);
         Map.Entry<Integer, Integer> pageRange = extractPageLevel(features, attr2seq, index);
         Map.Entry<Integer, Integer> sessRange = extractSessionLevel(features, attr2seq, index, pageRange);
         extractUserLevel(features, attr2seq, index, pageRange, sessRange);
-        extractSurvey(features, attr2seq, index, labelAttr);
+        extractSurvey(features, attr2seq, index);
         return features;
     }
 }

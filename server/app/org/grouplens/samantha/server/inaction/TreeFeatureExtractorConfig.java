@@ -26,16 +26,24 @@ import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
 
-public class FeatureExtractorConfig implements org.grouplens.samantha.server.featurizer.FeatureExtractorConfig {
+public class TreeFeatureExtractorConfig implements org.grouplens.samantha.server.featurizer.FeatureExtractorConfig {
 
-    private FeatureExtractorConfig() {}
+    private final String labelAttr;
+    private final String labelClass;
 
-    public FeatureExtractor getFeatureExtractor(RequestContext requestContext) {
-        return new FeatureExtractor();
+    private TreeFeatureExtractorConfig(String labelAttr, String labelClass) {
+        this.labelAttr = labelAttr;
+        this.labelClass = labelClass;
     }
 
-    public static FeatureExtractorConfig getFeatureExtractorConfig(Configuration extractorConfig,
-                                                                   Injector injector) {
-        return new FeatureExtractorConfig();
+    public TreeFeatureExtractor getFeatureExtractor(RequestContext requestContext) {
+        return new TreeFeatureExtractor(labelAttr, labelClass);
+    }
+
+    public static TreeFeatureExtractorConfig getFeatureExtractorConfig(Configuration extractorConfig,
+                                                                       Injector injector) {
+        return new TreeFeatureExtractorConfig(
+                extractorConfig.getString("labelAttr"),
+                extractorConfig.getString("labelClass"));
     }
 }

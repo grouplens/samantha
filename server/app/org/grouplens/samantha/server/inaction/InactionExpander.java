@@ -23,60 +23,52 @@
 package org.grouplens.samantha.server.inaction;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-public class InferenceExpander implements EntityExpander {
+public class InactionExpander implements EntityExpander {
+
     private final String labelAttr;
+    private final Set<String> includedLabels;
 
-    public InferenceExpander(String labelAttr) {
+    public InactionExpander(String labelAttr, List<String> includedLabels) {
         this.labelAttr = labelAttr;
+        if (includedLabels != null) {
+            this.includedLabels = new HashSet<>(includedLabels);
+        } else {
+            this.includedLabels = new HashSet<>();
+        }
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
-        return new InferenceExpander(expanderConfig.getString("labelAttr"));
+        return new InactionExpander(
+                expanderConfig.getString("labelAttr"),
+                expanderConfig.getStringList("includedLabels"));
+    }
+
+    private void preprocess(ObjectNode sur) {
+        String notice = sur.get("noticeSur").asText();
+        if (notice.equals("DidNotNotice") || notice.equals("NotDisplayed")) {
+            notice = "NotNoticed";
+        }
+        sur.put("noticedSur", notice);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                    RequestContext requestContext) {
-        String userAttr = "userId";
-        String itemAttr = "movieId";
-        String tstampAttr = "tstamp";
-        String[] historyAttrs = InactionUtilities.historyAttrs;
-        Map<String, String[]> attr2seq = new HashMap<>();
-        for (ObjectNode entity : initialResult) {
-            String user = entity.get(userAttr).asText();
-            String item = entity.get(itemAttr).asText();
-            int tstamp = entity.get(tstampAttr).asInt();
-            for (String attr : historyAttrs) {
-                String[] seq = entity.get(attr).asText().split(",", -1);
-                attr2seq.put(attr, seq);
-            }
-            int index = -1;
-            String[] itemIds = attr2seq.get(itemAttr + "s");
-            for (int i=0; i<itemIds.length; i++) {
-                String[] tstamps = attr2seq.get(tstampAttr + "s");
-                if (Integer.parseInt(tstamps[i]) < tstamp && itemIds[i].equals(item)) {
-                    index = i;
-                }
-            }
-            if (index >= 0) {
-                ObjectNode features = InactionUtilities.getFeatures(attr2seq, index);
-                features.put(userAttr, user);
-                features.put(itemAttr, item);
-                features.put(tstampAttr, attr2seq.get(tstampAttr + "s")[index]);
-                // make predictions on the features and set the output into entity
-            } else {
-                // set the default output
+        List<ObjectNode> expanded = new ArrayList<>();
+        for (ObjectNode sur : initialResult) {
+            preprocess(sur);
+            if (includedLabels.contains(sur.get(labelAttr).asText())) {
+                expanded.add(sur);
             }
         }
-        return initialResult;
+        return expanded;
     }
 }
