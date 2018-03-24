@@ -293,7 +293,8 @@ public class InactionUtilities {
     }
 
     static private void extractItemLevel(ObjectNode features, Map<String, String[]> attr2seq, int index) {
-        features.put("hover", attr2seq.get("hovers")[index]);
+        features.put("hoverItem", attr2seq.get("hovers")[index]);
+        features.put("actionItem", attr2seq.get("actions")[index]);
     }
 
     static public void getInaction(Map<String, String[]> attr2seq) {
