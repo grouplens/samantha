@@ -82,35 +82,39 @@ public class InferenceExpander implements EntityExpander {
         String[] historyAttrs = InactionUtilities.historyAttrs;
         Map<String, String[]> attr2seq = new HashMap<>();
         for (ObjectNode entity : initialResult) {
-            String user = entity.get(userAttr).asText();
-            String item = entity.get(itemAttr).asText();
-            int tstamp = entity.get(tstampAttr).asInt();
-            for (String attr : historyAttrs) {
-                String[] seq = entity.get(attr).asText().split(",", -1);
-                attr2seq.put(attr, seq);
-            }
-            int index = -1;
-            String[] itemIds = attr2seq.get(itemAttr + "s");
-            for (int i=0; i<itemIds.length; i++) {
-                String[] tstamps = attr2seq.get(tstampAttr + "s");
-                if (Integer.parseInt(tstamps[i]) < tstamp && itemIds[i].equals(item)) {
-                    index = i;
-                }
-            }
             List<String> predArr = new ArrayList<>();
-            if (index >= 0) {
-                ObjectNode features = InactionUtilities.getFeatures(attr2seq, index);
-                features.put(userAttr, user);
-                features.put(itemAttr, item);
-                features.put(tstampAttr, attr2seq.get(tstampAttr + "s")[index]);
-                LearningInstance instance = featurizer.featurize(features, false);
-                double[] preds = predictiveModel.predict(instance);
-                for (int i=0; i<preds.length; i++) {
-                    predArr.add(Double.valueOf(preds[i]).toString());
+            for (int i=0; i<numClass; i++) {
+                predArr.add(Double.valueOf(0.0).toString());
+            }
+            String itemIdsStr = entity.get(itemAttr + "s").asText();
+            if (!"".equals(itemIdsStr)) {
+                String user = entity.get(userAttr).asText();
+                String item = entity.get(itemAttr).asText();
+                int tstamp = entity.get(tstampAttr).asInt();
+                for (String attr : historyAttrs) {
+                    if (entity.has(attr)) {
+                        String[] seq = entity.get(attr).asText().split(",", -1);
+                        attr2seq.put(attr, seq);
+                    }
                 }
-            } else {
-                for (int i=0; i<numClass; i++) {
-                    predArr.add(Double.valueOf(0.0).toString());
+                int index = -1;
+                String[] itemIds = attr2seq.get(itemAttr + "s");
+                for (int i=0; i<itemIds.length; i++) {
+                    String[] tstamps = attr2seq.get(tstampAttr + "s");
+                    if (Integer.parseInt(tstamps[i]) < tstamp && itemIds[i].equals(item)) {
+                        index = i;
+                    }
+                }
+                if (index >= 0) {
+                    ObjectNode features = InactionUtilities.getFeatures(attr2seq, index);
+                    features.put(userAttr, user);
+                    features.put(itemAttr, item);
+                    features.put(tstampAttr, attr2seq.get(tstampAttr + "s")[index]);
+                    LearningInstance instance = featurizer.featurize(features, false);
+                    double[] preds = predictiveModel.predict(instance);
+                    for (int i=0; i<preds.length; i++) {
+                        predArr.set(i, Double.valueOf(preds[i]).toString());
+                    }
                 }
             }
             entity.put(labelAttr, StringUtils.join(predArr, joiner));
