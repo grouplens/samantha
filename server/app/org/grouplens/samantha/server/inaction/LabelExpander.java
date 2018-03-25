@@ -86,6 +86,7 @@ public class LabelExpander implements EntityExpander {
                     int tstamp = Integer.parseInt(tstamps[i]);
                     if ((tstamp < splitTstamp && backward) || (tstamp >= splitTstamp && !backward)) {
                         ObjectNode features = InactionUtilities.getFeatures(attr2seq, i);
+                        InactionUtilities.extractSurvey(features, attr2seq, i);
                         features.put(userAttr, user);
                         features.put(itemAttr, items[i]);
                         features.put(tstampAttr, tstamp);

@@ -336,7 +336,7 @@ public class InactionUtilities {
         attr2seq.put("detailInactions", detailInactions);
     }
 
-    static private void extractSurvey(ObjectNode features, Map<String, String[]> attr2seq, int index) {
+    static public void extractSurvey(ObjectNode features, Map<String, String[]> attr2seq, int index) {
         for (String sur : surs) {
             features.put(sur + "Sur", attr2seq.get(sur + "s")[index]);
         }
@@ -349,7 +349,6 @@ public class InactionUtilities {
         Map.Entry<Integer, Integer> pageRange = extractPageLevel(features, attr2seq, index);
         Map.Entry<Integer, Integer> sessRange = extractSessionLevel(features, attr2seq, index, pageRange);
         extractUserLevel(features, attr2seq, index, pageRange, sessRange);
-        extractSurvey(features, attr2seq, index);
         return features;
     }
 }

@@ -23,25 +23,55 @@
 package org.grouplens.samantha.server.inaction;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.StringUtils;
+import org.grouplens.samantha.modeler.common.LearningInstance;
+import org.grouplens.samantha.modeler.common.PredictiveModel;
+import org.grouplens.samantha.modeler.featurizer.Featurizer;
+import org.grouplens.samantha.server.common.ModelService;
+import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class InferenceExpander implements EntityExpander {
     private final String labelAttr;
+    private final int numClass;
+    private final String joiner;
+    private final PredictiveModel predictiveModel;
+    private final Featurizer featurizer;
 
-    public InferenceExpander(String labelAttr) {
+    public InferenceExpander(String labelAttr, int numClass, String joiner,
+                             PredictiveModel predictiveModel,
+                             Featurizer featurizer) {
         this.labelAttr = labelAttr;
+        this.numClass = numClass;
+        this.joiner = joiner;
+        this.predictiveModel = predictiveModel;
+        this.featurizer = featurizer;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
-        return new InferenceExpander(expanderConfig.getString("labelAttr"));
+        ModelService modelService = injector.instanceOf(ModelService.class);
+        String predictorName = expanderConfig.getString("predictorName");
+        String modelName = expanderConfig.getString("modelName");
+        SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
+        configService.getPredictor(predictorName, requestContext);
+        Object rawModel = modelService.getModel(
+                requestContext.getEngineName(), modelName);
+        PredictiveModel model = (PredictiveModel) rawModel;
+        Featurizer featurizer = (Featurizer) rawModel;
+        return new InferenceExpander(
+                expanderConfig.getString("labelAttr"),
+                expanderConfig.getInt("numClass"),
+                expanderConfig.getString("joiner"),
+                model, featurizer);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
@@ -67,15 +97,23 @@ public class InferenceExpander implements EntityExpander {
                     index = i;
                 }
             }
+            List<String> predArr = new ArrayList<>();
             if (index >= 0) {
                 ObjectNode features = InactionUtilities.getFeatures(attr2seq, index);
                 features.put(userAttr, user);
                 features.put(itemAttr, item);
                 features.put(tstampAttr, attr2seq.get(tstampAttr + "s")[index]);
-                // make predictions on the features and set the output into entity
+                LearningInstance instance = featurizer.featurize(features, false);
+                double[] preds = predictiveModel.predict(instance);
+                for (int i=0; i<preds.length; i++) {
+                    predArr.add(Double.valueOf(preds[i]).toString());
+                }
             } else {
-                // set the default output
+                for (int i=0; i<numClass; i++) {
+                    predArr.add(Double.valueOf(0.0).toString());
+                }
             }
+            entity.put(labelAttr, StringUtils.join(predArr, joiner));
         }
         return initialResult;
     }
