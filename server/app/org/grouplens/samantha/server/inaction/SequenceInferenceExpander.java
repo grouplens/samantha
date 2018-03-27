@@ -35,7 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class SequenceToStepExpander implements EntityExpander {
+public class SequenceInferenceExpander implements EntityExpander {
     final private List<String> nameAttrs;
     final private List<String> valueAttrs;
     final private Set<String> excludedLabels;
@@ -47,10 +47,10 @@ public class SequenceToStepExpander implements EntityExpander {
     final private Integer maxStepNum;
     final private boolean backward;
 
-    public SequenceToStepExpander(List<String> nameAttrs, List<String> valueAttrs,
-                                  List<String> excludedLabels, List<String> historyAttrs, String separator,
-                                  String joiner, Integer maxStepNum, boolean backward,
-                                  String tstampAttr, int splitTstamp) {
+    public SequenceInferenceExpander(List<String> nameAttrs, List<String> valueAttrs,
+                                     List<String> excludedLabels, List<String> historyAttrs, String separator,
+                                     String joiner, Integer maxStepNum, boolean backward,
+                                     String tstampAttr, int splitTstamp) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
         if (excludedLabels != null) {
@@ -77,7 +77,7 @@ public class SequenceToStepExpander implements EntityExpander {
         if (splitTstamp == null) {
             splitTstamp = 0;
         }
-        return new SequenceToStepExpander(
+        return new SequenceInferenceExpander(
                 expanderConfig.getStringList("nameAttrs"),
                 expanderConfig.getStringList("valueAttrs"),
                 expanderConfig.getStringList("excludedLabels"),

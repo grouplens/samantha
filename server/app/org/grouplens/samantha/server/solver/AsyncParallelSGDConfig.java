@@ -51,10 +51,16 @@ public class AsyncParallelSGDConfig implements LearningMethodConfig {
         if (methodConfig.asMap().containsKey("numProcessors")) {
             num = methodConfig.getInt("numProcessors");
         }
+        Double l2coef = methodConfig.getDouble("l2coef");
+        if (l2coef == null) {
+            l2coef = 0.0;
+        }
+        Double lr = methodConfig.getDouble("learningRate");
+        if (lr == null) {
+            lr = 0.01;
+        }
         OnlineOptimizationMethod onlineMethod = new AsyncParallelSGD(
-                maxIter, minIter, methodConfig.getDouble("l2coef"),
-                methodConfig.getDouble("learningRate"), tol, num
-        );
+                maxIter, minIter, l2coef, lr, tol, num);
         return onlineMethod;
     }
 }
