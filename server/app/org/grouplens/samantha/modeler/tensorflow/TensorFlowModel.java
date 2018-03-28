@@ -117,7 +117,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         return insPreds;
     }
 
-    public double[][] predict(List<LearningInstance> instances) {
+    public double[][] inference(List<LearningInstance> instances, String operation) {
         Session.Runner runner = session.runner();
         Map<String, Tensor> feedDict = getFeedDict(instances);
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
@@ -148,6 +148,10 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         }
         buffer.clear();
         return preds;
+    }
+
+    public double[][] predict(List<LearningInstance> instances) {
+        return inference(instances, outputOper);
     }
 
     public List<ObjectNode> recommend(List<ObjectNode> entities) {

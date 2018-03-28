@@ -22,17 +22,17 @@
 
 package org.grouplens.samantha.server.inaction;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.commons.lang3.ArrayUtils;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
+import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import play.libs.Json;
 
-import java.util.AbstractMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class InactionUtilities {
 
@@ -342,13 +342,54 @@ public class InactionUtilities {
         }
     }
 
+    static public void extractItemInfoFeatures(ObjectNode features, Map<String, String[]> attr2seq, int index,
+                                               List<JsonNode> item2info) {
+        String[] items = attr2seq.get("movieIds");
+        int itemId = Integer.parseInt(items[index]);
+        JsonNode info = item2info.get(itemId);
+        if (info != null) {
+            features.put("popularityItem", info.get("popularity").asInt());
+            int release = info.get("releaseYear").asInt();
+            if (release >= 1907) {
+                features.put("releaseYearItem", release);
+            } else {
+                features.put("releaseYearItem", 1990);
+            }
+        } else {
+            features.put("popularityItem", 167);
+            features.put("releaseYearItem", 1990);
+        }
+    }
+
+    static public void extractTensorFlowFeatures(ObjectNode features, Map<String, String[]> attr2seq, int index,
+                                                 TensorFlowModel model) {
+
+    }
+
+    static public void extractPageSimilarityFeatures(ObjectNode features, Map<String, String[]> attr2seq, int index,
+                                                     SVDFeature model, int begin, int end) {
+
+    }
+
     static public ObjectNode getFeatures(
-            Map<String, String[]> attr2seq, int index) {
+            Map<String, String[]> attr2seq, int index,
+            TensorFlowModel tensorflow, List<JsonNode> item2info,
+            SVDFeature svd) {
         ObjectNode features = Json.newObject();
         extractItemLevel(features, attr2seq, index);
         Map.Entry<Integer, Integer> pageRange = extractPageLevel(features, attr2seq, index);
         Map.Entry<Integer, Integer> sessRange = extractSessionLevel(features, attr2seq, index, pageRange);
         extractUserLevel(features, attr2seq, index, pageRange, sessRange);
+
+        if (item2info != null) {
+            extractItemInfoFeatures(features, attr2seq, index, item2info);
+        }
+        if (svd != null) {
+            extractPageSimilarityFeatures(features, attr2seq, index, svd, pageRange.getKey(), pageRange.getValue());
+        }
+        if (tensorflow != null) {
+            extractTensorFlowFeatures(features, attr2seq, index, tensorflow);
+        }
         return features;
     }
 }

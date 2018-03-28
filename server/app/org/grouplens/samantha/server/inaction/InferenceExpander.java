@@ -106,7 +106,7 @@ public class InferenceExpander implements EntityExpander {
                     }
                 }
                 if (index >= 0) {
-                    ObjectNode features = InactionUtilities.getFeatures(attr2seq, index);
+                    ObjectNode features = InactionUtilities.getFeatures(attr2seq, index, null, null, null);
                     features.put(userAttr, user);
                     features.put(itemAttr, item);
                     features.put(tstampAttr, attr2seq.get(tstampAttr + "s")[index]);
