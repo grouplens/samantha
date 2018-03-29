@@ -116,12 +116,12 @@ class RecommenderBuilder(ModelBuilder):
             updates = metrics.compute_eval_label_metrics(
                     self._eval_metrics, used_preds, used_labels, labels, used_indices,
                     uniq_batch_idx, ori_batch_idx, step_idx)
-
-            used_model, _, ori_batch_idx, _ = metrics.get_eval_user_model(user_model, indices)
-            predictions = self._prediction_model.get_target_prediction(
-                used_model, paras, target, config)
-            updates += context_metrics.compute_eval_label_metrics(
-                self._eval_metrics, predictions, labels, indices, ori_batch_idx, config, context)
+            with tf.variable_scope('context'):
+                used_model, _, ori_batch_idx, _ = metrics.get_eval_user_model(user_model, indices)
+                predictions = self._prediction_model.get_target_prediction(
+                    used_model, paras, target, config)
+                updates += context_metrics.compute_eval_label_metrics(
+                    self._eval_metrics, predictions, labels, indices, ori_batch_idx, config, context)
             return updates
         else:
             used_model = metrics.get_per_step_eval_user_model(user_model, used_indices)

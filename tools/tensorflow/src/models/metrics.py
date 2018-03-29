@@ -132,12 +132,12 @@ def compute_eval_label_metrics(metrics, predictions, used_labels, labels, indice
     for metric in metrics.split(' '):
         if 'MAP' in metric:
             updates += compute_map_metrics(eval_labels, predictions, metric)[1]
-        elif 'AUC' in metric:
-            updates.append(compute_auc_metric(uniq_batch_idx, new_batch_idx, used_labels, predictions)[1])
         elif 'AP' in metric:
             updates += compute_ap_metrics(eval_labels, predictions, metric)[1]
         elif 'AR' in metric:
             updates += compute_ar_metrics(eval_labels, predictions, metric)[1]
+        elif 'AUC' == metric:
+            updates.append(compute_auc_metric(uniq_batch_idx, new_batch_idx, used_labels, predictions)[1])
     return updates
 
 
