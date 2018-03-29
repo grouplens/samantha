@@ -260,6 +260,7 @@ class RecommenderTest(unittest.TestCase):
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             page_size=page_size,
+            eval_metrics='MAP@1,5 AUC ShownAUC AP@1,5 AR@1,5',
             attr2config={
                 'display': {
                     'vocab_size': item_vocab_size,
@@ -283,7 +284,12 @@ class RecommenderTest(unittest.TestCase):
             embedding_attrs=['user'],
             target2config={
                 'item': {
-                    'weight': 1.0
+                    'weight': 1.0,
+                    'metric': {
+                        'auc': {
+                            'context': 'display'
+                        }
+                    }
                 }
             },
         )
