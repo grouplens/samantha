@@ -69,6 +69,7 @@ class CTRPredictionModel(PredictionModel):
     def get_target_loss(self, used_model, labels, indices, user_model,
                         paras, target, config, mode, context):
         display = context[self._context_attr]
+        indices = tf.boolean_mask(indices, tf.gather_nd(display, indices) > 0)
         used_display = tf.gather_nd(display, indices)
         weights = tf.gather(paras['weights'], used_display)
         biases = tf.gather(paras['biases'], used_display)

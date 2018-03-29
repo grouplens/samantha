@@ -82,6 +82,8 @@ class CCFSoftmaxModel(PredictionModel):
         biases = tf.gather(paras['biases'], used_display)
         logits = tf.reduce_sum(used_model * weights, axis=1) + biases
         logits = tf.reshape(logits, [tf.shape(logits)[0] / self._context_size, self._context_size])
+        used_display = tf.reshape(used_display, [tf.shape(used_display)[0] / self._context_size, self._context_size])
+        logits = logits * tf.cast(used_display > 0, tf.float32) - 1000.0 * tf.cast(used_display == 0, tf.float32)
 
         user = context[self._user_attr]
         batch_idx = tf.reshape(
