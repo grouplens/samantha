@@ -181,6 +181,8 @@ class RecommenderBuilder(ModelBuilder):
             train_indices = self._get_constrained_steps(train_indices, 'train')
         if self._eval_steps < self._max_train_steps:
             eval_indices = self._get_constrained_steps(eval_indices, 'eval')
+        tf.summary.scalar('num_left_of_split', tf.shape(train_indices)[0])
+        tf.summary.scalar('num_right_of_split', tf.shape(eval_indices)[0])
         return train_indices, eval_indices
 
     def _get_loss_metrics(self, sequence_length, user_model, attr2input):

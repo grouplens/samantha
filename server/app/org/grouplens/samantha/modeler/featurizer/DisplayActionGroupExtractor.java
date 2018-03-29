@@ -169,19 +169,22 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
                 String disAct = "";
                 for (int j=0; j<actionAttrs.size(); j++) {
                     String act = actionAttrs.get(j);
-                    String bact = act2bools.get(act)[i];
-                    if (bact.equals("1")) {
+                    String bactStr = act2bools.get(act)[i];
+                    double bactVal = Double.parseDouble(bactStr);
+                    if (bactVal > 0.0) {
                         processFeature(indexSpace, update, act2feas.get(act),
                                 actionIndices.get(j), act, fields[i], val);
                         disAct = act;
+                        bactStr = "True";
                     } else {
                         processFeature(indexSpace, update, act2feas.get(act),
                                 actionIndices.get(j), act, null, val);
+                        bactStr = "False";
                     }
                     if (extractBools.get(j)) {
                         processFeature(indexSpace, update, act2bfeas.get(act),
                                 actionIndices.get(j) + "_BOOL", act,
-                                fields[i] + "_" + bact, val);
+                                fields[i] + "_" + bactStr, val);
                     }
                 }
                 if (displayActionIndex != null) {
