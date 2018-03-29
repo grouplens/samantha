@@ -24,6 +24,7 @@ package org.grouplens.samantha.modeler.tensorflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -41,10 +42,7 @@ import org.grouplens.samantha.modeler.model.VariableSpace;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.grouplens.samantha.server.io.IOUtilities;
-import org.tensorflow.Graph;
-import org.tensorflow.SavedModelBundle;
-import org.tensorflow.Session;
-import org.tensorflow.Tensor;
+import org.tensorflow.*;
 import play.libs.Json;
 
 import java.io.IOException;
@@ -121,13 +119,19 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         runner.fetch(operation);
         List<Tensor<?>> results = runner.run();
         Tensor<?> tensorOutput = results.get(0);
-        if (tensorOutput.numDimensions() != 2) {
+        int dim = tensorOutput.numDimensions();
+        if (dim > 2) {
             throw new BadRequestException(
-                    "The TensorFlow model should always predict with a two dimensional tensor.");
+                    "The TensorFlow model should always output with a one or two dimensional tensor. " +
+                    "Currently it is " + Integer.valueOf(dim).toString());
         }
         long[] outputShape = tensorOutput.shape();
-        double[][] preds = new double[(int)outputShape[0]][(int)outputShape[1]];
-        DoubleBuffer buffer = DoubleBuffer.allocate(tensorOutput.numElements());
+        long ncol = 1;
+        if (outputShape.length > 1) {
+            ncol = outputShape[1];
+        }
+        double[][] preds = new double[(int)outputShape[0]][(int)ncol];
+        FloatBuffer buffer = FloatBuffer.allocate(tensorOutput.numElements());
         tensorOutput.writeTo(buffer);
         int k = 0;
         for (int i=0; i<preds.length; i++) {
@@ -143,6 +147,11 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     }
 
     public double[][] inference(String operation) {
+        List<String> operations = Lists.newArrayList();
+        Iterator<Operation> operIter = graph.operations();
+        while (operIter.hasNext()) {
+            operations.add(operIter.next().name());
+        }
         Session.Runner runner = session.runner();
         return fetch(runner, operation);
     }

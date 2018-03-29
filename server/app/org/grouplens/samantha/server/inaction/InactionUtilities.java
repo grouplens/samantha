@@ -372,7 +372,7 @@ public class InactionUtilities {
                                                  TensorFlowModel model, int pageBegin, int pageEnd,
                                                  String itemAttr, String itemIndex, int closest) {
         if (weights == null) {
-            weights = model.inference("metrics/paras/item_biases/(item_biases)");
+            weights = model.inference("metrics/paras/rate_weights/Adagrad/read");
         }
         String[] items = attr2seq.get(itemAttr + "s");
         String itemId = items[index];
@@ -380,10 +380,12 @@ public class InactionUtilities {
         RealVector itemVec = MatrixUtils.createRealVector(weights[itemIdx]);
         // page similarity/diversity
         List<Double> sims = new ArrayList<>();
-        for (int i=pageBegin; i<pageEnd && i != index; i++) {
-            int curIdx = model.getIndexForKey(itemIndex, FeatureExtractorUtilities.composeKey(itemAttr, items[i]));
-            double sim = itemVec.cosine(MatrixUtils.createRealVector(weights[curIdx]));
-            sims.add(sim);
+        for (int i=pageBegin; i<pageEnd; i++) {
+            if (index != i) {
+                int curIdx = model.getIndexForKey(itemIndex, FeatureExtractorUtilities.composeKey(itemAttr, items[i]));
+                double sim = itemVec.cosine(MatrixUtils.createRealVector(weights[curIdx]));
+                sims.add(sim);
+            }
         }
         // page predicted rating
         // closet action similarity

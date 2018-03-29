@@ -63,7 +63,7 @@ public class LabelExpander implements EntityExpander {
                                              Injector injector, RequestContext requestContext) {
         String predictorName = "tensorFlowInteractionPredictor"; //expanderConfig.getString("predictorName");
         String modelName = "tensorFlowInteractionPredictorModel"; //expanderConfig.getString("modelName");
-        String itemInfoFile = "/opt/samantha/learning/historyMovieInfo.tsv";
+        String itemInfoFile = "/opt/samantha/learning/historyMovieData.tsv";
         String itemAttr = "movieId";
         Integer splitTstamp = expanderConfig.getInt("splitTstamp");
         if (splitTstamp == null) {
