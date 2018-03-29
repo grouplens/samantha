@@ -28,6 +28,9 @@ import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.RealVector;
+import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import play.libs.Json;
@@ -35,6 +38,8 @@ import play.libs.Json;
 import java.util.*;
 
 public class InactionUtilities {
+
+    static private double[][] weights = null;
 
     static public final String[] historyAttrs = {
             "notices",
@@ -120,13 +125,14 @@ public class InactionUtilities {
         }
     }
 
-    static private void extractClosestActionInfo(
+    static private int extractClosestActionInfo(
             ObjectNode features, Map<String, String[]> attr2seq,
             String appendix, int begin, int end, int index) {
         features.put("closestAction" + appendix, "none");
         features.put("closestInvDist" + appendix, -1);
         features.put("closestRow" + appendix, -1);
         features.put("closestCol" + appendix, -1);
+        int closest = -1;
         if (index >= 0) {
             int targetRank = Integer.parseInt(attr2seq.get("ranks")[index]);
             for (int i = begin; i < end; i++) {
@@ -141,11 +147,13 @@ public class InactionUtilities {
                             features.put("closestInvDist" + appendix, invDist);
                             features.put("closestRow" + appendix, rank / 8);
                             features.put("closestCol" + appendix, rank % 8);
+                            closest = i;
                         }
                     }
                 }
             }
         }
+        return closest;
     }
 
     static private void extractPageInfo(ObjectNode features, Map<String, String[]> attr2seq,
@@ -288,7 +296,6 @@ public class InactionUtilities {
         int end = pageRange.getValue();
         extractPageInfo(features, attr2seq, "Page", index);
         getRangeActionAndRate(features, attr2seq, "Page", begin, end);
-        extractClosestActionInfo(features, attr2seq, "Page", begin, end, index);
         return pageRange;
     }
 
@@ -362,33 +369,47 @@ public class InactionUtilities {
     }
 
     static public void extractTensorFlowFeatures(ObjectNode features, Map<String, String[]> attr2seq, int index,
-                                                 TensorFlowModel model) {
-
-    }
-
-    static public void extractPageSimilarityFeatures(ObjectNode features, Map<String, String[]> attr2seq, int index,
-                                                     SVDFeature model, int begin, int end) {
-
+                                                 TensorFlowModel model, int pageBegin, int pageEnd,
+                                                 String itemAttr, String itemIndex, int closest) {
+        if (weights == null) {
+            weights = model.inference("metrics/paras/item_biases/(item_biases)");
+        }
+        String[] items = attr2seq.get(itemAttr + "s");
+        String itemId = items[index];
+        int itemIdx = model.getIndexForKey(itemIndex, FeatureExtractorUtilities.composeKey(itemAttr, itemId));
+        RealVector itemVec = MatrixUtils.createRealVector(weights[itemIdx]);
+        // page similarity/diversity
+        List<Double> sims = new ArrayList<>();
+        for (int i=pageBegin; i<pageEnd && i != index; i++) {
+            int curIdx = model.getIndexForKey(itemIndex, FeatureExtractorUtilities.composeKey(itemAttr, items[i]));
+            double sim = itemVec.cosine(MatrixUtils.createRealVector(weights[curIdx]));
+            sims.add(sim);
+        }
+        // page predicted rating
+        // closet action similarity
+        // user state (after current page)
+        // predicted various action probability (before current page)
+        // predicted display probability (after current page)
     }
 
     static public ObjectNode getFeatures(
             Map<String, String[]> attr2seq, int index,
             TensorFlowModel tensorflow, List<JsonNode> item2info,
-            SVDFeature svd) {
+            String itemAttr, String itemIndex) {
         ObjectNode features = Json.newObject();
         extractItemLevel(features, attr2seq, index);
         Map.Entry<Integer, Integer> pageRange = extractPageLevel(features, attr2seq, index);
+        int closest = extractClosestActionInfo(features, attr2seq, "Page",
+                pageRange.getKey(), pageRange.getValue(), index);
         Map.Entry<Integer, Integer> sessRange = extractSessionLevel(features, attr2seq, index, pageRange);
         extractUserLevel(features, attr2seq, index, pageRange, sessRange);
 
         if (item2info != null) {
             extractItemInfoFeatures(features, attr2seq, index, item2info);
         }
-        if (svd != null) {
-            extractPageSimilarityFeatures(features, attr2seq, index, svd, pageRange.getKey(), pageRange.getValue());
-        }
         if (tensorflow != null) {
-            extractTensorFlowFeatures(features, attr2seq, index, tensorflow);
+            extractTensorFlowFeatures(features, attr2seq, index, tensorflow,
+                    pageRange.getKey(), pageRange.getValue(), itemAttr, itemIndex, closest);
         }
         return features;
     }

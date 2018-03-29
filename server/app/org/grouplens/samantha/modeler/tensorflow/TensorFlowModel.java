@@ -117,17 +117,9 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         return insPreds;
     }
 
-    public double[][] inference(List<LearningInstance> instances, String operation) {
-        Session.Runner runner = session.runner();
-        Map<String, Tensor> feedDict = getFeedDict(instances);
-        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
-            runner.feed(entry.getKey(), entry.getValue());
-        }
-        runner.fetch(outputOper);
+    private double[][] fetch(Session.Runner runner, String operation) {
+        runner.fetch(operation);
         List<Tensor<?>> results = runner.run();
-        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
-            entry.getValue().close();
-        }
         Tensor<?> tensorOutput = results.get(0);
         if (tensorOutput.numDimensions() != 2) {
             throw new BadRequestException(
@@ -138,7 +130,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         DoubleBuffer buffer = DoubleBuffer.allocate(tensorOutput.numElements());
         tensorOutput.writeTo(buffer);
         int k = 0;
-        for (int i=0; i<instances.size(); i++) {
+        for (int i=0; i<preds.length; i++) {
             for (int j=0; j<preds[0].length; j++) {
                 preds[i][j] = buffer.get(k++);
             }
@@ -147,6 +139,24 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             results.get(i).close();
         }
         buffer.clear();
+        return preds;
+    }
+
+    public double[][] inference(String operation) {
+        Session.Runner runner = session.runner();
+        return fetch(runner, operation);
+    }
+
+    public double[][] inference(List<LearningInstance> instances, String operation) {
+        Session.Runner runner = session.runner();
+        Map<String, Tensor> feedDict = getFeedDict(instances);
+        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
+            runner.feed(entry.getKey(), entry.getValue());
+        }
+        double[][] preds = fetch(runner, operation);
+        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
+            entry.getValue().close();
+        }
         return preds;
     }
 

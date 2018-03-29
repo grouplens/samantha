@@ -27,6 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.common.PredictiveModel;
 import org.grouplens.samantha.modeler.featurizer.Featurizer;
+import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.expander.EntityExpander;
@@ -106,7 +107,8 @@ public class InferenceExpander implements EntityExpander {
                     }
                 }
                 if (index >= 0) {
-                    ObjectNode features = InactionUtilities.getFeatures(attr2seq, index, null, null, null);
+                    ObjectNode features = InactionUtilities.getFeatures(
+                            attr2seq, index, null, null, itemAttr, null);
                     features.put(userAttr, user);
                     features.put(itemAttr, item);
                     features.put(tstampAttr, attr2seq.get(tstampAttr + "s")[index]);

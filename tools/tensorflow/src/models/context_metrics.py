@@ -21,7 +21,7 @@ def compute_shown_auc_metric(predictions, labels, indices, ori_batch_idx, config
 def compute_eval_label_metrics(metrics, predictions, labels, indices, ori_batch_idx, config, context):
     updates = []
     for metric in metrics.split(' '):
-        if 'ShownAUC' == metric:
+        if 'ShownAUC' == metric and 'metric' in config and 'auc' in config['metric']:
             updates.append(compute_shown_auc_metric(predictions, labels, indices, ori_batch_idx, config, context)[1])
     return updates
 
