@@ -1,6 +1,7 @@
 
 from tensorflow.python import debug as tf_debug
 
+import os
 import random
 import string
 import logging
@@ -19,13 +20,20 @@ class ModelTrainer(object):
                  export_dir='/tmp/tflearn_models/',
                  builder=ModelBuilder(),
                  max_steps=1e7,
+                 export_per_steps=1e4,
                  learning_rate=0.01):
         self._train_data = train_data
         self._tensorboard_dir = tensorboard_dir
         self._export_dir = export_dir
         self._builder = builder
         self._max_steps = max_steps
+        self._export_per_steps = export_per_steps
         self._learning_rate = learning_rate
+
+    def _export_model(self, session, dir):
+        builder = tf.saved_model.builder.SavedModelBuilder(dir)
+        builder.add_meta_graph_and_variables(session, ['train_eval_serve'])
+        builder.save()
 
     def train(self, run_name=None):
         graph = tf.Graph()
@@ -58,11 +66,11 @@ class ModelTrainer(object):
                         train_writer.add_summary(train_vals['merged_summary'], step)
                         step += 1
                         logger.info('Step %s, training loss: %s', step, train_vals['train_loss'])
+                        if step % self._export_per_steps == 0:
+                            self._export_model(session, os.path.join(self._export_dir, str(step)))
                         if step >= self._max_steps:
                             break
                     self._train_data.reset()
                 train_writer.close()
-            builder = tf.saved_model.builder.SavedModelBuilder(self._export_dir)
-            builder.add_meta_graph_and_variables(session, ['train_eval_serve'])
-            builder.save()
+                self._export_model(session, os.path.join(self._export_dir, str(step)))
             session.close()
