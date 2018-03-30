@@ -567,7 +567,7 @@ class RecommenderTest(unittest.TestCase):
                     'weight': 1.0
                 }
             },
-            eval_metrics=None
+            eval_metrics='MAE RMSE',
         )
         batches = []
         batch_size = 4
@@ -586,7 +586,7 @@ class RecommenderTest(unittest.TestCase):
                             act_dice = random.random()
                             if act_dice < 0.5:
                                 batch['item_idx'][l].append(idx)
-                                batch['rating_val'][l].append(random.randint(1, 5))
+                                batch['rating_val'][l].append(random.randint(1, 5) * 1.0)
                             else:
                                 batch['item_idx'][l].append(0)
                                 batch['rating_val'][l].append(0.0)

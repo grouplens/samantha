@@ -109,6 +109,28 @@ def get_eval_user_model(user_model, indices):
     return used_model, uniq_batch_idx, ori_batch_idx, step_idx
 
 
+def compute_mae_metric(eval_labels, predictions):
+    label_index = tf.concat([
+        tf.expand_dims(tf.range(tf.shape(eval_labels)[0]), 1),
+        tf.expand_dims(eval_labels, 1)
+    ], 1)
+    preds = tf.gather_nd(predictions, label_index)
+    mae_value, mae_update = tf.metrics.mean_absolute_error(eval_labels, preds)
+    tf.summary.scalar('MAE', mae_value)
+    return mae_value, mae_update
+
+
+def compute_rmse_metric(eval_labels, predictions):
+    label_index = tf.concat([
+        tf.expand_dims(tf.range(tf.shape(eval_labels)[0]), 1),
+        tf.expand_dims(eval_labels, 1)
+    ], 1)
+    preds = tf.gather_nd(predictions, label_index)
+    rmse_value, rmse_update = tf.metrics.root_mean_squared_error(eval_labels, preds)
+    tf.summary.scalar('RMSE', rmse_value)
+    return rmse_value, rmse_update
+
+
 def compute_eval_label_metrics(metrics, predictions, used_labels, labels, indices,
         uniq_batch_idx, ori_batch_idx, step_idx):
     new_batch_idx = tf.gather(tf.range(tf.shape(uniq_batch_idx)[0]), ori_batch_idx)
@@ -129,6 +151,7 @@ def compute_eval_label_metrics(metrics, predictions, used_labels, labels, indice
                 tf.int64)
             ),
         [tf.shape(uniq_batch_idx)[0], label_shape[1] * label_shape[2]])
+    ori_predictions = tf.gather(predictions, ori_batch_idx)
     updates = []
     for metric in metrics.split(' '):
         if 'MAP' in metric:
@@ -139,6 +162,10 @@ def compute_eval_label_metrics(metrics, predictions, used_labels, labels, indice
             updates += compute_ar_metrics(eval_labels, predictions, metric)[1]
         elif 'AUC' == metric:
             updates.append(compute_auc_metric(uniq_batch_idx, new_batch_idx, used_labels, predictions)[1])
+        elif 'MAE' == metric:
+            updates.append(compute_mae_metric(used_labels, ori_predictions)[1])
+        elif 'RMSE' == metric:
+            updates.append(compute_rmse_metric(used_labels, ori_predictions)[1])
     return updates
 
 
@@ -168,5 +195,9 @@ def compute_per_step_eval_label_metrics(metrics, predictions, eval_labels):
         elif 'AR' in metric:
             updates += compute_ar_metrics(
                 tf.cast(eval_labels, tf.int64), predictions, metric)[1]
+        elif 'MAE' == metric:
+            updates.append(compute_mae_metric(eval_labels, predictions)[1])
+        elif 'RMSE' == metric:
+            updates.append(compute_rmse_metric(eval_labels, predictions)[1])
     return updates
 
