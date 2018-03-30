@@ -7,12 +7,11 @@ from src.models.prediction_model import PredictionModel
 
 class RegressionPredictionModel(PredictionModel):
 
-    def __init__(self, context_attr, context_size, config=None):
-        self._context_attr = context_attr
-        self._context_size = context_size
+    def __init__(self, config=None):
         if config is None:
             self._regression_config = {
-                'item': {
+                'rating': {
+                    'context': 'item',
                     'vocab_size':  10,
                     'regression_dim': 10,
                     'attrs': {
@@ -58,8 +57,8 @@ class RegressionPredictionModel(PredictionModel):
         return weights, biases
 
     def get_target_paras(self, target, config):
-        target_regression = self._regression_config[target]
-        weights, biases = self._get_regression_paras(target, target_regression)
+        target_config = self._regression_config[target]
+        weights, biases = self._get_regression_paras(target, target_config)
         paras = {
             'weights': weights,
             'biases': biases,
@@ -68,17 +67,19 @@ class RegressionPredictionModel(PredictionModel):
 
     def get_target_loss(self, used_model, labels, indices, user_model,
                         paras, target, config, mode, context):
-        ratings = context[self._context_attr]
-        mask = tf.gather_nd(labels, indices) > 0
+        context_attr = self._regression_config[target]['context']
+        contexts = context[context_attr]
+        mask = tf.gather_nd(contexts, indices) > 0
         indices = tf.boolean_mask(indices, mask)
-        used_ratings = tf.gather_nd(ratings, indices)
+
+        used_model = tf.boolean_mask(used_model, mask)
+        used_contexts = tf.gather_nd(contexts, indices)
         used_labels = tf.gather_nd(labels, indices)
-        weights = tf.gather(paras['weights'], used_labels)
-        biases = tf.gather(paras['biases'], used_labels)
+        weights = tf.gather(paras['weights'], used_contexts)
+        biases = tf.gather(paras['biases'], used_contexts)
         preds = tf.reduce_sum(used_model * weights, axis=1) + biases
-        losses = tf.nn.l2_loss(used_ratings - preds)
-        loss = tf.reduce_sum(losses)
-        return tf.size(losses), loss, []
+        loss = tf.nn.l2_loss(used_labels - preds)
+        return tf.shape(used_labels)[0], loss, []
 
     def get_target_prediction(self, used_model, paras, target, config):
         preds = tf.matmul(used_model, tf.transpose(paras['weights']))

@@ -540,8 +540,8 @@ class RecommenderTest(unittest.TestCase):
         regression_dim = embedding_dim
         page_size = 3
         user_model = SVDPPUserModel(item_attrs=[])
-        regression_model = RegressionPredictionModel('item', config={
-            'item': {'vocab_size': item_vocab_size, 'regression_dim': regression_dim}})
+        regression_model = RegressionPredictionModel(config={
+            'rating': {'context': 'item', 'vocab_size': item_vocab_size, 'regression_dim': regression_dim}})
         model_builder = RecommenderBuilder(
             user_model, regression_model,
             page_size=page_size,
@@ -565,10 +565,11 @@ class RecommenderTest(unittest.TestCase):
             },
             embedding_attrs=['user'],
             target2config={
-                'item': {
+                'rating': {
                     'weight': 1.0
                 }
             },
+            eval_metrics=None
         )
         batches = []
         batch_size = 4
