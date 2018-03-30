@@ -10,9 +10,11 @@ from src.datasets.json_list import JsonListDataSet
 from src.models.sequence_user_model import SequenceUserModel
 from src.models.svdpp_user_model import SVDPPUserModel
 from src.models.softmax_prediction_model import SoftmaxPredictionModel
+from src.models.logistic_prediction_model import LogisticPredictionModel
 from src.models.ccf_prediction_model import CCFSoftmaxModel
 from src.models.bpr_prediction_model import BPRPredictionModel
 from src.models.ctr_prediction_model import CTRPredictionModel
+from src.models.regression_prediction_model import RegressionPredictionModel
 from src.models.hsm_prediction_model import HierarchicalPredictionModel
 from src.models.recommender import RecommenderBuilder
 
@@ -407,7 +409,7 @@ class RecommenderTest(unittest.TestCase):
         sigmoid_dim = embedding_dim
         page_size = 3
         user_model = SVDPPUserModel(item_attrs=[])
-        sigmoid_model = CTRPredictionModel('display', page_size, config={
+        sigmoid_model = CTRPredictionModel('display', config={
             'item': {'vocab_size': item_vocab_size, 'sigmoid_dim': sigmoid_dim}})
         model_builder = RecommenderBuilder(
             user_model, sigmoid_model,
@@ -465,6 +467,136 @@ class RecommenderTest(unittest.TestCase):
             batches.append(batch)
         train_data = JsonListDataSet(batches)
         run_name = 'test_ctr_sigmoid_model_run0'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
+        model_trainer = ModelTrainer(
+            train_data, builder=model_builder, max_steps=10,
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
+
+    def test_train_sequence_logistic_model(self):
+        embedding_dim = 10
+        user_vocab_size = 15
+        item_vocab_size = 20
+        rnn_size = 5
+        page_size = 3
+        user_model = SequenceUserModel(rnn_size)
+        logistic_model = LogisticPredictionModel(config={
+            'item': {'vocab_size': item_vocab_size, 'logistic_dim': rnn_size}})
+        model_builder = RecommenderBuilder(
+            user_model, logistic_model,
+            page_size=page_size,
+            attr2config={
+                'item': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'user': {
+                    'vocab_size': user_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'user'
+                }
+            },
+            target2config={
+                'item': {
+                    'weight': 1.0
+                }
+            },
+        )
+        batches = []
+        batch_size = 4
+        for i in range(10):
+            max_seq_len = random.randint(5, 10)
+            batch = {'user_idx': [], 'item_idx': [], 'sequence_length_val': []}
+            for l in range(batch_size):
+                batch['user_idx'].append([random.randint(1, user_vocab_size - 1)])
+                batch['sequence_length_val'].append([random.randint(2, max_seq_len) * page_size])
+                batch['item_idx'].append([])
+                for j in range(max_seq_len):
+                    for k in range(page_size):
+                        if j < batch['sequence_length_val'][l][0] / page_size:
+                            batch['item_idx'][l].append(random.randint(1, item_vocab_size - 1))
+                        else:
+                            batch['item_idx'][l].append(0)
+            batches.append(batch)
+        train_data = JsonListDataSet(batches)
+        run_name = 'test_sequence_logistic_model_run0'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
+        model_trainer = ModelTrainer(
+            train_data, builder=model_builder, max_steps=10,
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
+
+    def test_train_regression_model(self):
+        user_vocab_size = 15
+        item_vocab_size = 20
+        embedding_dim = 5
+        regression_dim = embedding_dim
+        page_size = 3
+        user_model = SVDPPUserModel(item_attrs=[])
+        regression_model = RegressionPredictionModel('item', config={
+            'item': {'vocab_size': item_vocab_size, 'regression_dim': regression_dim}})
+        model_builder = RecommenderBuilder(
+            user_model, regression_model,
+            page_size=page_size,
+            attr2config={
+                'rating': {
+                    'is_numerical': True,
+                    'level': 'item'
+                },
+                'item': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'user': {
+                    'vocab_size': user_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'user'
+                }
+            },
+            embedding_attrs=['user'],
+            target2config={
+                'item': {
+                    'weight': 1.0
+                }
+            },
+        )
+        batches = []
+        batch_size = 4
+        for i in range(10):
+            max_seq_len = random.randint(5, 10)
+            batch = {'user_idx': [], 'item_idx': [], 'rating_val': [], 'sequence_length_val': []}
+            for l in range(batch_size):
+                batch['user_idx'].append([random.randint(1, user_vocab_size - 1)])
+                batch['sequence_length_val'].append([random.randint(2, max_seq_len) * page_size])
+                batch['item_idx'].append([])
+                batch['rating_val'].append([])
+                for j in range(max_seq_len):
+                    for k in range(page_size):
+                        if j < batch['sequence_length_val'][l][0] / page_size:
+                            idx = random.randint(1, item_vocab_size - 1)
+                            act_dice = random.random()
+                            if act_dice < 0.5:
+                                batch['item_idx'][l].append(idx)
+                                batch['rating_val'][l].append(random.randint(1, 5))
+                            else:
+                                batch['item_idx'][l].append(0)
+                                batch['rating_val'][l].append(0.0)
+                        else:
+                            batch['rating_val'][l].append(0.0)
+                            batch['item_idx'][l].append(0)
+            batches.append(batch)
+        train_data = JsonListDataSet(batches)
+        run_name = 'test_regression_l2_model_run0'
         export_dir = self._export_dir + run_name
         shutil.rmtree(export_dir, ignore_errors=True)
         model_trainer = ModelTrainer(
