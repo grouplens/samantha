@@ -115,62 +115,87 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         return insPreds;
     }
 
-    private double[][] fetch(Session.Runner runner, String operation) {
-        runner.fetch(operation);
+    private void feed(Session.Runner runner, Map<String, Tensor> feedDict) {
+        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
+            runner.feed(entry.getKey(), entry.getValue());
+        }
+    }
+
+    private void closeFeedDict(Map<String, Tensor> feedDict) {
+        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
+            entry.getValue().close();
+        }
+    }
+
+    private List<double[][]> fetch(Session.Runner runner, List<String> operations, List<Integer> outputIndices) {
+        for (int i=0; i<operations.size(); i++) {
+            runner.fetch(operations.get(i), outputIndices.get(i));
+        }
         List<Tensor<?>> results = runner.run();
-        Tensor<?> tensorOutput = results.get(0);
-        int dim = tensorOutput.numDimensions();
-        if (dim > 2) {
-            throw new BadRequestException(
-                    "The TensorFlow model should always output with a one or two dimensional tensor. " +
-                    "Currently it is " + Integer.valueOf(dim).toString());
-        }
-        long[] outputShape = tensorOutput.shape();
-        long ncol = 1;
-        if (outputShape.length > 1) {
-            ncol = outputShape[1];
-        }
-        double[][] preds = new double[(int)outputShape[0]][(int)ncol];
-        FloatBuffer buffer = FloatBuffer.allocate(tensorOutput.numElements());
-        tensorOutput.writeTo(buffer);
-        int k = 0;
-        for (int i=0; i<preds.length; i++) {
-            for (int j=0; j<preds[0].length; j++) {
-                preds[i][j] = buffer.get(k++);
+        List<double[][]> predsList = new ArrayList<>();
+        for (int x=0; x<operations.size(); x++) {
+            Tensor<?> tensorOutput = results.get(x);
+            int dim = tensorOutput.numDimensions();
+            if (dim > 2) {
+                throw new BadRequestException(
+                        "The TensorFlow model should always output with a one or two dimensional tensor. " +
+                                "Currently it is " + Integer.valueOf(dim).toString());
             }
+            long[] outputShape = tensorOutput.shape();
+            long ncol = 1;
+            if (outputShape.length > 1) {
+                ncol = outputShape[1];
+            }
+            double[][] preds = new double[(int) outputShape[0]][(int) ncol];
+            FloatBuffer buffer = FloatBuffer.allocate(tensorOutput.numElements());
+            tensorOutput.writeTo(buffer);
+            int k = 0;
+            for (int i = 0; i < preds.length; i++) {
+                for (int j = 0; j < preds[0].length; j++) {
+                    preds[i][j] = buffer.get(k++);
+                }
+            }
+            buffer.clear();
+            results.get(x).close();
+            predsList.add(preds);
         }
-        for (int i=0; i<results.size(); i++) {
-            results.get(i).close();
-        }
-        buffer.clear();
+        return predsList;
+    }
+
+    public double[][] inference(String operation, int idx) {
+        Session.Runner runner = session.runner();
+        return fetch(runner, Lists.newArrayList(operation), Lists.newArrayList(idx)).get(0);
+    }
+
+    public double[][] inference(List<LearningInstance> instances, String operation, int idx) {
+        Session.Runner runner = session.runner();
+        Map<String, Tensor> feedDict = getFeedDict(instances);
+        feed(runner, feedDict);
+        double[][] preds = fetch(runner, Lists.newArrayList(operation), Lists.newArrayList(idx)).get(0);
+        closeFeedDict(feedDict);
         return preds;
     }
 
-    public double[][] inference(String operation) {
+    public List<double[][]> inference(List<LearningInstance> instances,
+                                      List<String> operations,
+                                      List<Integer> outputIndices) {
+        /*
         List<String> operations = Lists.newArrayList();
         Iterator<Operation> operIter = graph.operations();
         while (operIter.hasNext()) {
             operations.add(operIter.next().name());
         }
-        Session.Runner runner = session.runner();
-        return fetch(runner, operation);
-    }
-
-    public double[][] inference(List<LearningInstance> instances, String operation) {
+        */
         Session.Runner runner = session.runner();
         Map<String, Tensor> feedDict = getFeedDict(instances);
-        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
-            runner.feed(entry.getKey(), entry.getValue());
-        }
-        double[][] preds = fetch(runner, operation);
-        for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
-            entry.getValue().close();
-        }
+        feed(runner, feedDict);
+        List<double[][]> preds = fetch(runner, operations, outputIndices);
+        closeFeedDict(feedDict);
         return preds;
     }
 
     public double[][] predict(List<LearningInstance> instances) {
-        return inference(instances, outputOper);
+        return inference(instances, outputOper, 0);
     }
 
     public List<ObjectNode> recommend(List<ObjectNode> entities) {

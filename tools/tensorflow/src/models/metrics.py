@@ -83,7 +83,8 @@ def compute_auc_metric(uniq_batch_idx, batch_idx, used_labels, preds, num_used=N
         tf.ones([num_positives], dtype=tf.bool),
         default_value=False, validate_indices=False)
     auc_value, auc_update = tf.metrics.auc(
-        tf.reshape(labels, [-1]), tf.reshape(used_preds, [-1]))
+        tf.reshape(labels, [-1]), tf.reshape(used_preds, [-1]),
+        num_thresholds=1000)
     tf.summary.scalar('AUC', auc_value)
     return auc_value, auc_update
 

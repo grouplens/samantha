@@ -287,10 +287,8 @@ class RecommenderTest(unittest.TestCase):
             target2config={
                 'item': {
                     'weight': 1.0,
-                    'metric': {
-                        'auc': {
-                            'context': 'display'
-                        }
+                    'ShownAUC': {
+                        'context': 'display'
                     }
                 }
             },

@@ -25,11 +25,15 @@ package org.grouplens.samantha.server.inaction;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealVector;
+import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
@@ -368,36 +372,77 @@ public class InactionUtilities {
         }
     }
 
+    static public ObjectNode constructSequence(Map<String, String[]> attr2seq, int endIndex,
+                                               String userAttr, String userId) {
+        ObjectNode entity = Json.newObject();
+        entity.put(userAttr, userId);
+        for (String attr : historyAttrs) {
+            if (attr2seq.containsKey(attr)) {
+                entity.put(attr.substring(0, attr.length() - 1),
+                        StringUtils.join(ArrayUtils.subarray(attr2seq.get(attr), 0, endIndex), ","));
+            }
+        }
+        return entity;
+    }
+
+    static private void extractPredictedFeatures(ObjectNode features, TensorFlowModel model,
+                                                 ObjectNode entity, String appendix) {
+        List<LearningInstance> instances = new ArrayList<>();
+        instances.add(model.featurize(entity, true));
+        // user state
+        // predicted various action probability
+        // predicted display probability
+        // page predicted rating
+        List<double[][]> predsList = model.inference(instances,
+                Lists.newArrayList("prediction/display_prob_op"),
+                Lists.newArrayList(0));
+        double[][] states = predsList.get(0);
+    }
+
     static public void extractTensorFlowFeatures(ObjectNode features, Map<String, String[]> attr2seq, int index,
                                                  TensorFlowModel model, int pageBegin, int pageEnd,
-                                                 String itemAttr, String itemIndex, int closest) {
+                                                 String itemAttr, String itemIndex, int closest,
+                                                 String userAttr, String userId) {
         if (weights == null) {
-            weights = model.inference("metrics/paras/rate_weights/Adagrad/read");
+            weights = model.inference("metrics/paras/display_weights/Adagrad/read", 0);
         }
         String[] items = attr2seq.get(itemAttr + "s");
         String itemId = items[index];
         int itemIdx = model.getIndexForKey(itemIndex, FeatureExtractorUtilities.composeKey(itemAttr, itemId));
         RealVector itemVec = MatrixUtils.createRealVector(weights[itemIdx]);
-        // page similarity/diversity
-        List<Double> sims = new ArrayList<>();
+        // page and closest action similarity/diversity
+        features.put("closestSimPage", 0.0);
+        DoubleList sims = new DoubleArrayList();
+        double meanSim = 0.0;
         for (int i=pageBegin; i<pageEnd; i++) {
+            double sim = 1.0;
             if (index != i) {
                 int curIdx = model.getIndexForKey(itemIndex, FeatureExtractorUtilities.composeKey(itemAttr, items[i]));
-                double sim = itemVec.cosine(MatrixUtils.createRealVector(weights[curIdx]));
+                sim = itemVec.cosine(MatrixUtils.createRealVector(weights[curIdx]));
                 sims.add(sim);
+                meanSim += sim;
+            }
+            if (i == closest) {
+                features.put("closestSimPage", sim);
             }
         }
-        // page predicted rating
-        // closet action similarity
-        // user state (after current page)
-        // predicted various action probability (before current page)
-        // predicted display probability (after current page)
+        meanSim /= sims.size();
+        features.put("meanSimPage", meanSim);
+        sims.sort(Double::compareTo);
+        features.put("minSimPage", sims.getDouble(0));
+        features.put("maxSimPage", sims.getDouble(sims.size() - 1));
+
+        ObjectNode entity = constructSequence(attr2seq, pageBegin, userAttr, userId);
+        extractPredictedFeatures(features, model, entity, "BeforePage");
+        entity = constructSequence(attr2seq, pageEnd, userAttr, userId);
+        extractPredictedFeatures(features, model, entity, "AfterPage");
     }
 
     static public ObjectNode getFeatures(
             Map<String, String[]> attr2seq, int index,
             TensorFlowModel tensorflow, List<JsonNode> item2info,
-            String itemAttr, String itemIndex) {
+            String itemAttr, String itemIndex,
+            String userAttr, String userId) {
         ObjectNode features = Json.newObject();
         extractItemLevel(features, attr2seq, index);
         Map.Entry<Integer, Integer> pageRange = extractPageLevel(features, attr2seq, index);
@@ -411,7 +456,8 @@ public class InactionUtilities {
         }
         if (tensorflow != null) {
             extractTensorFlowFeatures(features, attr2seq, index, tensorflow,
-                    pageRange.getKey(), pageRange.getValue(), itemAttr, itemIndex, closest);
+                    pageRange.getKey(), pageRange.getValue(), itemAttr, itemIndex, closest,
+                    userAttr, userId);
         }
         return features;
     }
