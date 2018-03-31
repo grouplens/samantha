@@ -219,7 +219,10 @@ class RecommenderBuilder(ModelBuilder):
                         target, config, 'train', attr2input)
                     updates += model_updates
                     tf.summary.scalar('num_labels', num_target_train_labels)
-                    num_train_labels += config['weight'] * tf.cast(num_target_train_labels, tf.float32)
+                    num_target_train_labels = tf.cast(num_target_train_labels, tf.float32)
+                    tf.summary.scalar(
+                            'loss', config['weight'] * train_target_loss / num_target_train_labels)
+                    num_train_labels += config['weight'] * num_target_train_labels
                     train_loss += config['weight'] * train_target_loss
                 with tf.variable_scope('eval'):
                     num_target_eval_labels, eval_target_loss, model_updates = self._compute_target_loss(
@@ -227,7 +230,10 @@ class RecommenderBuilder(ModelBuilder):
                         target, config, 'eval', attr2input)
                     updates += model_updates
                     tf.summary.scalar('num_labels', num_target_eval_labels)
-                    num_eval_labels += config['weight'] * tf.cast(num_target_eval_labels, tf.float32)
+                    num_target_eval_labels = tf.cast(num_target_eval_labels, tf.float32)
+                    tf.summary.scalar(
+                            'loss', config['weight'] * eval_target_loss / num_target_eval_labels)
+                    num_eval_labels += config['weight'] * num_target_eval_labels
                     eval_loss += config['weight'] * eval_target_loss
                     eval_metrics = self._eval_metrics
                     if 'metrics' in config:
