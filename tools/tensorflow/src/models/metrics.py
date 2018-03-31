@@ -89,7 +89,7 @@ def compute_auc_metric(uniq_batch_idx, batch_idx, used_labels, preds, num_used=N
     return auc_value, auc_update
 
 
-def get_eval_user_model(user_model, indices):
+def get_per_batch_eval_user_model(user_model, indices):
     batch_idx = tf.reshape(
         tf.slice(indices,
                  begin=[0, 0],
@@ -109,30 +109,30 @@ def get_eval_user_model(user_model, indices):
     return used_model, uniq_batch_idx, ori_batch_idx, step_idx
 
 
-def compute_mae_metric(eval_labels, predictions):
+def compute_mae_metric(used_labels, used_contexts, predictions):
     label_index = tf.concat([
-        tf.expand_dims(tf.range(tf.shape(eval_labels)[0]), 1),
-        tf.expand_dims(eval_labels, 1)
+        tf.expand_dims(tf.range(tf.shape(used_labels)[0]), 1),
+        tf.expand_dims(used_contexts, 1)
     ], 1)
     preds = tf.gather_nd(predictions, label_index)
-    mae_value, mae_update = tf.metrics.mean_absolute_error(eval_labels, preds)
+    mae_value, mae_update = tf.metrics.mean_absolute_error(used_labels, preds)
     tf.summary.scalar('MAE', mae_value)
     return mae_value, mae_update
 
 
-def compute_rmse_metric(eval_labels, predictions):
+def compute_rmse_metric(used_labels, used_contexts, predictions):
     label_index = tf.concat([
-        tf.expand_dims(tf.range(tf.shape(eval_labels)[0]), 1),
-        tf.expand_dims(eval_labels, 1)
+        tf.expand_dims(tf.range(tf.shape(used_labels)[0]), 1),
+        tf.expand_dims(used_contexts, 1)
     ], 1)
     preds = tf.gather_nd(predictions, label_index)
-    rmse_value, rmse_update = tf.metrics.root_mean_squared_error(eval_labels, preds)
+    rmse_value, rmse_update = tf.metrics.root_mean_squared_error(used_labels, preds)
     tf.summary.scalar('RMSE', rmse_value)
     return rmse_value, rmse_update
 
 
-def compute_eval_label_metrics(metrics, predictions, used_labels, labels, indices,
-        uniq_batch_idx, ori_batch_idx, step_idx):
+def compute_per_batch_eval_metrics(metrics, predictions, used_labels, labels, indices,
+        uniq_batch_idx, ori_batch_idx, step_idx, config, context):
     new_batch_idx = tf.gather(tf.range(tf.shape(uniq_batch_idx)[0]), ori_batch_idx)
     new_indices = tf.concat([
         tf.expand_dims(new_batch_idx, 1),
@@ -152,20 +152,12 @@ def compute_eval_label_metrics(metrics, predictions, used_labels, labels, indice
             ),
         [tf.shape(uniq_batch_idx)[0], label_shape[1] * label_shape[2]])
     ori_predictions = tf.gather(predictions, ori_batch_idx)
-    updates = []
-    for metric in metrics.split(' '):
-        if 'MAP' in metric:
-            updates += compute_map_metrics(eval_labels, predictions, metric)[1]
-        elif 'AP' in metric:
-            updates += compute_ap_metrics(eval_labels, predictions, metric)[1]
-        elif 'AR' in metric:
-            updates += compute_ar_metrics(eval_labels, predictions, metric)[1]
-        elif 'AUC' == metric:
-            updates.append(compute_auc_metric(uniq_batch_idx, new_batch_idx, used_labels, predictions)[1])
-        elif 'MAE' == metric:
-            updates.append(compute_mae_metric(used_labels, ori_predictions)[1])
-        elif 'RMSE' == metric:
-            updates.append(compute_rmse_metric(used_labels, ori_predictions)[1])
+    updates = compute_recommendation_metrics(
+            metrics, eval_labels, predictions)
+    updates += compute_regression_metrics(
+            metrics, ori_predictions, used_labels, indices, config, context)
+    updates += compute_ranking_metrics(
+            metrics, uniq_batch_idx, new_batch_idx, used_labels, predictions)
     return updates
 
 
@@ -183,21 +175,44 @@ def get_per_step_eval_user_model(user_model, indices):
     return tf.gather_nd(user_model, used_indices)
 
 
-def compute_per_step_eval_label_metrics(metrics, predictions, eval_labels):
+def compute_recommendation_metrics(metrics, eval_labels, predictions):
     updates = []
     for metric in metrics.split(' '):
         if 'MAP' in metric:
-            updates += compute_map_metrics(
-                tf.cast(eval_labels, tf.int64), predictions, metric)[1]
+            updates += compute_map_metrics(eval_labels, predictions, metric)[1]
         elif 'AP' in metric:
-            updates += compute_ap_metrics(
-                tf.cast(eval_labels, tf.int64), predictions, metric)[1]
+            updates += compute_ap_metrics(eval_labels, predictions, metric)[1]
         elif 'AR' in metric:
-            updates += compute_ar_metrics(
-                tf.cast(eval_labels, tf.int64), predictions, metric)[1]
-        elif 'MAE' == metric:
-            updates.append(compute_mae_metric(eval_labels, predictions)[1])
+            updates += compute_ar_metrics(eval_labels, predictions, metric)[1]
+    return updates
+
+
+def compute_ranking_metrics(metrics, uniq_batch_idx, new_batch_idx, used_labels, predictions):
+    updates = []
+    for metric in metrics.split(' '):
+        if 'AUC' == metric:
+            updates.append(compute_auc_metric(uniq_batch_idx, new_batch_idx,
+                used_labels, predictions)[1])
+    return updates
+
+
+def compute_regression_metrics(metrics, predictions, used_labels, indices, config, context):
+    updates = []
+    for metric in metrics.split(' '):
+        if 'MAE' == metric:
+            used_contexts = tf.gather_nd(context[config['MAE']['context']], indices)
+            updates.append(compute_mae_metric(used_labels, used_contexts, predictions)[1])
         elif 'RMSE' == metric:
-            updates.append(compute_rmse_metric(eval_labels, predictions)[1])
+            used_contexts = tf.gather_nd(context[config['RMSE']['context']], indices)
+            updates.append(compute_rmse_metric(used_labels, used_contexts, predictions)[1])
+    return updates
+
+
+def compute_per_step_eval_metrics(metrics, predictions, used_labels,
+        indices, config, context):
+    updates = compute_recommendation_metrics(
+            metrics, tf.cast(used_labels, tf.int64), predictions)
+    updates += compute_regression_metrics(
+            metrics, predictions, used_labels, indices, config, context)
     return updates
 

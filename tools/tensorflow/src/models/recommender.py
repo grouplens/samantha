@@ -104,29 +104,31 @@ class RecommenderBuilder(ModelBuilder):
                 paras, target, config, mode, context)
         return num_labels, loss, updates
 
-    def _compute_target_metrics(self, eval_metrics, user_model, indices, labels, paras, target, config, context):
+    def _compute_target_metrics(self, eval_metrics, user_model, indices, labels, paras,
+            target, config, context):
         mask = tf.gather_nd(labels, indices) > 0
         used_indices = tf.boolean_mask(indices, mask)
         used_labels = tf.gather_nd(labels, used_indices)
         if not self._eval_per_step:
-            used_model, uniq_batch_idx, ori_batch_idx, step_idx = metrics.get_eval_user_model(
+            used_model, uniq_batch_idx, ori_batch_idx, step_idx = metrics.get_per_batch_eval_user_model(
                     user_model, used_indices)
             used_preds = self._prediction_model.get_target_prediction(
                     used_model, paras, target, config)
-            updates = metrics.compute_eval_label_metrics(
+            updates = metrics.compute_per_batch_eval_metrics(
                     eval_metrics, used_preds, used_labels, labels, used_indices,
-                    uniq_batch_idx, ori_batch_idx, step_idx)
+                    uniq_batch_idx, ori_batch_idx, step_idx, config, context)
             with tf.variable_scope('context'):
-                used_model, _, ori_batch_idx, _ = metrics.get_eval_user_model(user_model, indices)
+                used_model, _, ori_batch_idx, _ = metrics.get_per_batch_eval_user_model(user_model, indices)
                 predictions = self._prediction_model.get_target_prediction(
                     used_model, paras, target, config)
-                updates += context_metrics.compute_eval_label_metrics(
+                updates += context_metrics.compute_per_batch_eval_metrics(
                     eval_metrics, predictions, labels, indices, ori_batch_idx, config, context)
             return updates
         else:
             used_model = metrics.get_per_step_eval_user_model(user_model, used_indices)
             predictions = self._prediction_model.get_target_prediction(used_model, paras, target, config)
-            return metrics.compute_per_step_eval_label_metrics(eval_metrics, predictions, used_labels)
+            return metrics.compute_per_step_eval_metrics(
+                    eval_metrics, predictions, used_labels, used_indices, config, context)
 
     def _get_default_train_eval_indices(self, labels, start_limit, split_limit, length_limit):
         indices = tf.cast(tf.where(labels >= 0), tf.int32)

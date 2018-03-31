@@ -19,7 +19,7 @@ def compute_shown_auc_metric(predictions, labels, indices, ori_batch_idx, config
     return auc_value, auc_update
 
 
-def compute_eval_label_metrics(metrics, predictions, labels, indices, ori_batch_idx, config, context):
+def compute_per_batch_eval_metrics(metrics, predictions, labels, indices, ori_batch_idx, config, context):
     updates = []
     for metric in metrics.split(' '):
         if 'ShownAUC' == metric:

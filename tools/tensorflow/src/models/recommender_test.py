@@ -564,7 +564,13 @@ class RecommenderTest(unittest.TestCase):
             embedding_attrs=['user'],
             target2config={
                 'rating': {
-                    'weight': 1.0
+                    'weight': 1.0,
+                    'MAE': {
+                        'context': 'item',
+                    },
+                    'RMSE': {
+                        'context': 'item',
+                    },
                 }
             },
             eval_metrics='MAE RMSE',
