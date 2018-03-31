@@ -185,6 +185,11 @@ class RecommenderBuilder(ModelBuilder):
             eval_indices = self._get_constrained_steps(eval_indices, 'eval')
         tf.summary.scalar('num_left_of_split', tf.shape(train_indices)[0])
         tf.summary.scalar('num_right_of_split', tf.shape(eval_indices)[0])
+        # TODO: remove this for it's expensive
+        train_tstamps = tf.gather_nd(tstamp, train_indices)
+        eval_tstamps = tf.gather_nd(tstamp, eval_indices)
+        tf.summary.histogram('train_tstamps', train_tstamps)
+        tf.summary.histogram('eval_tstamps', eval_tstamps)
         return train_indices, eval_indices
 
     def _get_loss_metrics(self, sequence_length, user_model, attr2input):
