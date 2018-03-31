@@ -386,38 +386,84 @@ public class InactionUtilities {
     }
 
     static private void extractPredictedFeatures(ObjectNode features, TensorFlowModel model,
-                                                 ObjectNode entity, String appendix) {
+                                                 ObjectNode entity, String itemId, String appendix,
+                                                 String[] items, int pageBegin, int pageEnd, int index) {
         List<LearningInstance> instances = new ArrayList<>();
         instances.add(model.featurize(entity, true));
-        // user state
         // predicted various action probability
         // predicted display probability
         // page predicted rating
+        List<String> operations = Lists.newArrayList(
+                "prediction/display_prob_op",
+                "prediction/rate_prob_op",
+                "prediction/wishlist_prob_op",
+                "prediction/click_prob_op",
+                "prediction/rating_pred_op",
+                "prediction/GatherNd");
+        List<Integer> outputIndices = Lists.newArrayList(0, 0, 0, 0, 0, 0);
+        List<String> indices = Lists.newArrayList(
+                "MOVIE_ID", "RATE", "WISHLIST", "CLICK", "RATE");
+        List<String> attrs = Lists.newArrayList(
+                "movieId", "rating", "wishlist", "click", "rating");
+        List<String> feaNames = Lists.newArrayList(
+                "predDisplay", "predRate", "predWishlist", "predClick", "predRating");
         List<double[][]> predsList = model.inference(instances,
-                Lists.newArrayList("prediction/display_prob_op"),
-                Lists.newArrayList(0));
-        double[][] states = predsList.get(0);
+                operations, outputIndices);
+        for (int i=0; i<attrs.size(); i++) {
+            int itemIdx = model.getIndexForKey(indices.get(i),
+                    FeatureExtractorUtilities.composeKey(attrs.get(i), itemId));
+            double[] allPreds = predsList.get(i)[0];
+            features.put(feaNames.get(i) + appendix, allPreds[itemIdx]);
+            DoubleList preds = new DoubleArrayList();
+            preds.add(allPreds[itemIdx]);
+            double meanPred = allPreds[itemIdx];
+            for (int j=pageBegin; j<pageEnd; j++) {
+                if (j != index) {
+                    itemIdx = model.getIndexForKey(indices.get(i),
+                            FeatureExtractorUtilities.composeKey(attrs.get(i), items[j]));
+                    preds.add(allPreds[itemIdx]);
+                    meanPred += allPreds[itemIdx];
+                }
+            }
+            meanPred /= preds.size();
+            features.put(feaNames.get(i) + "Mean" + appendix, meanPred);
+            preds.sort(Double::compare);
+            features.put(feaNames.get(i) + "Min" + appendix, preds.get(0));
+            features.put(feaNames.get(i) + "Max" + appendix, preds.get(preds.size() - 1));
+            features.put(feaNames.get(i) + "Median" + appendix, preds.get(preds.size() / 2));
+        }
+        // user state
+        List<String> stateList = new ArrayList<>();
+        double[][] states = predsList.get(predsList.size() - 1);
+        for (int i=0; i<states[0].length; i++) {
+            stateList.add(Double.toString(states[0][i]));
+        }
+        features.put("state" + appendix, StringUtils.join(stateList, ","));
     }
 
     static public void extractTensorFlowFeatures(ObjectNode features, Map<String, String[]> attr2seq, int index,
                                                  TensorFlowModel model, int pageBegin, int pageEnd,
-                                                 String itemAttr, String itemIndex, int closest,
+                                                 String itemAttr, int closest,
                                                  String userAttr, String userId) {
+        // page and closest action similarity/diversity
+        String simTarget = "rating";
+        String simIndex = "RATE";
+        String simAttr = "rate";
         if (weights == null) {
-            weights = model.inference("metrics/paras/display_weights/Adagrad/read", 0);
+            weights = model.inference("metrics/paras/" + simTarget + "_weights/Adagrad/read", 0);
         }
         String[] items = attr2seq.get(itemAttr + "s");
         String itemId = items[index];
-        int itemIdx = model.getIndexForKey(itemIndex, FeatureExtractorUtilities.composeKey(itemAttr, itemId));
+        int itemIdx = model.getIndexForKey(simIndex,
+                FeatureExtractorUtilities.composeKey(simAttr, itemId));
         RealVector itemVec = MatrixUtils.createRealVector(weights[itemIdx]);
-        // page and closest action similarity/diversity
         features.put("closestSimPage", 0.0);
         DoubleList sims = new DoubleArrayList();
         double meanSim = 0.0;
         for (int i=pageBegin; i<pageEnd; i++) {
             double sim = 1.0;
             if (index != i) {
-                int curIdx = model.getIndexForKey(itemIndex, FeatureExtractorUtilities.composeKey(itemAttr, items[i]));
+                int curIdx = model.getIndexForKey(simIndex, FeatureExtractorUtilities.composeKey(simAttr, items[i]));
                 sim = itemVec.cosine(MatrixUtils.createRealVector(weights[curIdx]));
                 sims.add(sim);
                 meanSim += sim;
@@ -428,21 +474,24 @@ public class InactionUtilities {
         }
         meanSim /= sims.size();
         features.put("meanSimPage", meanSim);
-        sims.sort(Double::compareTo);
+        sims.sort(Double::compare);
         features.put("minSimPage", sims.getDouble(0));
         features.put("maxSimPage", sims.getDouble(sims.size() - 1));
+        features.put("medianSimPage", sims.getDouble(sims.size() / 2));
 
+        // before page and after page predictions
         ObjectNode entity = constructSequence(attr2seq, pageBegin, userAttr, userId);
-        extractPredictedFeatures(features, model, entity, "BeforePage");
+        extractPredictedFeatures(features, model, entity, itemId, "BeforePage",
+                items, pageBegin, pageEnd, index);
         entity = constructSequence(attr2seq, pageEnd, userAttr, userId);
-        extractPredictedFeatures(features, model, entity, "AfterPage");
+        extractPredictedFeatures(features, model, entity, itemId, "AfterPage",
+                items, pageBegin, pageEnd, index);
     }
 
     static public ObjectNode getFeatures(
             Map<String, String[]> attr2seq, int index,
             TensorFlowModel tensorflow, List<JsonNode> item2info,
-            String itemAttr, String itemIndex,
-            String userAttr, String userId) {
+            String itemAttr, String userAttr, String userId) {
         ObjectNode features = Json.newObject();
         extractItemLevel(features, attr2seq, index);
         Map.Entry<Integer, Integer> pageRange = extractPageLevel(features, attr2seq, index);
@@ -456,7 +505,7 @@ public class InactionUtilities {
         }
         if (tensorflow != null) {
             extractTensorFlowFeatures(features, attr2seq, index, tensorflow,
-                    pageRange.getKey(), pageRange.getValue(), itemAttr, itemIndex, closest,
+                    pageRange.getKey(), pageRange.getValue(), itemAttr, closest,
                     userAttr, userId);
         }
         return features;
