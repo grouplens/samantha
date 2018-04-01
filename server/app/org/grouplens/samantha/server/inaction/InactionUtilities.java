@@ -472,6 +472,9 @@ public class InactionUtilities {
                 features.put("closestSimPage", sim);
             }
         }
+        if (sims.size() == 0) {
+            sims.add(0.0);
+        }
         meanSim /= sims.size();
         features.put("meanSimPage", meanSim);
         sims.sort(Double::compare);
