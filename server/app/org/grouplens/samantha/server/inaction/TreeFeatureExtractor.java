@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import org.grouplens.samantha.modeler.featurizer.Feature;
 import org.grouplens.samantha.modeler.featurizer.IdentityExtractor;
+import org.grouplens.samantha.modeler.featurizer.SeparatedValueExtractor;
 import org.grouplens.samantha.modeler.featurizer.StringValueExtractor;
 import org.grouplens.samantha.modeler.model.IndexSpace;
 
@@ -78,6 +79,22 @@ public class TreeFeatureExtractor implements org.grouplens.samantha.modeler.feat
                 "highRateRateHist", "invReviewDistHist", "stopRateHist", "ratingHist", "lowRateHist",
                 "ratingRateHist", "negativeRateHist", "numShowHist", "clickHist", "numExploreShowHist",
                 "sizePrev", "dwellPrev", "colPrev", "rowPrev", "hover",
+
+                "closestSimPage", "meanSimPage", "minSimPage", "maxSimPage", "medianSimPage",
+                "predDisplayBeforePage", "predDisplayMeanBeforePage", "predDisplayMinBeforePage", "predDisplayMaxBeforePage", "predDisplayMedianBeforePage",
+                "predRateBeforePage", "predRateMeanBeforePage", "predRateMinBeforePage", "predRateMaxBeforePage", "predRateMedianBeforePage",
+                "predWishlistBeforePage", "predWishlistMeanBeforePage", "predWishlistMinBeforePage", "predWishlistMaxBeforePage", "predWishlistMedianBeforePage",
+                "predClickBeforePage", "predClickMeanBeforePage", "predClickMinBeforePage", "predClickMaxBeforePage", "predClickMedianBeforePage",
+                "predRatingBeforePage", "predRatingMeanBeforePage", "predRatingMinBeforePage", "predRatingMaxBeforePage", "predRatingMedianBeforePage",
+                "predDisplayAfterPage", "predDisplayMeanAfterPage", "predDisplayMinAfterPage", "predDisplayMaxAfterPage", "predDisplayMedianAfterPage",
+                "predRateAfterPage", "predRateMeanAfterPage", "predRateMinAfterPage", "predRateMaxAfterPage", "predRateMedianAfterPage",
+                "predWishlistAfterPage", "predWishlistMeanAfterPage", "predWishlistMinAfterPage", "predWishlistMaxAfterPage", "predWishlistMedianAfterPage",
+                "predClickAfterPage", "predClickMeanAfterPage", "predClickMinAfterPage", "predClickMaxAfterPage", "predClickMedianAfterPage",
+                "predRatingAfterPage", "predRatingMeanAfterPage", "predRatingMinAfterPage", "predRatingMaxAfterPage", "predRatingMedianAfterPage",
+        };
+
+        String[] separatedNumFeas = {
+                "stateBeforePage", "stateAfterPage"
         };
 
         for (String cat : catFeas) {
@@ -86,6 +103,10 @@ public class TreeFeatureExtractor implements org.grouplens.samantha.modeler.feat
         }
         for (String num : numFeas) {
             IdentityExtractor numExt = new IdentityExtractor("TREE", num, num);
+            feaMap.putAll(numExt.extract(entity, update, indexSpace));
+        }
+        for (String num : separatedNumFeas) {
+            SeparatedValueExtractor numExt = new SeparatedValueExtractor("TREE", num, num, ",");
             feaMap.putAll(numExt.extract(entity, update, indexSpace));
         }
         StringValueExtractor labelExt = new StringValueExtractor("CLASS", labelAttr, labelClass);
