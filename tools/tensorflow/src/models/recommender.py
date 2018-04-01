@@ -203,6 +203,7 @@ class RecommenderBuilder(ModelBuilder):
         train_loss = 0.0
         eval_loss = 0.0
         sum_weight = 0.0
+        num_train_labels = 0.0
         updates = []
         target2paras = {}
         if self._split_tstamp is not None:
@@ -225,6 +226,7 @@ class RecommenderBuilder(ModelBuilder):
                     updates += model_updates
                     tf.summary.scalar('num_labels', num_target_train_labels)
                     num_target_train_labels = tf.cast(num_target_train_labels, tf.float32)
+                    num_train_labels += num_target_train_labels
                     mean_train_target_loss = train_target_loss / tf.maximum(num_target_train_labels, 1.0)
                     tf.summary.scalar('loss', mean_train_target_loss)
                     train_loss += config['weight'] * mean_train_target_loss
@@ -245,11 +247,11 @@ class RecommenderBuilder(ModelBuilder):
                         updates += self._compute_target_metrics(
                             eval_metrics, user_model, eval_indices, attr2input[target],
                             target2paras[target], target, config, attr2input)
-        train_loss = tf.div(train_loss, sum_weight, name='train_loss_op')
-        eval_loss = tf.div(eval_loss, sum_weight, name='eval_loss_op')
+        train_loss /= sum_weight
+        eval_loss /= sum_weight
         tf.summary.scalar('train_loss', train_loss)
         tf.summary.scalar('eval_loss', eval_loss)
-        return train_loss, updates, target2paras
+        return train_loss * num_train_labels, updates, target2paras
 
     def _get_inputs(self):
         attr2input = {}
