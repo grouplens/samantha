@@ -185,7 +185,6 @@ class RecommenderBuilder(ModelBuilder):
             eval_indices = self._get_constrained_steps(eval_indices, 'eval')
         tf.summary.scalar('num_left_of_split', tf.shape(train_indices)[0])
         tf.summary.scalar('num_right_of_split', tf.shape(eval_indices)[0])
-        # TODO: remove this for it's expensive
         train_tstamps = tf.gather_nd(tstamp, train_indices)
         eval_tstamps = tf.gather_nd(tstamp, eval_indices)
         tf.summary.histogram('train_tstamps', train_tstamps)
@@ -196,7 +195,6 @@ class RecommenderBuilder(ModelBuilder):
         length_limit = tf.minimum(
             tf.reshape(sequence_length, [-1]),
             self._max_train_steps)
-        # TODO: remove this for it's expensive
         tf.summary.histogram('batch_sequence_length', length_limit)
         split_limit = tf.maximum(length_limit - self._eval_steps, 0)
         start_limit = tf.maximum(split_limit - self._train_steps, 0)
