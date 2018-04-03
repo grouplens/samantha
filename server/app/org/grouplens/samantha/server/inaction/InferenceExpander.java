@@ -87,6 +87,7 @@ public class InferenceExpander implements EntityExpander {
             for (int i=0; i<numClass; i++) {
                 predArr.add(Double.valueOf(0.0).toString());
             }
+            entity.put("prevTstamp", -1);
             String itemIdsStr = entity.get(itemAttr + "s").asText();
             if (!"".equals(itemIdsStr)) {
                 String user = entity.get(userAttr).asText();
@@ -111,12 +112,14 @@ public class InferenceExpander implements EntityExpander {
                             attr2seq, index, null, null, itemAttr, userAttr, user);
                     features.put(userAttr, user);
                     features.put(itemAttr, item);
-                    features.put(tstampAttr, attr2seq.get(tstampAttr + "s")[index]);
+                    int prevTstamp = Integer.parseInt(attr2seq.get(tstampAttr + "s")[index]);
+                    features.put(tstampAttr, prevTstamp);
                     LearningInstance instance = featurizer.featurize(features, false);
                     double[] preds = predictiveModel.predict(instance);
                     for (int i=0; i<preds.length; i++) {
                         predArr.set(i, Double.valueOf(preds[i]).toString());
                     }
+                    entity.put("prevTstamp", prevTstamp);
                 }
             }
             entity.put(labelAttr, StringUtils.join(predArr, joiner));

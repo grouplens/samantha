@@ -437,6 +437,7 @@ public class InactionUtilities {
         double[][] states = predsList.get(predsList.size() - 1);
         for (int i=0; i<states[0].length; i++) {
             stateList.add(Double.toString(states[0][i]));
+            features.put("state" + Integer.toString(i) + appendix, states[0][i]);
         }
         features.put("state" + appendix, StringUtils.join(stateList, ","));
     }
@@ -448,14 +449,13 @@ public class InactionUtilities {
         // page and closest action similarity/diversity
         String simTarget = "rating";
         String simIndex = "RATE";
-        String simAttr = "rate";
         if (weights == null) {
-            weights = model.inference("metrics/paras/" + simTarget + "_weights/Adagrad/read", 0);
+            weights = model.inference("metrics/paras/" + simTarget + "_weights/read", 0);
         }
         String[] items = attr2seq.get(itemAttr + "s");
         String itemId = items[index];
         int itemIdx = model.getIndexForKey(simIndex,
-                FeatureExtractorUtilities.composeKey(simAttr, itemId));
+                FeatureExtractorUtilities.composeKey(simTarget, itemId));
         RealVector itemVec = MatrixUtils.createRealVector(weights[itemIdx]);
         features.put("closestSimPage", 0.0);
         DoubleList sims = new DoubleArrayList();
@@ -463,8 +463,9 @@ public class InactionUtilities {
         for (int i=pageBegin; i<pageEnd; i++) {
             double sim = 1.0;
             if (index != i) {
-                int curIdx = model.getIndexForKey(simIndex, FeatureExtractorUtilities.composeKey(simAttr, items[i]));
-                sim = itemVec.cosine(MatrixUtils.createRealVector(weights[curIdx]));
+                int curIdx = model.getIndexForKey(simIndex, FeatureExtractorUtilities.composeKey(simTarget, items[i]));
+                RealVector curVec = MatrixUtils.createRealVector(weights[curIdx]);
+                sim = itemVec.cosine(curVec);
                 sims.add(sim);
                 meanSim += sim;
             }
