@@ -98,16 +98,22 @@ public class TreeFeatureExtractor implements org.grouplens.samantha.modeler.feat
         };
 
         for (String cat : catFeas) {
-            StringValueExtractor catExt = new StringValueExtractor("TREE", cat, cat);
-            feaMap.putAll(catExt.extract(entity, update, indexSpace));
+            if (entity.has(cat)) {
+                StringValueExtractor catExt = new StringValueExtractor("TREE", cat, cat);
+                feaMap.putAll(catExt.extract(entity, update, indexSpace));
+            }
         }
         for (String num : numFeas) {
-            IdentityExtractor numExt = new IdentityExtractor("TREE", num, num);
-            feaMap.putAll(numExt.extract(entity, update, indexSpace));
+            if (entity.has(num)) {
+                IdentityExtractor numExt = new IdentityExtractor("TREE", num, num);
+                feaMap.putAll(numExt.extract(entity, update, indexSpace));
+            }
         }
         for (String num : separatedNumFeas) {
-            SeparatedValueExtractor numExt = new SeparatedValueExtractor("TREE", num, num, ",");
-            feaMap.putAll(numExt.extract(entity, update, indexSpace));
+            if (entity.has(num)) {
+                SeparatedValueExtractor numExt = new SeparatedValueExtractor("TREE", num, num, ",");
+                feaMap.putAll(numExt.extract(entity, update, indexSpace));
+            }
         }
         StringValueExtractor labelExt = new StringValueExtractor("CLASS", labelAttr, labelClass);
         feaMap.putAll(labelExt.extract(entity, update, indexSpace));
