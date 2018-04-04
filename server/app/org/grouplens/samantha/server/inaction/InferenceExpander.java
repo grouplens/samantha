@@ -22,11 +22,14 @@
 
 package org.grouplens.samantha.server.inaction;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.common.PredictiveModel;
+import org.grouplens.samantha.modeler.dao.CSVFileDAO;
 import org.grouplens.samantha.modeler.featurizer.Featurizer;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
@@ -46,15 +49,31 @@ public class InferenceExpander implements EntityExpander {
     private final String joiner;
     private final PredictiveModel predictiveModel;
     private final Featurizer featurizer;
+    private final TensorFlowModel model;
+    private final SVDFeature ratingModel;
+    private final SVDFeature ratedModel;
+    private final SVDFeature clickModel;
+    private final SVDFeature wishlistModel;
+    private final List<JsonNode> item2info;
 
     public InferenceExpander(String labelAttr, int numClass, String joiner,
                              PredictiveModel predictiveModel,
-                             Featurizer featurizer) {
+                             Featurizer featurizer,
+                             TensorFlowModel model,
+                             SVDFeature ratingModel, SVDFeature ratedModel,
+                             SVDFeature clickModel, SVDFeature wishlistModel,
+                             List<JsonNode> item2info) {
         this.labelAttr = labelAttr;
         this.numClass = numClass;
         this.joiner = joiner;
         this.predictiveModel = predictiveModel;
         this.featurizer = featurizer;
+        this.model = model;
+        this.ratedModel = ratedModel;
+        this.ratingModel = ratingModel;
+        this.clickModel = clickModel;
+        this.wishlistModel = wishlistModel;
+        this.item2info = item2info;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
@@ -68,11 +87,52 @@ public class InferenceExpander implements EntityExpander {
                 requestContext.getEngineName(), modelName);
         PredictiveModel model = (PredictiveModel) rawModel;
         Featurizer featurizer = (Featurizer) rawModel;
+
+        String tfPredictorName = "tensorFlowInteractionPredictor";
+        String tfModelName = "tensorFlowInteractionPredictorModel";
+        String ratingPredictorName = "inactionRatingFMPredictor";
+        String ratingModelName = "inactionRatingFMPredictorModel";
+        String ratedPredictorName = "inactionRatedFMPredictor";
+        String ratedModelName = "inactionRatedFMPredictorModel";
+        String clickPredictorName = "inactionClickFMPredictor";
+        String clickModelName = "inactionClickFMPredictorModel";
+        String wishlistPredictorName = "inactionWishlistFMPredictor";
+        String wishlistModelName = "inactionWishlistFMPredictorModel";
+        String itemInfoFile = "/opt/samantha/learning/historyMovieData.tsv";
+
+        configService.getPredictor(tfPredictorName, requestContext);
+        configService.getPredictor(ratingPredictorName, requestContext);
+        configService.getPredictor(ratedPredictorName, requestContext);
+        configService.getPredictor(clickPredictorName, requestContext);
+        configService.getPredictor(wishlistPredictorName, requestContext);
+        TensorFlowModel tfModel = (TensorFlowModel) modelService.getModel(
+                requestContext.getEngineName(), tfModelName);
+        SVDFeature ratingModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), ratingModelName);
+        SVDFeature ratedModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), ratedModelName);
+        SVDFeature clickModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), clickModelName);
+        SVDFeature wishlistModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), wishlistModelName);
+        String itemAttr = "movieId";
+        List<JsonNode> item2info = new ArrayList<>();
+        CSVFileDAO dao = new CSVFileDAO("\t", itemInfoFile);
+        while (dao.hasNextEntity()) {
+            ObjectNode item = dao.getNextEntity();
+            int idx = item.get(itemAttr).asInt();
+            while (item2info.size() < idx) {
+                item2info.add(null);
+            }
+            item2info.add(item);
+        }
+        dao.close();
         return new InferenceExpander(
                 expanderConfig.getString("labelAttr"),
                 expanderConfig.getInt("numClass"),
                 expanderConfig.getString("joiner"),
-                model, featurizer);
+                model, featurizer, tfModel,
+                ratingModel, ratedModel, clickModel, wishlistModel, item2info);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
@@ -109,7 +169,8 @@ public class InferenceExpander implements EntityExpander {
                 }
                 if (index >= 0) {
                     ObjectNode features = InactionUtilities.getFeatures(
-                            attr2seq, index, null, null, itemAttr, userAttr, user);
+                            attr2seq, index, model, ratingModel, ratedModel, clickModel, wishlistModel,
+                            item2info, itemAttr, userAttr, user);
                     features.put(userAttr, user);
                     features.put(itemAttr, item);
                     int prevTstamp = Integer.parseInt(attr2seq.get(tstampAttr + "s")[index]);

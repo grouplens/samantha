@@ -25,6 +25,7 @@ package org.grouplens.samantha.server.inaction;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.dao.CSVFileDAO;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
@@ -42,10 +43,17 @@ public class LabelExpander implements EntityExpander {
     private final int splitTstamp;
     private final boolean backward;
     private final TensorFlowModel model;
+    private final SVDFeature ratingModel;
+    private final SVDFeature ratedModel;
+    private final SVDFeature clickModel;
+    private final SVDFeature wishlistModel;
     private final List<JsonNode> item2info;
 
     public LabelExpander(String labelAttr, List<String> excludedLabels,
-                         int splitTstamp, boolean backward, TensorFlowModel model,
+                         int splitTstamp, boolean backward,
+                         TensorFlowModel model,
+                         SVDFeature ratingModel, SVDFeature ratedModel,
+                         SVDFeature clickModel, SVDFeature wishlistModel,
                          List<JsonNode> item2info) {
         this.labelAttr = labelAttr;
         this.splitTstamp = splitTstamp;
@@ -56,26 +64,45 @@ public class LabelExpander implements EntityExpander {
         }
         this.backward = backward;
         this.model = model;
+        this.ratedModel = ratedModel;
+        this.ratingModel = ratingModel;
+        this.clickModel = clickModel;
+        this.wishlistModel = wishlistModel;
         this.item2info = item2info;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
-        String predictorName = "tensorFlowInteractionPredictor"; //expanderConfig.getString("predictorName");
-        String modelName = "tensorFlowInteractionPredictorModel"; //expanderConfig.getString("modelName");
+        String predictorName = "tensorFlowInteractionPredictor";
+        String modelName = "tensorFlowInteractionPredictorModel";
+        String ratingPredictorName = "inactionRatingFMPredictor";
+        String ratingModelName = "inactionRatingFMPredictorModel";
+        String ratedPredictorName = "inactionRatedFMPredictor";
+        String ratedModelName = "inactionRatedFMPredictorModel";
+        String clickPredictorName = "inactionClickFMPredictor";
+        String clickModelName = "inactionClickFMPredictorModel";
+        String wishlistPredictorName = "inactionWishlistFMPredictor";
+        String wishlistModelName = "inactionWishlistFMPredictorModel";
         String itemInfoFile = "/opt/samantha/learning/historyMovieData.tsv";
-        String itemAttr = "movieId";
-        Integer splitTstamp = expanderConfig.getInt("splitTstamp");
-        if (splitTstamp == null) {
-            splitTstamp = 0;
-        }
+
         ModelService modelService = injector.instanceOf(ModelService.class);
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
-        configService.getPredictor(
-                predictorName,
-                requestContext);
+        configService.getPredictor(predictorName, requestContext);
+        configService.getPredictor(ratingPredictorName, requestContext);
+        configService.getPredictor(ratedPredictorName, requestContext);
+        configService.getPredictor(clickPredictorName, requestContext);
+        configService.getPredictor(wishlistPredictorName, requestContext);
         TensorFlowModel model = (TensorFlowModel) modelService.getModel(
                 requestContext.getEngineName(), modelName);
+        SVDFeature ratingModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), ratingModelName);
+        SVDFeature ratedModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), ratedModelName);
+        SVDFeature clickModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), clickModelName);
+        SVDFeature wishlistModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), wishlistModelName);
+        String itemAttr = "movieId";
         List<JsonNode> item2info = new ArrayList<>();
         CSVFileDAO dao = new CSVFileDAO("\t", itemInfoFile);
         while (dao.hasNextEntity()) {
@@ -87,11 +114,17 @@ public class LabelExpander implements EntityExpander {
             item2info.add(item);
         }
         dao.close();
+        Integer splitTstamp = expanderConfig.getInt("splitTstamp");
+        if (splitTstamp == null) {
+            splitTstamp = 0;
+        }
         return new LabelExpander(
                 expanderConfig.getString("labelAttr"),
                 expanderConfig.getStringList("excludedLabels"),
                 splitTstamp,
-                expanderConfig.getBoolean("backward"), model, item2info);
+                expanderConfig.getBoolean("backward"), model,
+                ratingModel, ratedModel, clickModel, wishlistModel,
+                item2info);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
@@ -118,7 +151,9 @@ public class LabelExpander implements EntityExpander {
                     int tstamp = Integer.parseInt(tstamps[i]);
                     if ((tstamp < splitTstamp && backward) || (tstamp >= splitTstamp && !backward)) {
                         ObjectNode features = InactionUtilities.getFeatures(
-                                attr2seq, i, model, item2info, itemAttr, userAttr, user);
+                                attr2seq, i, model,
+                                ratingModel, ratedModel, clickModel, wishlistModel,
+                                item2info, itemAttr, userAttr, user);
                         InactionUtilities.extractSurvey(features, attr2seq, i);
                         features.put(userAttr, user);
                         features.put(itemAttr, items[i]);
