@@ -15,3 +15,6 @@ class PredictionModel:
     def get_target_prediction(self, used_model, paras, target, config):
         raise Exception('This must be overridden.')
 
+    def get_item_prediction(self, used_model, paras, items, target, config):
+        raise Exception('This must be overridden.')
+

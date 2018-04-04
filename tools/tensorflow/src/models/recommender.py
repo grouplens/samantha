@@ -305,7 +305,7 @@ class RecommenderBuilder(ModelBuilder):
             attr2embedding[attr] = embedding
         return attr2embedding
 
-    def _get_prediction(self, sequence_length, user_model, target2paras):
+    def _get_prediction(self, sequence_length, user_model, target2paras, attr2input):
         seq_idx = sequence_length
         batch_idx = tf.expand_dims(tf.range(tf.shape(sequence_length)[0]), 1)
         output_idx = tf.concat([batch_idx, seq_idx], 1)
@@ -315,6 +315,10 @@ class RecommenderBuilder(ModelBuilder):
             target2preds[target] = self._prediction_model.get_target_prediction(
                 model_output, target2paras[target], target, config)
             tf.nn.top_k(target2preds[target], k=self._top_k, sorted=True, name='%s_top_k_op' % target)
+            target_items = '%s_items' % target
+            if target_items in attr2input:
+                self._prediction_model.get_item_prediction(
+                    model_output, target2paras[target], attr2input[target_items], target, config)
         return target2preds
 
     def build_model(self):
@@ -331,6 +335,6 @@ class RecommenderBuilder(ModelBuilder):
             loss, updates, target2paras = self._get_loss_metrics(
                 sequence_length, user_model, attr2input)
         with tf.variable_scope('prediction'):
-            self._get_prediction(sequence_length, user_model, target2paras)
+            self._get_prediction(sequence_length, user_model, target2paras, attr2input)
         return loss, updates
 
