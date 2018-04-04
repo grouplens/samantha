@@ -25,6 +25,10 @@ package org.grouplens.samantha.server.inaction;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.grouplens.samantha.modeler.common.PredictiveModel;
+import org.grouplens.samantha.modeler.featurizer.Featurizer;
+import org.grouplens.samantha.server.common.ModelService;
+import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
@@ -46,11 +50,12 @@ public class SequenceInferenceExpander implements EntityExpander {
     final private String joiner;
     final private Integer maxStepNum;
     final private boolean backward;
+    final private EntityExpander inferenceExpander;
 
     public SequenceInferenceExpander(List<String> nameAttrs, List<String> valueAttrs,
                                      List<String> excludedLabels, List<String> historyAttrs, String separator,
                                      String joiner, Integer maxStepNum, boolean backward,
-                                     String tstampAttr, int splitTstamp) {
+                                     String tstampAttr, int splitTstamp, EntityExpander inferenceExpander) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
         if (excludedLabels != null) {
@@ -65,10 +70,26 @@ public class SequenceInferenceExpander implements EntityExpander {
         this.backward = backward;
         this.splitTstamp = splitTstamp;
         this.tstampAttr = tstampAttr;
+        this.inferenceExpander = inferenceExpander;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
+        ModelService modelService = injector.instanceOf(ModelService.class);
+        String predictorName = expanderConfig.getString("predictorName");
+        String modelName = expanderConfig.getString("modelName");
+        SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
+        configService.getPredictor(predictorName, requestContext);
+        Object rawModel = modelService.getModel(
+                requestContext.getEngineName(), modelName);
+        PredictiveModel model = (PredictiveModel) rawModel;
+        Featurizer featurizer = (Featurizer) rawModel;
+        EntityExpander inferenceExpander = new InferenceExpander(
+                expanderConfig.getString("labelAttr"),
+                expanderConfig.getInt("numClass"),
+                expanderConfig.getString("joiner"),
+                model, featurizer);
+
         Boolean backward = expanderConfig.getBoolean("backward");
         if (backward == null) {
             backward = false;
@@ -85,7 +106,8 @@ public class SequenceInferenceExpander implements EntityExpander {
                 expanderConfig.getString("separator"),
                 expanderConfig.getString("joiner"),
                 expanderConfig.getInt("maxStepNum"), backward,
-                expanderConfig.getString("tstampAttr"), splitTstamp);
+                expanderConfig.getString("tstampAttr"), splitTstamp,
+                inferenceExpander);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
@@ -133,7 +155,15 @@ public class SequenceInferenceExpander implements EntityExpander {
                         newEntity.put(historyAttrs.get(j), StringUtils.join(
                                 ArrayUtils.subarray(values.get(j), 0, i), joiner));
                     }
-                    expanded.add(newEntity);
+                    List<ObjectNode> inferredList = new ArrayList<>();
+                    inferredList.add(newEntity);
+                    inferredList = inferenceExpander.expand(inferredList, requestContext);
+                    for (ObjectNode inferred : inferredList) {
+                        for (int j=0; j<values.size(); j++) {
+                            inferred.remove(historyAttrs.get(j));
+                        }
+                    }
+                    expanded.addAll(inferredList);
                 }
             }
         }
