@@ -22,11 +22,15 @@
 
 package org.grouplens.samantha.server.inaction;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.modeler.common.PredictiveModel;
+import org.grouplens.samantha.modeler.dao.CSVFileDAO;
 import org.grouplens.samantha.modeler.featurizer.Featurizer;
+import org.grouplens.samantha.modeler.svdfeature.SVDFeature;
+import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.expander.EntityExpander;
@@ -84,11 +88,53 @@ public class SequenceInferenceExpander implements EntityExpander {
                 requestContext.getEngineName(), modelName);
         PredictiveModel model = (PredictiveModel) rawModel;
         Featurizer featurizer = (Featurizer) rawModel;
+
+        String tfPredictorName = "tensorFlowInteractionPredictor";
+        String tfModelName = "tensorFlowInteractionPredictorModel";
+        String ratingPredictorName = "inactionRatingFMPredictor";
+        String ratingModelName = "inactionRatingFMPredictorModel";
+        String ratedPredictorName = "inactionRatedFMPredictor";
+        String ratedModelName = "inactionRatedFMPredictorModel";
+        String clickPredictorName = "inactionClickFMPredictor";
+        String clickModelName = "inactionClickFMPredictorModel";
+        String wishlistPredictorName = "inactionWishlistFMPredictor";
+        String wishlistModelName = "inactionWishlistFMPredictorModel";
+        String itemInfoFile = "/opt/samantha/learning/historyMovieData.tsv";
+
+        configService.getPredictor(tfPredictorName, requestContext);
+        configService.getPredictor(ratingPredictorName, requestContext);
+        configService.getPredictor(ratedPredictorName, requestContext);
+        configService.getPredictor(clickPredictorName, requestContext);
+        configService.getPredictor(wishlistPredictorName, requestContext);
+        TensorFlowModel tfModel = (TensorFlowModel) modelService.getModel(
+                requestContext.getEngineName(), tfModelName);
+        SVDFeature ratingModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), ratingModelName);
+        SVDFeature ratedModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), ratedModelName);
+        SVDFeature clickModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), clickModelName);
+        SVDFeature wishlistModel = (SVDFeature) modelService.getModel(
+                requestContext.getEngineName(), wishlistModelName);
+        String itemAttr = "movieId";
+        List<JsonNode> item2info = new ArrayList<>();
+        CSVFileDAO dao = new CSVFileDAO("\t", itemInfoFile);
+        while (dao.hasNextEntity()) {
+            ObjectNode item = dao.getNextEntity();
+            int idx = item.get(itemAttr).asInt();
+            while (item2info.size() < idx) {
+                item2info.add(null);
+            }
+            item2info.add(item);
+        }
+        dao.close();
+
         EntityExpander inferenceExpander = new InferenceExpander(
                 expanderConfig.getString("labelAttr"),
                 expanderConfig.getInt("numClass"),
                 expanderConfig.getString("joiner"),
-                model, featurizer);
+                model, featurizer, tfModel,
+                ratingModel, ratedModel, clickModel, wishlistModel, item2info);
 
         Boolean backward = expanderConfig.getBoolean("backward");
         if (backward == null) {
