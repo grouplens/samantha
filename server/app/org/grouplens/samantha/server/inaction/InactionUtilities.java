@@ -505,7 +505,7 @@ public class InactionUtilities {
         List<String> feaNames = Lists.newArrayList(
                 "predRate", "predWishlist", "predClick", "predRating");
         List<SVDFeature> models = Lists.newArrayList(
-                ratingModel, ratedModel, clickModel, wishlistModel);
+                ratedModel, wishlistModel, clickModel, ratingModel);
         for (int i=0; i<feaNames.size(); i++) {
             SVDFeature model = models.get(i);
             double[] itemPreds = model.predict(model.featurize(entity, false));
