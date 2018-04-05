@@ -388,7 +388,8 @@ public class InactionUtilities {
     static private void setTensorFlowPredictedFeatures(ObjectNode features, TensorFlowModel model,
                                                        SVDFeature ratingModel, String userId,
                                                        ObjectNode entity, String itemId, String appendix,
-                                                       String[] items, int pageBegin, int pageEnd, int index) {
+                                                       String[] items, int pageBegin, int pageEnd, int index,
+                                                       int closest) {
         List<LearningInstance> instances = new ArrayList<>();
         instances.add(model.featurize(entity, true));
         // predicted various action probability
@@ -414,9 +415,14 @@ public class InactionUtilities {
             int itemIdx = model.getIndexForKey(indices.get(i),
                     FeatureExtractorUtilities.composeKey(attrs.get(i), itemId));
             double[] allPreds = predsList.get(i)[0];
-            features.put(feaNames.get(i) + appendix, allPreds[itemIdx]);
             DoubleList preds = new DoubleArrayList();
             preds.add(allPreds[itemIdx]);
+            features.put(feaNames.get(i) + appendix, allPreds[itemIdx]);
+            if (index == closest) {
+                features.put(feaNames.get(i) + "Closest" + appendix, allPreds[itemIdx]);
+            } else {
+                features.put(feaNames.get(i) + "Closest" + appendix, 0.0);
+            }
             double meanPred = allPreds[itemIdx];
             for (int j=pageBegin; j<pageEnd; j++) {
                 if (j != index) {
@@ -424,6 +430,9 @@ public class InactionUtilities {
                             FeatureExtractorUtilities.composeKey(attrs.get(i), items[j]));
                     preds.add(allPreds[itemIdx]);
                     meanPred += allPreds[itemIdx];
+                    if (j == closest) {
+                        features.put(feaNames.get(i) + "Closest" + appendix, allPreds[itemIdx]);
+                    }
                 }
             }
             meanPred /= preds.size();
@@ -434,7 +443,7 @@ public class InactionUtilities {
             features.put(feaNames.get(i) + "Median" + appendix, preds.get(preds.size() / 2));
         }
         //overwrite predicted rating
-        setRatingModelPredictedFeatures(features, ratingModel, appendix, pageBegin, pageEnd, index,
+        setRatingModelPredictedFeatures(features, ratingModel, appendix, pageBegin, pageEnd, index, closest,
                 items, userId, itemId);
         // user state
         List<String> stateList = new ArrayList<>();
@@ -447,15 +456,18 @@ public class InactionUtilities {
     }
 
     static private void setRatingModelPredictedFeatures(ObjectNode features, SVDFeature model, String appendix,
-                                                        int pageBegin, int pageEnd, int index,
+                                                        int pageBegin, int pageEnd, int index, int closest,
                                                         String[] items, String userId, String itemId) {
         ObjectNode entity = Json.newObject();
         entity.put("userId", userId);
         entity.put("movieId", itemId);
         double[] itemPreds = model.predict(model.featurize(entity, false));
-        features.put("predRating" + appendix, itemPreds[0]);
         DoubleList preds = new DoubleArrayList();
         preds.add(itemPreds[0]);
+        features.put("predRating" + appendix, itemPreds[0]);
+        if (index == closest) {
+            features.put("predRatingClosest" + appendix, itemPreds[0]);
+        }
         double meanPred = itemPreds[0];
         for (int j=pageBegin; j<pageEnd; j++) {
             if (j != index) {
@@ -464,6 +476,9 @@ public class InactionUtilities {
                 itemPreds = model.predict(model.featurize(curEntity, false));
                 preds.add(itemPreds[0]);
                 meanPred += itemPreds[0];
+                if (j == closest) {
+                    features.put("predRatingClosest" + appendix, itemPreds[0]);
+                }
             }
         }
         meanPred /= preds.size();
@@ -526,10 +541,10 @@ public class InactionUtilities {
         setTensorFlowSimilarityFeatures(features, attr2seq, itemAttr, index, pageBegin, pageEnd, closest, model);
         ObjectNode entity = constructSequence(attr2seq, pageBegin, userAttr, userId);
         setTensorFlowPredictedFeatures(features, model, ratingModel, userId, entity, itemId, "BeforePage",
-                items, pageBegin, pageEnd, index);
+                items, pageBegin, pageEnd, index, closest);
         entity = constructSequence(attr2seq, pageEnd, userAttr, userId);
         setTensorFlowPredictedFeatures(features, model, ratingModel, userId, entity, itemId, "AfterPage",
-                items, pageBegin, pageEnd, index);
+                items, pageBegin, pageEnd, index, closest);
     }
 
     static private void setMFPredictedFeatures(ObjectNode features,
