@@ -490,7 +490,8 @@ public class InactionUtilities {
                                                           String userAttr, String userId) {
         String[] items = attr2seq.get(itemAttr + "s");
         String itemId = items[index];
-        setMFSimilarityFeatures(features, attr2seq, itemAttr, index, pageBegin, pageEnd, closest, ratingModel);
+        //setMFSimilarityFeatures(features, attr2seq, itemAttr, index, pageBegin, pageEnd, closest, ratingModel);
+        setTensorFlowSimilarityFeatures(features, attr2seq, itemAttr, index, pageBegin, pageEnd, closest, model);
         ObjectNode entity = constructSequence(attr2seq, pageBegin, userAttr, userId);
         setTensorFlowPredictedFeatures(features, model, entity, itemId, "BeforePage",
                 items, pageBegin, pageEnd, index);
