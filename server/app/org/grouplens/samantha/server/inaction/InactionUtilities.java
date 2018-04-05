@@ -442,11 +442,9 @@ public class InactionUtilities {
         features.put("state" + appendix, StringUtils.join(stateList, ","));
     }
 
-    static public void extractTensorFlowPredictedFeatures(ObjectNode features, Map<String, String[]> attr2seq, int index,
-                                                          TensorFlowModel model,
-                                                          int pageBegin, int pageEnd,
-                                                          String itemAttr, int closest,
-                                                          String userAttr, String userId) {
+    static private void setTensorFlowSimilarityFeatures(ObjectNode features, Map<String, String[]> attr2seq,
+                                                        String itemAttr, int index, int pageBegin, int pageEnd,
+                                                        int closest, TensorFlowModel model) {
         // page and closest action similarity/diversity
         String simTarget = "rating";
         String simIndex = "RATE";
@@ -483,8 +481,16 @@ public class InactionUtilities {
         features.put("minSimPage", sims.getDouble(0));
         features.put("maxSimPage", sims.getDouble(sims.size() - 1));
         features.put("medianSimPage", sims.getDouble(sims.size() / 2));
+    }
 
-        // before page and after page predictions
+    static public void extractTensorFlowPredictedFeatures(ObjectNode features, Map<String, String[]> attr2seq, int index,
+                                                          TensorFlowModel model, SVDFeature ratingModel,
+                                                          int pageBegin, int pageEnd,
+                                                          String itemAttr, int closest,
+                                                          String userAttr, String userId) {
+        String[] items = attr2seq.get(itemAttr + "s");
+        String itemId = items[index];
+        setMFSimilarityFeatures(features, attr2seq, itemAttr, index, pageBegin, pageEnd, closest, ratingModel);
         ObjectNode entity = constructSequence(attr2seq, pageBegin, userAttr, userId);
         setTensorFlowPredictedFeatures(features, model, entity, itemId, "BeforePage",
                 items, pageBegin, pageEnd, index);
@@ -531,12 +537,9 @@ public class InactionUtilities {
         }
     }
 
-    static public void extractMFPredictedFeatures(ObjectNode features, Map<String, String[]> attr2seq, int index,
-                                                  SVDFeature ratingModel, SVDFeature ratedModel,
-                                                  SVDFeature clickModel, SVDFeature wishlistModel,
-                                                  int pageBegin, int pageEnd,
-                                                  String itemAttr, int closest,
-                                                  String userAttr, String userId) {
+    static private void setMFSimilarityFeatures(ObjectNode features, Map<String, String[]> attr2seq,
+                                                String itemAttr, int index, int pageBegin, int pageEnd,
+                                                int closest, SVDFeature ratingModel) {
         // page and closest action similarity/diversity
         String simTarget = "movieId";
         String simIndex = "FACTORS";
@@ -571,8 +574,17 @@ public class InactionUtilities {
         features.put("minSimPage", sims.getDouble(0));
         features.put("maxSimPage", sims.getDouble(sims.size() - 1));
         features.put("medianSimPage", sims.getDouble(sims.size() / 2));
+    }
 
-        // before page predictions
+    static public void extractMFPredictedFeatures(ObjectNode features, Map<String, String[]> attr2seq, int index,
+                                                  SVDFeature ratingModel, SVDFeature ratedModel,
+                                                  SVDFeature clickModel, SVDFeature wishlistModel,
+                                                  int pageBegin, int pageEnd,
+                                                  String itemAttr, int closest,
+                                                  String userAttr, String userId) {
+        String[] items = attr2seq.get(itemAttr + "s");
+        String itemId = items[index];
+        setMFSimilarityFeatures(features, attr2seq, itemAttr, index, pageBegin, pageEnd, closest, ratingModel);
         setMFPredictedFeatures(features, ratingModel, ratedModel, clickModel, wishlistModel,
                 userAttr, userId, itemAttr, itemId, "BeforePage", items, pageBegin, pageEnd, index);
     }
@@ -593,15 +605,14 @@ public class InactionUtilities {
         extractUserLevel(features, attr2seq, index, pageRange, sessRange);
 
         extractItemInfoFeatures(features, attr2seq, index, item2info);
+        extractTensorFlowPredictedFeatures(features, attr2seq, index, tensorflow, ratingModel,
+                pageRange.getKey(), pageRange.getValue(), itemAttr, closest, userAttr, userId);
         /*
-        extractTensorFlowPredictedFeatures(features, attr2seq, index, tensorflow,
-                pageRange.getKey(), pageRange.getValue(), itemAttr, closest,
-                userAttr, userId);
-        */
         extractMFPredictedFeatures(features, attr2seq, index,
                 ratingModel, ratedModel, clickModel, wishlistModel,
                 pageRange.getKey(), pageRange.getValue(), itemAttr, closest,
                 userAttr, userId);
+        */
         return features;
     }
 }
