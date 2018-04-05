@@ -22,16 +22,16 @@
 
 package org.grouplens.samantha.server.expander;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.predictor.Predictor;
 import play.Configuration;
 import play.inject.Injector;
-import play.libs.Json;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PredictorBasedExpander implements EntityExpander {
@@ -61,12 +61,12 @@ public class PredictorBasedExpander implements EntityExpander {
             ObjectNode entity = initialResult.get(i);
             entity.put(scoreAttr, predictions.get(i).getScore());
             if (scoresAttr != null) {
-                ArrayNode scoreArr = Json.newArray();
+                List<String> scoreStrArr = new ArrayList<>();
                 double[] scores = predictions.get(i).getScores();
                 for (int j=0; j<scores.length; j++) {
-                    scoreArr.add(scores[j]);
+                    scoreStrArr.add(Double.toString(scores[j]));
                 }
-                entity.set(scoresAttr, scoreArr);
+                entity.put(scoresAttr, StringUtils.join(scoreStrArr, ","));
             }
         }
         return initialResult;
