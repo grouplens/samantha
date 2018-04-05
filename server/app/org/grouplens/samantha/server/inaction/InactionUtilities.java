@@ -386,6 +386,7 @@ public class InactionUtilities {
     }
 
     static private void setTensorFlowPredictedFeatures(ObjectNode features, TensorFlowModel model,
+                                                       SVDFeature ratingModel, String userId,
                                                        ObjectNode entity, String itemId, String appendix,
                                                        String[] items, int pageBegin, int pageEnd, int index) {
         List<LearningInstance> instances = new ArrayList<>();
@@ -432,6 +433,9 @@ public class InactionUtilities {
             features.put(feaNames.get(i) + "Max" + appendix, preds.get(preds.size() - 1));
             features.put(feaNames.get(i) + "Median" + appendix, preds.get(preds.size() / 2));
         }
+        //overwrite predicted rating
+        setRatingModelPredictedFeatures(features, ratingModel, appendix, pageBegin, pageEnd, index,
+                items, userId, itemId);
         // user state
         List<String> stateList = new ArrayList<>();
         double[][] states = predsList.get(predsList.size() - 1);
@@ -440,6 +444,34 @@ public class InactionUtilities {
             features.put("state" + Integer.toString(i) + appendix, states[0][i]);
         }
         features.put("state" + appendix, StringUtils.join(stateList, ","));
+    }
+
+    static private void setRatingModelPredictedFeatures(ObjectNode features, SVDFeature model, String appendix,
+                                                        int pageBegin, int pageEnd, int index,
+                                                        String[] items, String userId, String itemId) {
+        ObjectNode entity = Json.newObject();
+        entity.put("userId", userId);
+        entity.put("movieId", itemId);
+        double[] itemPreds = model.predict(model.featurize(entity, false));
+        features.put("predRating" + appendix, itemPreds[0]);
+        DoubleList preds = new DoubleArrayList();
+        preds.add(itemPreds[0]);
+        double meanPred = itemPreds[0];
+        for (int j=pageBegin; j<pageEnd; j++) {
+            if (j != index) {
+                ObjectNode curEntity = entity.deepCopy();
+                curEntity.put("movieId", items[j]);
+                itemPreds = model.predict(model.featurize(curEntity, false));
+                preds.add(itemPreds[0]);
+                meanPred += itemPreds[0];
+            }
+        }
+        meanPred /= preds.size();
+        features.put("predRatingMean" + appendix, meanPred);
+        preds.sort(Double::compare);
+        features.put("predRatingMin" + appendix, preds.get(0));
+        features.put("predRatingMax" + appendix, preds.get(preds.size() - 1));
+        features.put("predRatingMedian" + appendix, preds.get(preds.size() / 2));
     }
 
     static private void setTensorFlowSimilarityFeatures(ObjectNode features, Map<String, String[]> attr2seq,
@@ -493,10 +525,10 @@ public class InactionUtilities {
         //setMFSimilarityFeatures(features, attr2seq, itemAttr, index, pageBegin, pageEnd, closest, ratingModel);
         setTensorFlowSimilarityFeatures(features, attr2seq, itemAttr, index, pageBegin, pageEnd, closest, model);
         ObjectNode entity = constructSequence(attr2seq, pageBegin, userAttr, userId);
-        setTensorFlowPredictedFeatures(features, model, entity, itemId, "BeforePage",
+        setTensorFlowPredictedFeatures(features, model, ratingModel, userId, entity, itemId, "BeforePage",
                 items, pageBegin, pageEnd, index);
         entity = constructSequence(attr2seq, pageEnd, userAttr, userId);
-        setTensorFlowPredictedFeatures(features, model, entity, itemId, "AfterPage",
+        setTensorFlowPredictedFeatures(features, model, ratingModel, userId, entity, itemId, "AfterPage",
                 items, pageBegin, pageEnd, index);
     }
 
