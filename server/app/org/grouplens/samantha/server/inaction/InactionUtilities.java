@@ -443,8 +443,8 @@ public class InactionUtilities {
             features.put(feaNames.get(i) + "Median" + appendix, preds.get(preds.size() / 2));
         }
         //overwrite predicted rating
-        setRatingModelPredictedFeatures(features, ratingModel, appendix, pageBegin, pageEnd, index, closest,
-                items, userId, itemId);
+        //setRatingModelPredictedFeatures(features, ratingModel, appendix, pageBegin, pageEnd, index, closest,
+        //        items, userId, itemId);
         // user state
         List<String> stateList = new ArrayList<>();
         double[][] states = predsList.get(predsList.size() - 1);

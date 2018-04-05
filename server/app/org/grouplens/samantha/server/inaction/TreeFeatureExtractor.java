@@ -80,6 +80,11 @@ public class TreeFeatureExtractor implements org.grouplens.samantha.modeler.feat
                 "ratingRateHist", "negativeRateHist", "numShowHist", "clickHist", "numExploreShowHist",
                 "sizePrev", "dwellPrev", "colPrev", "rowPrev", "hover",
 
+                "predDisplayClosestBeforePage", "predRatingClosestBeforePage", "predRateClosestBeforePage", "predClickClosestBeforePage", "predWishlistClosestBeforePage",
+                "predDisplayClosestAfterPage", "predRatingClosestAfterPage", "predRateClosestAfterPage", "predClickClosestAfterPage", "predWishlistClosestAfterPage",
+
+                "predRateMeanBeforePage", "predClickMeanBeforePage", "namePage", "predRatingMedianBeforePage", "predRateAfterPage", "predRatingMinAfterPage", "medianSimPage",
+                "predClickMedianAfterPage", "minSimPage", "predWishlistAfterPage", "ratingPage", "negativeRatePage", "wishlistRatePage", "predRatingAfterPage", "closestRowPage", "predWishlistMinBeforePage",
                 "closestSimPage", "meanSimPage", "minSimPage", "maxSimPage", "medianSimPage",
                 "predDisplayBeforePage", "predDisplayMeanBeforePage", "predDisplayMinBeforePage", "predDisplayMaxBeforePage", "predDisplayMedianBeforePage",
                 "predRateBeforePage", "predRateMeanBeforePage", "predRateMinBeforePage", "predRateMaxBeforePage", "predRateMedianBeforePage",
