@@ -149,6 +149,7 @@ public class InferenceExpander implements EntityExpander {
             }
             entity.put("prevTstamp", -1);
             entity.put("prevSessionId", "None");
+            entity.put("prevAction", -1);
             String itemIdsStr = entity.get(itemAttr + "s").asText();
             if (!"".equals(itemIdsStr)) {
                 String user = entity.get(userAttr).asText();
@@ -183,6 +184,7 @@ public class InferenceExpander implements EntityExpander {
                     }
                     entity.put("prevTstamp", prevTstamp);
                     entity.put("prevSessionId", attr2seq.get("sessionIds")[index]);
+                    entity.put("prevAction", attr2seq.get("actions")[index]);
                 }
             }
             entity.put(labelAttr, StringUtils.join(predArr, joiner));
