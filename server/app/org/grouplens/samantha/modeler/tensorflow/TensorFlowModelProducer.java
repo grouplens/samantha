@@ -95,10 +95,10 @@ public class TensorFlowModelProducer {
             SpaceMode spaceMode,
             String graphDefFilePath,
             List<String> groupKeys,
-            List<String> feedFeas,
             List<List<String>> equalSizeChecks,
             List<String> indexKeys,
             List<FeatureExtractor> featureExtractors,
+            String predItemFea,
             String lossOper,
             String updateOper,
             String outputOper,
@@ -116,9 +116,8 @@ public class TensorFlowModelProducer {
             session.runner().addTarget(initOper).run();
         }
         return new TensorFlowModel(graph, session, graphDefFilePath, null, indexSpace, variableSpace,
-                featureExtractors, lossOper, updateOper, topKId, itemIndex,
-                topKValue, outputOper, topKOper, initOper, groupKeys, feedFeas,
-                equalSizeChecks);
+                featureExtractors, predItemFea, lossOper, updateOper, topKId, itemIndex,
+                topKValue, outputOper, topKOper, initOper, groupKeys, equalSizeChecks);
     }
 
     public TensorFlowModel createTensorFlowModelModelFromExportDir(
@@ -126,10 +125,10 @@ public class TensorFlowModelProducer {
             SpaceMode spaceMode,
             String exportDir,
             List<String> groupKeys,
-            List<String> feedFeas,
             List<List<String>> equalSizeChecks,
             List<String> indexKeys,
             List<FeatureExtractor> featureExtractors,
+            String predItemFea,
             String lossOper,
             String updateOper,
             String outputOper,
@@ -148,8 +147,7 @@ public class TensorFlowModelProducer {
             graph = savedModel.graph();
         }
         return new TensorFlowModel(graph, session, null, exportDir, indexSpace, variableSpace,
-                featureExtractors, lossOper, updateOper, topKId, itemIndex,
-                topKValue, outputOper, topKOper, initOper, groupKeys, feedFeas,
-                equalSizeChecks);
+                featureExtractors, predItemFea, lossOper, updateOper, topKId, itemIndex,
+                topKValue, outputOper, topKOper, initOper, groupKeys, equalSizeChecks);
     }
 }

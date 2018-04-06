@@ -49,6 +49,8 @@ public class PredictionEvaluatorConfig extends AbstractComponentConfig implement
     final private List<String> groupKeys;
     final private List<String> indexerNames;
     final private List<String> predIndexerNames;
+    final private String labelAttr;
+    final private String separator;
     final private List<MetricConfig> metricConfigs;
     final private Configuration daoConfigs;
     final private String daoConfigKey;
@@ -60,6 +62,8 @@ public class PredictionEvaluatorConfig extends AbstractComponentConfig implement
                                       List<String> groupKeys,
                                       List<String> indexerNames,
                                       List<String> predIndexerNames,
+                                      String labelAttr,
+                                      String separator,
                                       Configuration daoConfigs,
                                       Injector injector, String daoConfigKey) {
         super(config);
@@ -72,6 +76,8 @@ public class PredictionEvaluatorConfig extends AbstractComponentConfig implement
         this.injector = injector;
         this.daoConfigs = daoConfigs;
         this.daoConfigKey = daoConfigKey;
+        this.labelAttr = labelAttr;
+        this.separator = separator;
     }
 
     public static EvaluatorConfig getEvaluatorConfig(Configuration evalConfig,
@@ -85,6 +91,8 @@ public class PredictionEvaluatorConfig extends AbstractComponentConfig implement
                 evalConfig.getStringList("groupKeys"),
                 evalConfig.getStringList("indexers"),
                 evalConfig.getStringList("predictionIndexers"),
+                evalConfig.getString("labelAttr"),
+                evalConfig.getString("separator"),
                 evalConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()), injector,
                 evalConfig.getString("daoConfigKey"));
     }
@@ -113,6 +121,6 @@ public class PredictionEvaluatorConfig extends AbstractComponentConfig implement
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
         return new PredictionEvaluator(predictor, entityDao, entityExpanders,
-                groupKeys, metrics, indexers, predIndexers);
+                groupKeys, metrics, indexers, predIndexers, labelAttr, separator);
     }
 }

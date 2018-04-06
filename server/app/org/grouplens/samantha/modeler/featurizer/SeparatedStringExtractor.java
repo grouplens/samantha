@@ -37,6 +37,7 @@ public class SeparatedStringExtractor implements FeatureExtractor {
     private static Logger logger = LoggerFactory.getLogger(SeparatedStringExtractor.class);
     private final String indexName;
     private final String attrName;
+    private final String keyPrefix;
     private final String feaName;
     private final String separator;
     private final boolean normalize;
@@ -45,6 +46,7 @@ public class SeparatedStringExtractor implements FeatureExtractor {
 
     public SeparatedStringExtractor(String indexName,
                                     String attrName,
+                                    String keyPrefix,
                                     String feaName,
                                     String separator,
                                     boolean normalize,
@@ -52,6 +54,11 @@ public class SeparatedStringExtractor implements FeatureExtractor {
                                     Integer maxFeatures) {
         this.indexName = indexName;
         this.attrName = attrName;
+        if (keyPrefix != null) {
+            this.keyPrefix = keyPrefix;
+        } else {
+            this.keyPrefix = attrName;
+        }
         this.feaName = feaName;
         this.separator = separator;
         this.normalize = normalize;
@@ -80,7 +87,7 @@ public class SeparatedStringExtractor implements FeatureExtractor {
                 }
                 for (int i = start; i < fields.length; i++) {
                     String field = fields[i];
-                    String key = FeatureExtractorUtilities.composeKey(attrName, field);
+                    String key = FeatureExtractorUtilities.composeKey(keyPrefix, field);
                     FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
                             indexSpace, indexName, key, val);
                 }

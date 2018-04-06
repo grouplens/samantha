@@ -1,4 +1,5 @@
 
+import tensorflow as tf
 
 class PredictionModel:
 
@@ -16,5 +17,11 @@ class PredictionModel:
         raise Exception('This must be overridden.')
 
     def get_item_prediction(self, used_model, paras, items, target, config):
-        raise Exception('This must be overridden.')
-
+        preds = self.get_target_prediction(used_model, paras, target, config)
+        batch_range = tf.range(tf.shape(preds)[0])
+        tiled_batch = tf.tile(tf.expand_dims(batch_range, axis=1), [1, tf.shape(items)[1]])
+        indices = tf.concat([
+            tf.expand_dims(tiled_batch, axis=2),
+            tf.expand_dims(items, axis=2)
+        ], axis=2)
+        return tf.gather_nd(preds, indices)

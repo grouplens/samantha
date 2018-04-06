@@ -34,6 +34,8 @@ import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.predictor.Predictor;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import play.Logger;
+import play.api.data.ObjectMapping;
+import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +48,8 @@ public class PredictionEvaluator implements Evaluator {
     final private List<Metric> metrics;
     final private List<Indexer> indexers;
     final private List<Indexer> predIndexers;
+    final private String labelAttr;
+    final private String separator;
 
     public PredictionEvaluator(Predictor predictor,
                                EntityDAO entityDAO,
@@ -53,7 +57,9 @@ public class PredictionEvaluator implements Evaluator {
                                List<String> groupKeys,
                                List<Metric> metrics,
                                List<Indexer> indexers,
-                               List<Indexer> predIndexers) {
+                               List<Indexer> predIndexers,
+                               String labelAttr,
+                               String separator) {
         this.predictor = predictor;
         this.entityDAO = entityDAO;
         this.expanders = expanders;
@@ -61,20 +67,48 @@ public class PredictionEvaluator implements Evaluator {
         this.indexers = indexers;
         this.groupKeys = groupKeys;
         this.predIndexers = predIndexers;
+        this.labelAttr = labelAttr;
+        this.separator = separator;
     }
 
     private void getPredictionMetrics(RequestContext requestContext, List<ObjectNode> entityList) {
-        List<Prediction> predictions = predictor.predict(entityList,
-                requestContext);
-        List<ObjectNode> processed = new ArrayList<>();
-        for (Prediction pred : predictions) {
-            for (Indexer indexer : predIndexers) {
-                indexer.index(pred.toJson(), requestContext);
+        List<ObjectNode> labels = new ArrayList<>();
+        List<Prediction> preds;
+        if (labelAttr != null && separator != null) {
+            List<ObjectNode> topreds = new ArrayList<>();
+            for (ObjectNode entity : entityList) {
+                String labelStr = entity.get(labelAttr).asText();
+                if (!"".equals(labelStr)) {
+                    topreds.add(entity);
+                }
             }
-            processed.add(pred.getEntity());
+            preds = new ArrayList<>();
+            if (topreds.size() > 0) {
+                List<Prediction> predictions = predictor.predict(topreds, requestContext);
+                for (Prediction pred : predictions) {
+                    String[] labelValues = pred.getEntity().get(labelAttr).asText().split(separator, -1);
+                    double[] scores = pred.getScores();
+                    for (int i = 0; i < labelValues.length; i++) {
+                        ObjectNode label = Json.newObject();
+                        label.put(labelAttr, labelValues[i]);
+                        preds.add(new Prediction(label, null, scores[i], null));
+                        labels.add(label);
+                    }
+                }
+            }
+        } else {
+            preds = predictor.predict(entityList, requestContext);
+            for (Prediction pred : preds) {
+                labels.add(pred.getEntity());
+            }
         }
         for (Metric metric : metrics) {
-            metric.add(processed, predictions);
+            metric.add(labels, preds);
+        }
+        for (Indexer indexer : predIndexers) {
+            for (Prediction pred : preds) {
+                indexer.index(pred.toJson(), requestContext);
+            }
         }
     }
 

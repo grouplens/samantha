@@ -57,6 +57,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     private static final long serialVersionUID = 1L;
     transient private Graph graph;
     transient private Session session;
+    private Set<String> feedFeas;
     private final String graphDefFile;
     private final String exportDir;
     private final List<FeatureExtractor> featureExtractors;
@@ -69,7 +70,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     private final String topKValue;
     private final String itemIndex;
     private final List<String> groupKeys;
-    private final Set<String> feedFeas;
+    private final String predItemFea;
     private final List<List<String>> equalSizeChecks;
 
     public static final String SAVED_MODEL_TAG = "train_eval_serve";
@@ -81,15 +82,15 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     public TensorFlowModel(Graph graph, Session session,
                            String graphDefFile, String exportDir,
                            IndexSpace indexSpace, VariableSpace variableSpace,
-                           List<FeatureExtractor> featureExtractors,
+                           List<FeatureExtractor> featureExtractors, String predItemFea,
                            String lossOper, String updateOper, String topKId, String itemIndex,
                            String topKValue, String outputOper, String topKOper, String initOper,
-                           List<String> groupKeys, List<String> feedFeas, List<List<String>> equalSizeChecks) {
+                           List<String> groupKeys, List<List<String>> equalSizeChecks) {
         super(indexSpace, variableSpace);
         this.groupKeys = groupKeys;
-        this.feedFeas = new HashSet<>(feedFeas);
         this.equalSizeChecks = equalSizeChecks;
         this.featureExtractors = featureExtractors;
+        this.predItemFea = predItemFea;
         this.lossOper = lossOper;
         this.updateOper = updateOper;
         this.outputOper = outputOper;
@@ -102,6 +103,23 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         this.session = session;
         this.graphDefFile = graphDefFile;
         this.exportDir = exportDir;
+        if (graph != null) {
+            this.feedFeas = getFeedFeas(graph);
+        } else {
+            this.feedFeas = new HashSet<>();
+        }
+    }
+
+    private Set<String> getFeedFeas(Graph graph) {
+        Set<String> feedFeas = new HashSet<>();
+        Iterator<Operation> iter = graph.operations();
+        while (iter.hasNext()) {
+            String name = iter.next().name();
+            if (name.endsWith("_idx") || name.endsWith("_val")) {
+                feedFeas.add(name);
+            }
+        }
+        return feedFeas;
     }
 
     public double[] predict(LearningInstance ins) {
@@ -179,13 +197,6 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     public List<double[][]> inference(List<LearningInstance> instances,
                                       List<String> operations,
                                       List<Integer> outputIndices) {
-        /*
-        List<String> operations = Lists.newArrayList();
-        Iterator<Operation> operIter = graph.operations();
-        while (operIter.hasNext()) {
-            operations.add(operIter.next().name());
-        }
-        */
         Session.Runner runner = session.runner();
         Map<String, Tensor> feedDict = getFeedDict(instances);
         feed(runner, feedDict);
@@ -195,7 +206,32 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     }
 
     public double[][] predict(List<LearningInstance> instances) {
-        return inference(instances, outputOper, 0);
+        double[][] preds = inference(instances, outputOper, 0);
+        if (predItemFea != null) {
+            double[][] itemPreds = new double[instances.size()][];
+            for (int i=0; i<instances.size(); i++) {
+                TensorFlowInstance tfIns = (TensorFlowInstance) instances.get(i);
+                if (tfIns.getName2Indices().containsKey(predItemFea)) {
+                    int[] indices = tfIns.getName2Indices().get(predItemFea);
+                    if (indices.length == 0) {
+                        return preds;
+                    }
+                    double[] insPreds = new double[indices.length];
+                    for (int j = 0; j < indices.length; j++) {
+                        if (indices[j] < preds[i].length) {
+                            insPreds[j] = preds[i][indices[j]];
+                        } else {
+                            insPreds[j] = preds[i][0];
+                        }
+                    }
+                    itemPreds[i] = insPreds;
+                } else {
+                    return preds;
+                }
+            }
+            return itemPreds;
+        }
+        return preds;
     }
 
     public List<ObjectNode> recommend(List<ObjectNode> entities) {
@@ -445,12 +481,14 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             if (savedModel != null) {
                 graph = savedModel.graph();
                 session = savedModel.session();
+                feedFeas = getFeedFeas(graph);
             }
         } else if (graphDefFile != null) {
             graph = TensorFlowModelProducer.loadTensorFlowGraph(graphDefFile);
             if (graph != null) {
                 session = new Session(graph);
                 session.runner().addTarget(initOper).run();
+                feedFeas = getFeedFeas(graph);
             }
         }
     }

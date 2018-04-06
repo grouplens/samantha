@@ -52,7 +52,6 @@ import java.util.List;
 
 public class TensorFlowPredictorConfig implements PredictorConfig {
     private final List<String> groupKeys;
-    private final List<String> feedFeas;
     private final List<List<String>> equalSizeChecks;
     private final List<String> indexKeys;
     private final List<String> evaluatorNames;
@@ -64,6 +63,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
     private final Configuration methodConfig;
     private final Injector injector;
     private final List<Configuration> expandersConfig;
+    private final String predItemFea;
     private final String daoConfigKey;
     private final String outputOper;
     private final String updateOper;
@@ -77,7 +77,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
     private final String modelExportDir;
     private final Configuration config;
 
-    private TensorFlowPredictorConfig(List<String> groupKeys, List<String> feedFeas, List<String> indexKeys,
+    private TensorFlowPredictorConfig(List<String> groupKeys, List<String> indexKeys,
                                       List<List<String>> equalSizeChecks, List<String> evaluatorNames,
                                       String modelFile, String modelName,
                                       List<FeatureExtractorConfig> feaExtConfigs,
@@ -85,12 +85,11 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                                       Configuration methodConfig, Configuration onlineMethodConfig,
                                       Injector injector,
                                       List<Configuration> expandersConfig, String daoConfigKey,
-                                      String outputOper, String updateOper,
+                                      String predItemFea, String outputOper, String updateOper,
                                       String lossOper, String initOper, String topKOper,
                                       String topKId, String topKValue, String itemIndex,
                                       String graphDefFilePath, String modelExportDir, Configuration config) {
         this.groupKeys = groupKeys;
-        this.feedFeas = feedFeas;
         this.indexKeys = indexKeys;
         this.equalSizeChecks = equalSizeChecks;
         this.evaluatorNames = evaluatorNames;
@@ -100,6 +99,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
         this.methodConfig = methodConfig;
         this.onlineMethodConfig = onlineMethodConfig;
         this.entityDaoConfigs = entityDaoConfigs;
+        this.predItemFea = predItemFea;
         this.outputOper = outputOper;
         this.updateOper = updateOper;
         this.lossOper = lossOper;
@@ -138,7 +138,6 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
         }
         return new TensorFlowPredictorConfig(
                 predictorConfig.getStringList("groupKeys"),
-                predictorConfig.getStringList("feedFeas"),
                 predictorConfig.getStringList("indexKeys"),
                 equalSizeChecks, evaluatorNames,
                 predictorConfig.getString("modelFile"),
@@ -148,6 +147,7 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
                 predictorConfig.getConfig("onlineMethodConfig"),
                 injector, expanders,
                 predictorConfig.getString("daoConfigKey"),
+                predictorConfig.getString("predItemFea"),
                 predictorConfig.getString("outputOper"),
                 predictorConfig.getString("updateOper"),
                 predictorConfig.getString("lossOper"),
@@ -177,16 +177,16 @@ public class TensorFlowPredictorConfig implements PredictorConfig {
             if (graphDefFilePath != null) {
                 return producer.createTensorFlowModelModelFromGraphDef(
                         modelName, spaceMode, graphDefFilePath,
-                        groupKeys, feedFeas, equalSizeChecks, indexKeys,
-                        featureExtractors,
+                        groupKeys, equalSizeChecks, indexKeys,
+                        featureExtractors, predItemFea,
                         lossOper, updateOper,
                         outputOper, initOper, topKOper,
                         topKId, topKValue, itemIndex);
             } else if (modelExportDir != null) {
                 return producer.createTensorFlowModelModelFromExportDir(
                         modelName, spaceMode, modelExportDir,
-                        groupKeys, feedFeas, equalSizeChecks, indexKeys,
-                        featureExtractors,
+                        groupKeys, equalSizeChecks, indexKeys,
+                        featureExtractors, predItemFea,
                         lossOper, updateOper,
                         outputOper, initOper, topKOper,
                         topKId, topKValue, itemIndex);
