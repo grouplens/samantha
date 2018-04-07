@@ -247,7 +247,8 @@ class RecommenderTest(unittest.TestCase):
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
             tensorboard_dir=self._test_path,
-            export_dir=export_dir)
+            export_dir=export_dir,
+            early_stop_by='step')
         model_trainer.train(run_name)
 
     def test_train_ccf_softmax_model(self):

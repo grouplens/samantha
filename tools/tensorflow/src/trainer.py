@@ -42,24 +42,15 @@ class ModelTrainer(object):
         self._step_epsilon = step_epsilon
         self._epoch_epsilon = epoch_epsilon
 
-    def _export_model(self, session, dir):
-        builder = tf.saved_model.builder.SavedModelBuilder(dir)
+    def _export_model(self, session, folder):
+        builder = tf.saved_model.builder.SavedModelBuilder(folder)
         builder.add_meta_graph_and_variables(session, ['train_eval_serve'])
         builder.save()
 
-    def _whether_early_stop(self):
-        def _non_decreasing(losses, epsilon):
-            if len(losses) < 2 or losses[-2] - losses[-1] >= epsilon:
-                return False
-            return True
-        if self._early_stop_by is None:
+    def _whether_early_stop(self, losses, epsilon, trace_back=2):
+        if len(losses) < trace_back or losses[-trace_back] - losses[-1] >= epsilon:
             return False
-        elif self._early_stop_by in ['epoch', 'both']:
-            return _non_decreasing(self._epoch_eval_losses, self._epoch_epsilon)
-        elif self._early_stop_by in ['step', 'both']:
-            return _non_decreasing(self._step_eval_losses, self._step_epsilon)
-        else:
-            logging.warning('Only epoch|step|both|None is supported for early_stop_by. No early stopping is used now.')
+        return True
 
     def train(self, run_name=None):
         graph = tf.Graph()
@@ -88,6 +79,7 @@ class ModelTrainer(object):
                 logger.info('Training the model.')
                 step = 0
                 epoch = 0
+                early_stopped = False
                 while step < self._max_steps and epoch < self._max_epochs:
                     epoch_train_loss = 0.0
                     epoch_eval_loss = 0.0
@@ -102,7 +94,11 @@ class ModelTrainer(object):
                         self._step_eval_losses.append(train_vals['eval_loss'])
                         if step % self._export_per_steps == 0:
                             self._export_model(session, os.path.join(self._export_dir, 'step_%s' % step))
-                        if step >= self._max_steps or self._whether_early_stop():
+                        if step >= self._max_steps:
+                            break
+                        if self._early_stop_by in ['step', 'both'] and self._whether_early_stop(
+                                self._step_eval_losses, self._step_epsilon):
+                            early_stopped = True
                             break
                     self._train_data.reset()
                     epoch += 1
@@ -111,8 +107,12 @@ class ModelTrainer(object):
                     self._epoch_eval_losses.append(epoch_eval_loss)
                     if epoch % self._export_per_epochs == 0:
                         self._export_model(session, os.path.join(self._export_dir, 'epoch_%s' % epoch))
-                    if self._whether_early_stop():
+                    if early_stopped or (self._early_stop_by in ['epoch', 'both'] and self._whether_early_stop(
+                            self._epoch_eval_losses, self._epoch_epsilon)):
+                        early_stopped = True
                         break
+                if early_stopped:
+                    logger.info("Early stopped because of non-decreasing evaluation loss")
                 train_writer.close()
                 self._export_model(session, os.path.join(self._export_dir, 'final_epoch_%s_step_%s' % (epoch, step)))
             session.close()
