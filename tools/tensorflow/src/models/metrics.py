@@ -70,7 +70,7 @@ def compute_auc_metric(uniq_batch_idx, batch_idx, used_labels, preds, num_used=N
     if num_sampled is None:
         num_sampled = tf.shape(used_labels)[0]
     else:
-        num_sampled *= (tf.shape(used_labels)[0] > 0)
+        num_sampled *= tf.cast(tf.shape(used_labels)[0] > 0, tf.int32)
     new_indices, used_preds = _get_sampled_for_auc(batch_idx, used_labels, used_preds, num_sampled)
     num_positives = tf.shape(new_indices)[0]
     tf.summary.scalar('num_positives', num_positives)
