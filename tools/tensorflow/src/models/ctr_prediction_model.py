@@ -1,73 +1,18 @@
 
-import random
 import tensorflow as tf
 
-from src.models.prediction_model import PredictionModel
+from src.models.prediction_model import BasicPredictionModel
 
 
-class CTRPredictionModel(PredictionModel):
+class CTRPredictionModel(BasicPredictionModel):
 
-    def __init__(self, context_attr, config=None):
-        self._context_attr = context_attr
-        if config is None:
-            self._sigmoid_config = {
-                'item': {
-                    'vocab_size':  10,
-                    'sigmoid_dim': 10,
-                    'attrs': {
-                        'tag': [random.randint(0, 5) for _ in range(10)],
-                        'genre': [random.randint(0, 3) for _ in range(10)],
-                    }
-                },
-                'tag': {
-                    'vocab_size':  3,
-                    'sigmoid_dim': 10,
-                },
-                'genre': {
-                    'vocab_size':  3,
-                    'sigmoid_dim': 10,
-                },
-            }
-        else:
-            self._sigmoid_config = config
-
-    def _get_sigmoid_paras(self, target, target_sigmoid):
-        weights = tf.get_variable(
-            '%s_weights' % target,
-            shape=[target_sigmoid['vocab_size'], target_sigmoid['sigmoid_dim']],
-            dtype=tf.float32, initializer=tf.truncated_normal_initializer)
-        biases = tf.get_variable(
-            '%s_biases' % target, shape=[target_sigmoid['vocab_size']],
-            dtype=tf.float32, initializer=tf.zeros_initializer)
-        if 'attrs' in target_sigmoid:
-            for attr, item2attr in target_sigmoid['attrs'].iteritems():
-                feamap = tf.constant(item2attr)
-                attr_config = self._sigmoid_config[attr]
-                attr_sigmoid = {
-                    'weights': tf.get_variable(
-                        '%s_weights' % attr,
-                        shape=[attr_config['vocab_size'], attr_config['sigmoid_dim']],
-                        dtype=tf.float32, initializer=tf.truncated_normal_initializer),
-                    'biases': tf.get_variable(
-                        '%s_biases' % attr, shape=[attr_config['vocab_size']],
-                        dtype=tf.float32, initializer=tf.zeros_initializer),
-                }
-                weights += tf.gather(attr_sigmoid['weights'], feamap)
-                biases += tf.gather(attr_sigmoid['biases'], feamap)
-        return weights, biases
-
-    def get_target_paras(self, target, config):
-        target_sigmoid = self._sigmoid_config[target]
-        weights, biases = self._get_sigmoid_paras(target, target_sigmoid)
-        paras = {
-            'weights': weights,
-            'biases': biases,
-        }
-        return paras
+    def __init__(self, display_attr, config=None):
+        super(CTRPredictionModel, self).__init__(config=config)
+        self._display_attr = display_attr
 
     def get_target_loss(self, used_model, labels, indices, user_model,
                         paras, target, config, mode, context):
-        display = context[self._context_attr]
+        display = context[self._display_attr]
         mask = tf.gather_nd(display, indices) > 0
         indices = tf.boolean_mask(indices, mask)
         used_model = tf.boolean_mask(used_model, mask)
@@ -75,6 +20,16 @@ class CTRPredictionModel(PredictionModel):
         weights = tf.gather(paras['weights'], used_display)
         biases = tf.gather(paras['biases'], used_display)
         logits = tf.reduce_sum(used_model * weights, axis=1) + biases
+
+        if 'user_bias' in paras:
+            label_batch_idx = tf.reshape(tf.slice(indices, begin=[0, 0], size=[tf.shape(indices)[0], 1]), [-1])
+            user = tf.reshape(context[self._config[target]['user_bias']], [-1])
+            label_user = tf.gather(user, label_batch_idx)
+            user_bias = tf.gather(paras['user_bias'], label_user)
+            logits += user_bias
+        if 'global_bias' in paras:
+            logits += paras['global_bias']
+
         used_labels = tf.gather_nd(labels, indices)
         used_labels = tf.cast(used_labels > 0, tf.float32)
         losses = tf.nn.sigmoid_cross_entropy_with_logits(labels=used_labels, logits=logits)
