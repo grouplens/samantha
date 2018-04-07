@@ -247,7 +247,7 @@ class RecommenderBuilder(ModelBuilder):
         eval_loss /= sum_weight
         tf.summary.scalar('train_loss', train_loss)
         tf.summary.scalar('eval_loss', eval_loss)
-        return train_loss, updates, target2paras
+        return train_loss, eval_loss, updates, target2paras
 
     def _get_inputs(self):
         attr2input = {}
@@ -332,9 +332,9 @@ class RecommenderBuilder(ModelBuilder):
             initial = tf.zeros([tf.shape(user_model)[0], 1, tf.shape(user_model)[2]])
             user_model = tf.concat([initial, user_model], axis=1)
         with tf.variable_scope('metrics'):
-            loss, updates, target2paras = self._get_loss_metrics(
+            train_loss, eval_loss, updates, target2paras = self._get_loss_metrics(
                 sequence_length, user_model, attr2input)
         with tf.variable_scope('prediction'):
             self._get_prediction(sequence_length, user_model, target2paras, attr2input)
-        return loss, updates
+        return train_loss, eval_loss, updates
 

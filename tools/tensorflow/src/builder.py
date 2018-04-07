@@ -1,6 +1,7 @@
 
 import tensorflow as tf
 
+
 class ModelBuilder(object):
 
     def __init__(self):
@@ -11,7 +12,8 @@ class ModelBuilder(object):
     This is the interface for building a TensorFlow model and should be overridden.
 
     Returns:
-        loss: A scalar Tensor indicating the loss of the model to optimize.
+        train_loss: A scalar Tensor with the loss of the model to optimize.
+        eval_loss: A scalar Tensor with the testing loss of the batch, used by the trainer to decide on early stopping.
         updates: A list of update operations for computing metrics. Can be empty.
     """
     def build_model(self):
