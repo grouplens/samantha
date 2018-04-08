@@ -1,92 +1,32 @@
 
-import random
 import tensorflow as tf
 
-from src.models.prediction_model import PredictionModel
+from src.models.prediction_model import BasicPredictionModel
 
 
-class SoftmaxPredictionModel(PredictionModel):
+class SoftmaxPredictionModel(BasicPredictionModel):
 
     def __init__(self, config=None):
-        if config is None:
-            self._softmax_config = {
-                'item': {
-                    'vocab_size':  10,
-                    'softmax_dim': 10,
-                    'num_sampled': 10,
-                    'attrs': {
-                        'tag': [random.randint(0, 5) for _ in range(10)],
-                        'genre': [random.randint(0, 3) for _ in range(10)],
-                    }
-                },
-                'tag': {
-                    'vocab_size':  3,
-                    'softmax_dim': 10,
-                },
-                'genre': {
-                    'vocab_size':  3,
-                    'softmax_dim': 10,
-                }
-            }
-        else:
-            self._softmax_config = config
-            for key, val in self._softmax_config.iteritems():
-                if 'num_sampled' not in val:
-                    val['num_sampled'] = val['vocab_size']
-
-    def _get_softmax_paras(self, target, target_softmax):
-        weights = tf.get_variable(
-            '%s_weights' % target,
-            shape=[target_softmax['vocab_size'], target_softmax['softmax_dim']],
-            dtype=tf.float32, initializer=tf.truncated_normal_initializer)
-        biases = tf.get_variable(
-            '%s_biases' % target, shape=[target_softmax['vocab_size']],
-            dtype=tf.float32, initializer=tf.zeros_initializer)
-        if 'attrs' in target_softmax:
-            for attr, item2attr in target_softmax['attrs'].iteritems():
-                feamap = tf.constant(item2attr)
-                attr_config = self._softmax_config[attr]
-                attr_softmax = {
-                    'weights': tf.get_variable(
-                        '%s_weights' % attr,
-                        shape=[attr_config['vocab_size'], attr_config['softmax_dim']],
-                        dtype=tf.float32, initializer=tf.truncated_normal_initializer),
-                    'biases': tf.get_variable(
-                        '%s_biases' % attr, shape=[attr_config['vocab_size']],
-                        dtype=tf.float32, initializer=tf.zeros_initializer),
-                }
-                weights += tf.gather(attr_softmax['weights'], feamap)
-                biases += tf.gather(attr_softmax['biases'], feamap)
-        return weights, biases
-
-    def get_target_paras(self, target, config):
-        target_softmax = self._softmax_config[target]
-        weights, biases = self._get_softmax_paras(target, target_softmax)
-        paras = {
-            'weights': weights,
-            'biases': biases,
-        }
-        return paras
+        super(SoftmaxPredictionModel, self).__init__(config=config)
 
     def get_target_loss(self, used_model, labels, indices, user_model,
             paras, target, config, mode, context):
-        target_softmax = self._softmax_config[target]
+        target_config = self._config[target]
         mask = tf.gather_nd(labels, indices) > 0
         indices = tf.boolean_mask(indices, mask)
         used_labels = tf.gather_nd(labels, indices)
         used_model = tf.boolean_mask(used_model, mask)
-        if target_softmax['num_sampled'] >= target_softmax['vocab_size'] - 1:
+        if 'num_sampled' not in target_config or target_config['num_sampled'] >= target_config['vocab_size'] - 1:
             logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
             losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=used_labels, logits=logits)
         else:
             losses = tf.nn.sampled_softmax_loss(paras['weights'], paras['biases'],
                                                 tf.expand_dims(used_labels, 1), used_model,
-                                                target_softmax['num_sampled'], target_softmax['vocab_size'])
+                                                target_config['num_sampled'], target_config['vocab_size'])
         loss = tf.reduce_sum(losses)
         return tf.shape(used_labels)[0], loss, []
 
-    def get_target_prediction(self, used_model, paras, target, config):
-        logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
-        probs = tf.nn.softmax(logits, name='%s_prob_op' % target)
-        return probs
+    def get_target_prediction(self, used_model, indices, paras, target, config, context):
+        logits = self._get_raw_prediction(used_model, indices, paras, target, context)
+        return tf.nn.softmax(logits, name='%s_prob_op' % target)

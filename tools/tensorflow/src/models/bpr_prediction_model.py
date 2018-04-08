@@ -99,10 +99,3 @@ class BPRPredictionModel(PredictionModel):
     def get_target_prediction(self, used_model, paras, target, config):
         logits = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
         return tf.sigmoid(logits, name='%s_prob_op' % target)
-
-    def get_item_prediction(self, used_model, paras, items, target, config):
-        weights = tf.gather(paras['weights'], items)
-        biases = tf.gather(paras['biases'], items)
-        tiled_model = tf.tile(tf.expand_dims(used_model, 1), [1, tf.shape(items)[1], 1])
-        logits = tf.reduce_sum(weights * tiled_model, axis=2) + biases
-        return tf.sigmoid(logits, name='%s_items_prob_op' % target)

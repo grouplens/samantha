@@ -13,10 +13,11 @@ class PredictionModel(object):
         raise Exception('This must be overridden.')
 
     def get_target_loss(self, used_model, labels, indices, user_model,
-            paras, target, config, mode, context):
+                        paras, target, config, mode, context):
         raise Exception('This must be overridden.')
 
-    def get_target_prediction(self, used_model, paras, target, config):
+    def get_target_prediction(self, used_model, indices,
+                              paras, target, config, context):
         raise Exception('This must be overridden.')
 
 
@@ -88,12 +89,28 @@ class BasicPredictionModel(PredictionModel):
                 dtype=tf.float32, initializer=tf.zeros_initializer)
         return paras
 
-    def get_item_prediction(self, used_model, paras, items, target, config):
-        preds = self.get_target_prediction(used_model, paras, target, config)
-        batch_range = tf.range(tf.shape(preds)[0])
-        tiled_batch = tf.tile(tf.expand_dims(batch_range, axis=1), [1, tf.shape(items)[1]])
-        indices = tf.concat([
-            tf.expand_dims(tiled_batch, axis=2),
-            tf.expand_dims(items, axis=2)
-        ], axis=2)
-        return tf.gather_nd(preds, indices)
+    def _get_user_bias(self, indices, paras, target, context):
+        batch_idx = tf.reshape(tf.slice(indices, begin=[0, 0], size=[tf.shape(indices)[0], 1]), [-1])
+        user = tf.reshape(context[self._config[target]['user_bias']], [-1])
+        batch_user = tf.gather(user, batch_idx)
+        user_bias = tf.gather(paras['user_bias'], batch_user)
+        return user_bias
+
+    def _get_raw_prediction(self, used_model, indices, paras, target, context):
+        preds = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
+        if 'user_bias' in paras:
+            user_bias = self._get_user_bias(indices, paras, target, context)
+            preds += tf.tile(tf.expand_dims(user_bias, axis=1), [1, tf.shape(preds)[1]])
+        if 'global_bias' in paras:
+            preds += paras['global_bias']
+        return preds
+
+
+class SigmoidPredictionModel(BasicPredictionModel):
+
+    def __init__(self, config=None):
+        super(SigmoidPredictionModel, self).__init__(config=config)
+
+    def get_target_prediction(self, used_model, indices, paras, target, config, context):
+        logits = self._get_raw_prediction(used_model, indices, paras, target, context)
+        return tf.sigmoid(logits, name='%s_prob_op' % target)

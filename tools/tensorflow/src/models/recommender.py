@@ -126,7 +126,8 @@ class RecommenderBuilder(ModelBuilder):
             return updates
         else:
             used_model = metrics.get_per_step_eval_user_model(user_model, used_indices)
-            predictions = self._prediction_model.get_target_prediction(used_model, paras, target, config)
+            predictions = self._prediction_model.get_target_prediction(used_model, used_indices,
+                                                                       paras, target, config)
             return metrics.compute_per_step_eval_metrics(
                     eval_metrics, predictions, used_labels, used_indices, config, context)
 
@@ -308,17 +309,13 @@ class RecommenderBuilder(ModelBuilder):
     def _get_prediction(self, sequence_length, user_model, target2paras, attr2input):
         seq_idx = sequence_length
         batch_idx = tf.expand_dims(tf.range(tf.shape(sequence_length)[0]), 1)
-        output_idx = tf.concat([batch_idx, seq_idx], 1)
-        model_output = tf.gather_nd(user_model, output_idx)
+        indices = tf.concat([batch_idx, seq_idx], 1)
+        used_model = tf.gather_nd(user_model, indices)
         target2preds = {}
         for target, config in self._target2config.iteritems():
             target2preds[target] = self._prediction_model.get_target_prediction(
-                model_output, target2paras[target], target, config)
+                used_model, indices, target2paras[target], target, config, attr2input)
             tf.nn.top_k(target2preds[target], k=self._top_k, sorted=True, name='%s_top_k_op' % target)
-            target_items = '%s_items' % target
-            if target_items in attr2input:
-                self._prediction_model.get_item_prediction(
-                    model_output, target2paras[target], attr2input[target_items], target, config)
         return target2preds
 
     def build_model(self):
