@@ -7,7 +7,7 @@ from src.models.user_model import UserModel
 
 class SequenceUserModel(UserModel):
 
-    def __init__(self, rnn_size, use_relu=True, cell_type='gru'):
+    def __init__(self, rnn_size, use_relu=True, cell_type='lstm'):
         self._rnn_size = rnn_size
         self._use_relu = use_relu
         self._cell_type = cell_type
