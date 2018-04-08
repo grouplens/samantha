@@ -43,7 +43,7 @@ class LogisticPredictionModel(SigmoidPredictionModel):
             biases = tf.gather(paras['biases'], uniq_ids)
             logits = tf.matmul(used_model, tf.transpose(weights)) + biases
             num_ids = tf.shape(uniq_ids)[0]
-
+        logits = self._get_vocab_preds(logits, indices, paras, target, context)
         binary_labels = tf.sparse_to_dense(
             label_index, [tf.shape(logits)[0], num_ids],
             tf.ones_like(used_labels, dtype=tf.float32),

@@ -96,14 +96,24 @@ class BasicPredictionModel(PredictionModel):
         user_bias = tf.gather(paras['user_bias'], batch_user)
         return user_bias
 
-    def _get_raw_prediction(self, used_model, indices, paras, target, context):
-        preds = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
+    def _get_display_preds(self, preds, indices, paras, target, context):
+        if 'user_bias' in paras:
+            preds += self._get_user_bias(indices, paras, target, context)
+        if 'global_bias' in paras:
+            preds += paras['global_bias']
+        return preds
+
+    def _get_vocab_preds(self, preds, indices, paras, target, context):
         if 'user_bias' in paras:
             user_bias = self._get_user_bias(indices, paras, target, context)
             preds += tf.tile(tf.expand_dims(user_bias, axis=1), [1, tf.shape(preds)[1]])
         if 'global_bias' in paras:
             preds += paras['global_bias']
         return preds
+
+    def _get_raw_prediction(self, used_model, indices, paras, target, context):
+        preds = tf.matmul(used_model, tf.transpose(paras['weights'])) + paras['biases']
+        return self._get_vocab_preds(preds, indices, paras, target, context)
 
     def get_target_prediction(self, used_model, indices, paras, target, config, context):
         preds = self._get_raw_prediction(used_model, indices, paras, target, context)

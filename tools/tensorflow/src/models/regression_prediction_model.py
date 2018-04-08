@@ -21,6 +21,7 @@ class RegressionPredictionModel(BasicPredictionModel):
         weights = tf.gather(paras['weights'], used_contexts)
         biases = tf.gather(paras['biases'], used_contexts)
         preds = tf.reduce_sum(used_model * weights, axis=1) + biases
+        preds = self._get_display_preds(preds, indices, paras, target, context)
         loss = tf.nn.l2_loss(used_labels - preds)
         return tf.shape(used_labels)[0], loss, []
 

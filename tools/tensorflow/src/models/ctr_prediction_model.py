@@ -20,10 +20,7 @@ class CTRPredictionModel(SigmoidPredictionModel):
         weights = tf.gather(paras['weights'], used_display)
         biases = tf.gather(paras['biases'], used_display)
         logits = tf.reduce_sum(used_model * weights, axis=1) + biases
-        if 'user_bias' in paras:
-            logits += self._get_user_bias(indices, paras, target, context)
-        if 'global_bias' in paras:
-            logits += paras['global_bias']
+        logits = self._get_display_preds(logits, indices, paras, target, context)
         used_labels = tf.gather_nd(labels, indices)
         used_labels = tf.cast(used_labels > 0, tf.float32)
         losses = tf.nn.sigmoid_cross_entropy_with_logits(labels=used_labels, logits=logits)
