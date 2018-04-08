@@ -208,11 +208,12 @@ class RecommenderBuilder(ModelBuilder):
         if self._split_tstamp is not None:
             train_indices, eval_indices = self._get_train_eval_indices_by_tstamp(
                 attr2input[self._tstamp_attr])
-        for target, config in self._target2config.iteritems():
-            sum_weight += config['weight']
-            with tf.variable_scope('paras'):
+        with tf.variable_scope('paras'):
+            for target, config in self._target2config.iteritems():
                 target2paras[target] = self._prediction_model.get_target_paras(target, config)
+        for target, config in self._target2config.iteritems():
             with tf.variable_scope(target):
+                sum_weight += config['weight']
                 if self._split_tstamp is None:
                     train_indices, eval_indices = self._get_default_train_eval_indices(
                         attr2input[target], start_limit, split_limit, length_limit)
