@@ -57,7 +57,7 @@ def _get_sampled_for_auc(batch_idx, used_labels, used_preds, num_sampled):
     return new_indices, tf.gather(used_preds, uniq_ids, axis=1)
 
 
-def compute_auc_metric(uniq_batch_idx, batch_idx, used_labels, preds, num_used=None, num_sampled=2000):
+def compute_auc_metric(used_indices, batch_idx, used_labels, preds, num_used=None, num_sampled=2000):
     if num_used is not None:
         mask = tf.reshape(batch_idx < num_used, [tf.shape(batch_idx)[0]])
         batch_idx = tf.boolean_mask(batch_idx, mask)
@@ -66,7 +66,7 @@ def compute_auc_metric(uniq_batch_idx, batch_idx, used_labels, preds, num_used=N
         used_preds = tf.boolean_mask(preds, pred_mask)
     else:
         used_preds = preds
-        num_used = tf.shape(uniq_batch_idx)[0]
+        num_used = tf.shape(used_indices)[0]
     if num_sampled is None:
         num_sampled = tf.shape(used_labels)[0]
     else:
@@ -76,7 +76,7 @@ def compute_auc_metric(uniq_batch_idx, batch_idx, used_labels, preds, num_used=N
     tf.summary.scalar('num_positives', num_positives)
     labels = tf.sparse_to_dense(
         new_indices, [
-            tf.minimum(num_used, tf.shape(uniq_batch_idx)[0]),
+            tf.minimum(num_used, tf.shape(used_indices)[0]),
             tf.shape(used_preds)[1]],
         tf.ones([num_positives], dtype=tf.bool),
         default_value=False, validate_indices=False)
@@ -104,7 +104,7 @@ def get_per_batch_eval_user_model(user_model, indices):
         tf.expand_dims(min_step_idx, 1),
     ], 1)
     used_model = tf.gather_nd(user_model, used_indices)
-    return used_model, uniq_batch_idx, ori_batch_idx, step_idx
+    return used_model, used_indices, ori_batch_idx, step_idx
 
 
 def compute_mae_metric(used_labels, used_contexts, predictions):
@@ -130,8 +130,8 @@ def compute_rmse_metric(used_labels, used_contexts, predictions):
 
 
 def compute_per_batch_eval_metrics(metrics, predictions, used_labels, labels, indices,
-        uniq_batch_idx, ori_batch_idx, step_idx, config, context):
-    new_batch_idx = tf.gather(tf.range(tf.shape(uniq_batch_idx)[0]), ori_batch_idx)
+        used_indices, ori_batch_idx, step_idx, config, context):
+    new_batch_idx = tf.gather(tf.range(tf.shape(used_indices)[0]), ori_batch_idx)
     new_indices = tf.concat([
         tf.expand_dims(new_batch_idx, 1),
         tf.expand_dims(step_idx, 1),
@@ -145,17 +145,17 @@ def compute_per_batch_eval_metrics(metrics, predictions, used_labels, labels, in
             tf.cast(new_indices, tf.int64),
             tf.cast(used_labels, tf.int64),
             tf.cast(
-                [tf.shape(uniq_batch_idx)[0], label_shape[1], label_shape[2]],
+                [tf.shape(used_indices)[0], label_shape[1], label_shape[2]],
                 tf.int64)
             ),
-        [tf.shape(uniq_batch_idx)[0], label_shape[1] * label_shape[2]])
+        [tf.shape(used_indices)[0], label_shape[1] * label_shape[2]])
     ori_predictions = tf.gather(predictions, ori_batch_idx)
     updates = compute_recommendation_metrics(
             metrics, eval_labels, predictions)
     updates += compute_regression_metrics(
             metrics, ori_predictions, used_labels, indices, config, context)
     updates += compute_ranking_metrics(
-            metrics, uniq_batch_idx, new_batch_idx, used_labels, predictions)
+            metrics, used_indices, new_batch_idx, used_labels, predictions)
     return updates
 
 
@@ -185,11 +185,11 @@ def compute_recommendation_metrics(metrics, eval_labels, predictions):
     return updates
 
 
-def compute_ranking_metrics(metrics, uniq_batch_idx, new_batch_idx, used_labels, predictions):
+def compute_ranking_metrics(metrics, used_indices, new_batch_idx, used_labels, predictions):
     updates = []
     for metric in metrics.split(' '):
         if 'AUC' == metric:
-            updates.append(compute_auc_metric(uniq_batch_idx, new_batch_idx,
+            updates.append(compute_auc_metric(used_indices, new_batch_idx,
                 used_labels, predictions)[1])
     return updates
 

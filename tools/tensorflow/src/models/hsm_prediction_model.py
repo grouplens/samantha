@@ -157,6 +157,6 @@ class HierarchicalPredictionModel(PredictionModel):
             target2preds[level['attr']] = preds
         return target2preds
 
-    def get_target_prediction(self, used_model, indices, user_model, paras, target, config, context):
+    def get_target_prediction(self, used_model, indices, paras, target, config, context):
         target2preds = self._compute_predictions(used_model, paras, target)
         return target2preds[target]

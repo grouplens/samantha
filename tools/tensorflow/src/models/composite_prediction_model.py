@@ -20,6 +20,6 @@ class CompositePredictionModel(PredictionModel):
         return self._target2model[target].get_target_loss(used_model, labels, indices, user_model,
                                                           paras, target, config, mode, context)
 
-    def get_target_prediction(self, used_model, paras, target, config):
-        return self._target2model[target].get_target_prediction(used_model, paras, target, config)
+    def get_target_prediction(self, used_model, indices, paras, target, config, context):
+        return self._target2model[target].get_target_prediction(used_model, indices, paras, target, config, context)
 

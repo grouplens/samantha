@@ -110,17 +110,18 @@ class RecommenderBuilder(ModelBuilder):
         used_indices = tf.boolean_mask(indices, mask)
         used_labels = tf.gather_nd(labels, used_indices)
         if not self._eval_per_step:
-            used_model, uniq_batch_idx, ori_batch_idx, step_idx = metrics.get_per_batch_eval_user_model(
+            used_model, used_model_indices, ori_batch_idx, step_idx = metrics.get_per_batch_eval_user_model(
                     user_model, used_indices)
             used_preds = self._prediction_model.get_target_prediction(
-                    used_model, paras, target, config)
+                    used_model, used_model_indices, paras, target, config, context)
             updates = metrics.compute_per_batch_eval_metrics(
                     eval_metrics, used_preds, used_labels, labels, used_indices,
-                    uniq_batch_idx, ori_batch_idx, step_idx, config, context)
+                    used_model_indices, ori_batch_idx, step_idx, config, context)
             with tf.variable_scope('context'):
-                used_model, _, ori_batch_idx, _ = metrics.get_per_batch_eval_user_model(user_model, indices)
+                used_model, used_model_indices, ori_batch_idx, _ = metrics.get_per_batch_eval_user_model(
+                    user_model, indices)
                 predictions = self._prediction_model.get_target_prediction(
-                    used_model, paras, target, config)
+                    used_model, used_model_indices, paras, target, config, context)
                 updates += context_metrics.compute_per_batch_eval_metrics(
                     eval_metrics, predictions, labels, indices, ori_batch_idx, config, context)
             return updates

@@ -1,6 +1,6 @@
 
 
-class UserModel:
+class UserModel(object):
 
     def __init__(self):
         pass

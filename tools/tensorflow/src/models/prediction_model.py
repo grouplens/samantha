@@ -105,6 +105,10 @@ class BasicPredictionModel(PredictionModel):
             preds += paras['global_bias']
         return preds
 
+    def get_target_prediction(self, used_model, indices, paras, target, config, context):
+        preds = self._get_raw_prediction(used_model, indices, paras, target, context)
+        return tf.add(preds, 0.0, name='%s_pred_op' % target)
+
 
 class SigmoidPredictionModel(BasicPredictionModel):
 
@@ -113,4 +117,4 @@ class SigmoidPredictionModel(BasicPredictionModel):
 
     def get_target_prediction(self, used_model, indices, paras, target, config, context):
         logits = self._get_raw_prediction(used_model, indices, paras, target, context)
-        return tf.sigmoid(logits, name='%s_prob_op' % target)
+        return tf.sigmoid(logits, name='%s_pred_op' % target)

@@ -29,4 +29,4 @@ class SoftmaxPredictionModel(BasicPredictionModel):
 
     def get_target_prediction(self, used_model, indices, paras, target, config, context):
         logits = self._get_raw_prediction(used_model, indices, paras, target, context)
-        return tf.nn.softmax(logits, name='%s_prob_op' % target)
+        return tf.nn.softmax(logits, name='%s_pred_op' % target)

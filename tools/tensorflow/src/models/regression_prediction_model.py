@@ -24,6 +24,3 @@ class RegressionPredictionModel(BasicPredictionModel):
         loss = tf.nn.l2_loss(used_labels - preds)
         return tf.shape(used_labels)[0], loss, []
 
-    def get_target_prediction(self, used_model, indices, paras, target, config, context):
-        preds = self._get_raw_prediction(used_model, indices, paras, target, context)
-        return tf.add(preds, 0.0, name='%s_pred_op' % target)

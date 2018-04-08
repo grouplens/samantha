@@ -31,7 +31,7 @@ class RecommenderTest(unittest.TestCase):
         rnn_size = 5
         user_model = SequenceUserModel(rnn_size)
         softmax_model = SoftmaxPredictionModel(config={
-            'item': {'vocab_size': item_vocab_size, 'softmax_dim': rnn_size}})
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': rnn_size}})
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             attr2config={
@@ -74,7 +74,7 @@ class RecommenderTest(unittest.TestCase):
         rnn_size = 5
         user_model = SequenceUserModel(rnn_size)
         softmax_model = SoftmaxPredictionModel(config={
-            'item': {'vocab_size': item_vocab_size, 'softmax_dim': rnn_size}})
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': rnn_size}})
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             attr2config={
@@ -200,7 +200,7 @@ class RecommenderTest(unittest.TestCase):
         page_size = 3
         user_model = SequenceUserModel(rnn_size)
         softmax_model = SoftmaxPredictionModel(config={
-            'item': {'vocab_size': item_vocab_size, 'softmax_dim': rnn_size}})
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': rnn_size}})
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             page_size=page_size,
@@ -255,11 +255,10 @@ class RecommenderTest(unittest.TestCase):
         user_vocab_size = 15
         item_vocab_size = 20
         embedding_dim = 5
-        softmax_dim = embedding_dim
         page_size = 3
         user_model = SVDPPUserModel(item_attrs=[])
         softmax_model = CCFSoftmaxModel('user', user_vocab_size, 'display', page_size, config={
-            'item': {'vocab_size': item_vocab_size, 'softmax_dim': softmax_dim}})
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': embedding_dim}})
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             page_size=page_size,
@@ -332,11 +331,10 @@ class RecommenderTest(unittest.TestCase):
         user_vocab_size = 15
         item_vocab_size = 20
         embedding_dim = 5
-        sigmoid_dim = embedding_dim
         page_size = 3
         user_model = SVDPPUserModel(item_attrs=[])
         sigmoid_model = BPRPredictionModel('display', page_size, config={
-            'item': {'vocab_size': item_vocab_size, 'sigmoid_dim': sigmoid_dim}})
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': embedding_dim}})
         model_builder = RecommenderBuilder(
             user_model, sigmoid_model,
             page_size=page_size,
@@ -483,7 +481,7 @@ class RecommenderTest(unittest.TestCase):
         page_size = 3
         user_model = SequenceUserModel(rnn_size)
         logistic_model = LogisticPredictionModel(config={
-            'item': {'vocab_size': item_vocab_size, 'logistic_dim': rnn_size}})
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': rnn_size}})
         model_builder = RecommenderBuilder(
             user_model, logistic_model,
             page_size=page_size,
@@ -537,11 +535,10 @@ class RecommenderTest(unittest.TestCase):
         user_vocab_size = 15
         item_vocab_size = 20
         embedding_dim = 5
-        regression_dim = embedding_dim
         page_size = 3
         user_model = SVDPPUserModel(item_attrs=[])
         regression_model = RegressionPredictionModel(config={
-            'rating': {'context': 'item', 'vocab_size': item_vocab_size, 'regression_dim': regression_dim}})
+            'rating': {'context': 'item', 'vocab_size': item_vocab_size, 'embedding_dim': embedding_dim}})
         model_builder = RecommenderBuilder(
             user_model, regression_model,
             page_size=page_size,
