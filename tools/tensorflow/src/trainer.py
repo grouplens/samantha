@@ -25,8 +25,8 @@ class ModelTrainer(object):
                  export_per_epochs=10,
                  learning_rate=0.01,
                  early_stop_by='epoch',
-                 step_epsilon=0.01,
-                 epoch_epsilon=1.0):
+                 step_epsilon=0.0,
+                 epoch_epsilon=0.0):
         self._train_data = train_data
         self._tensorboard_dir = tensorboard_dir
         self._export_dir = export_dir
