@@ -6,10 +6,10 @@ from src.models.prediction_model import BasicPredictionModel
 
 class BPRPredictionModel(BasicPredictionModel):
 
-    def __init__(self, context_attr, context_size, config=None):
+    def __init__(self, display_attr, display_size, config=None):
         super(BPRPredictionModel, self).__init__(config=config)
-        self._context_attr = context_attr
-        self._context_size = context_size
+        self._display_attr = display_attr
+        self._display_size = display_size
 
     def get_target_loss(self, used_model, labels, indices, user_model,
                         paras, target, config, mode, context):
@@ -17,19 +17,19 @@ class BPRPredictionModel(BasicPredictionModel):
         indices = tf.boolean_mask(indices, mask)
         used_model = tf.boolean_mask(used_model, mask)
         used_labels = tf.gather_nd(labels, indices)
-        display = context[self._context_attr]
+        display = context[self._display_attr]
         batch_step = tf.slice(indices,
                               begin=[0, 0],
                               size=[tf.shape(indices)[0], 2])
         used_display = tf.reshape(
             tf.gather_nd(display, batch_step),
-            [tf.shape(batch_step)[0], self._context_size])
+            [tf.shape(batch_step)[0], self._display_size])
         tiled_labels = tf.tile(
             tf.expand_dims(used_labels, axis=1),
-            [1, self._context_size])
+            [1, self._display_size])
         tiled_model = tf.tile(
             tf.expand_dims(used_model, axis=1),
-            [1, self._context_size, 1])
+            [1, self._display_size, 1])
 
         weights = tf.gather(paras['weights'], tiled_labels) - tf.gather(paras['weights'], used_display)
         biases = tf.gather(paras['biases'], tiled_labels) - tf.gather(paras['biases'], used_display)
