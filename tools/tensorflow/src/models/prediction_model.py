@@ -60,6 +60,7 @@ class BasicPredictionModel(PredictionModel):
         biases = tf.get_variable(
             '%s_biases' % target, shape=[target_config['vocab_size']],
             dtype=tf.float32, initializer=tf.zeros_initializer)
+        tf.summary.histogram('%s_bias' % target, biases)
         if 'item_attrs' in target_config:
             for attr, item2attr in target_config['item_attrs'].iteritems():
                 feamap = tf.constant(item2attr)
@@ -80,13 +81,17 @@ class BasicPredictionModel(PredictionModel):
             'biases': biases,
         }
         if 'user_bias' in target_config:
-            paras['user_bias'] = tf.get_variable(
+            user_bias = tf.get_variable(
                 '%s_user_bias' % target, shape=[self._config[target_config['user_bias']]['vocab_size']],
                 dtype=tf.float32, initializer=tf.zeros_initializer)
+            paras['user_bias'] = user_bias
+            tf.summary.histogram('%s_ubias' % target, user_bias)
         if 'global_bias' not in target_config or target_config['global_bias']:
-            paras['global_bias'] = tf.get_variable(
+            global_bias = tf.get_variable(
                 '%s_global_bias' % target, shape=[1],
                 dtype=tf.float32, initializer=tf.zeros_initializer)
+            paras['global_bias'] = global_bias
+            tf.summary.scalar('%s_gbias' % target, global_bias[0])
         return paras
 
     def _get_user_bias(self, indices, paras, target, context):
