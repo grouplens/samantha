@@ -43,7 +43,7 @@ import java.util.*;
 
 public class InactionUtilities {
 
-    static private double[][] weights = null;
+    static private Map<String, double[][]> target2weights = new HashMap<>();
 
     static public final String[] historyAttrs = {
             "notices",
@@ -492,16 +492,34 @@ public class InactionUtilities {
     static private void setTensorFlowSimilarityFeatures(ObjectNode features, Map<String, String[]> attr2seq,
                                                         String itemAttr, int index, int pageBegin, int pageEnd,
                                                         int closest, TensorFlowModel model) {
+        String[] items = attr2seq.get(itemAttr + "s");
+        String itemId = items[index];
+        // target embeddings
+        String[] targets = {"rating", "display", "click", "wishlist", "rate"};
+        String[] indices = {"RATE", "MOVIE_ID", "CLICK", "WISHLIST", "RATE"};
+        for (int i=0; i<targets.length; i++) {
+            String target = targets[i];
+            if (!target2weights.containsKey(target)) {
+                target2weights.put(target,
+                        model.inference("metrics/paras/" + target + "_weights/read", 0));
+            }
+            double[][] weights = target2weights.get(target);
+            int itemIdx = model.getIndexForKey(indices[i],
+                    FeatureExtractorUtilities.composeKey(target, itemId));
+            double[] itemWeights = weights[itemIdx];
+            List<String> weightArr = new ArrayList<>();
+            for (int j=0; j<itemWeights.length; j++) {
+                weightArr.add(Double.toString(itemWeights[j]));
+                features.put(target + "Weight" + Integer.toString(j), itemWeights[j]);
+            }
+            features.put(target + "Weights", StringUtils.join(weightArr, ","));
+        }
         // page and closest action similarity/diversity
         String simTarget = "rating";
         String simIndex = "RATE";
-        if (weights == null) {
-            weights = model.inference("metrics/paras/" + simTarget + "_weights/read", 0);
-        }
-        String[] items = attr2seq.get(itemAttr + "s");
-        String itemId = items[index];
         int itemIdx = model.getIndexForKey(simIndex,
                 FeatureExtractorUtilities.composeKey(simTarget, itemId));
+        double[][] weights = target2weights.get(simTarget);
         RealVector itemVec = MatrixUtils.createRealVector(weights[itemIdx]);
         features.put("closestSimPage", 0.0);
         DoubleList sims = new DoubleArrayList();
