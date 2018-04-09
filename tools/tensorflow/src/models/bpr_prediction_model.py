@@ -1,10 +1,10 @@
 
 import tensorflow as tf
 
-from src.models.prediction_model import BasicPredictionModel
+from src.models.prediction_model import SigmoidPredictionModel
 
 
-class BPRPredictionModel(BasicPredictionModel):
+class BPRPredictionModel(SigmoidPredictionModel):
 
     def __init__(self, display_attr, display_size, config=None):
         super(BPRPredictionModel, self).__init__(config=config)
