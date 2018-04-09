@@ -396,10 +396,10 @@ public class InactionUtilities {
         // predicted display probability
         // page predicted rating
         List<String> operations = Lists.newArrayList(
-                "prediction/display_prob_op",
-                "prediction/rate_prob_op",
-                "prediction/wishlist_prob_op",
-                "prediction/click_prob_op",
+                "prediction/display_pred_op",
+                "prediction/rate_pred_op",
+                "prediction/wishlist_pred_op",
+                "prediction/click_pred_op",
                 "prediction/rating_pred_op",
                 "prediction/GatherNd");
         List<Integer> outputIndices = Lists.newArrayList(0, 0, 0, 0, 0, 0);
