@@ -99,7 +99,8 @@ public class TreeFeatureExtractor implements org.grouplens.samantha.modeler.feat
         };
 
         String[] separatedNumFeas = {
-                "stateBeforePage", "stateAfterPage"
+                "stateBeforePage", "stateAfterPage",
+                "ratingWeights", "rateWeights", "displayWeights", "clickWeights", "wishlistWeights",
         };
 
         for (String cat : catFeas) {
