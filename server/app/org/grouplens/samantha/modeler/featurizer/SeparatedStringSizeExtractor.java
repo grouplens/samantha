@@ -41,6 +41,7 @@ public class SeparatedStringSizeExtractor implements FeatureExtractor {
     private final String feaName;
     private final String separator;
     private final Integer maxFeatures;
+    private final boolean alwaysExtract;
 
     /***
      * Extract the number of sub strings after splitting by the separator as value.
@@ -56,22 +57,27 @@ public class SeparatedStringSizeExtractor implements FeatureExtractor {
                                         String attrName,
                                         String feaName,
                                         String separator,
-                                        Integer maxFeatures) {
+                                        Integer maxFeatures,
+                                        boolean alwaysExtract) {
         this.indexName = indexName;
         this.attrName = attrName;
         this.feaName = feaName;
         this.separator = separator;
         this.maxFeatures = maxFeatures;
+        this.alwaysExtract = alwaysExtract;
     }
 
     public Map<String, List<Feature>> extract(JsonNode entity, boolean update,
                                               IndexSpace indexSpace) {
         Map<String, List<Feature>> feaMap = new HashMap<>();
-        if (entity.has(attrName)) {
+        if (entity.has(attrName) || alwaysExtract) {
             List<Feature> features = new ArrayList<>();
-            String attr = entity.get(attrName).asText();
+            String attr = "";
+            if (entity.has(attrName)) {
+                attr = entity.get(attrName).asText();
+            }
             int size = StringUtils.countMatches(attr, separator) + 1;
-            if ("".equals(attr)) {
+            if ("".equals(attr) && !alwaysExtract) {
                 size = 0;
             }
             if (maxFeatures != null && size > maxFeatures) {

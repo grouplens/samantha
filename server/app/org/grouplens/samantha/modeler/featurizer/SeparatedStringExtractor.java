@@ -75,7 +75,7 @@ public class SeparatedStringExtractor implements FeatureExtractor {
             if (entity.has(attrName)) {
                 attr = entity.get(attrName).asText();
             }
-            if (!"".equals(attr)) {
+            if (!"".equals(attr) || "".equals(fillIn)) {
                 String[] fields = attr.split(separator, -1);
                 int start = 0;
                 if (maxFeatures != null && fields.length > maxFeatures) {
