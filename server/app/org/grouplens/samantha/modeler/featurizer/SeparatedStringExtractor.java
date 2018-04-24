@@ -24,6 +24,7 @@ package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.model.IndexSpace;
+import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +88,12 @@ public class SeparatedStringExtractor implements FeatureExtractor {
                 }
                 for (int i = start; i < fields.length; i++) {
                     String field = fields[i];
-                    String key = FeatureExtractorUtilities.composeKey(keyPrefix, field);
+                    String key;
+                    if ("".equals(field)) {
+                        key = TensorFlowModel.OOV;
+                    } else {
+                        key = FeatureExtractorUtilities.composeKey(keyPrefix, field);
+                    }
                     FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
                             indexSpace, indexName, key, val);
                 }
