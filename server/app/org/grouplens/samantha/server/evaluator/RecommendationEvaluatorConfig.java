@@ -52,6 +52,7 @@ public class RecommendationEvaluatorConfig extends AbstractComponentConfig imple
     final private Configuration daoConfigs;
     final private String daoConfigKey;
     final private List<String> groupKeys;
+    final private List<String> itemKeys;
 
     private RecommendationEvaluatorConfig(Configuration config, List<MetricConfig> metricConfigs,
                                           String recommenderName,
@@ -60,6 +61,7 @@ public class RecommendationEvaluatorConfig extends AbstractComponentConfig imple
                                           List<String> recIndexerNames,
                                           Configuration daoConfigs,
                                           List<String> groupKeys,
+                                          List<String> itemKeys,
                                           String daoConfigKey,
                                           Injector injector) {
         super(config);
@@ -71,6 +73,7 @@ public class RecommendationEvaluatorConfig extends AbstractComponentConfig imple
         this.injector = injector;
         this.daoConfigKey = daoConfigKey;
         this.groupKeys = groupKeys;
+        this.itemKeys = itemKeys;
         this.daoConfigs = daoConfigs;
     }
 
@@ -86,6 +89,7 @@ public class RecommendationEvaluatorConfig extends AbstractComponentConfig imple
                 evalConfig.getStringList("recommendationIndexers"),
                 evalConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
                 evalConfig.getStringList("groupKeys"),
+                evalConfig.getStringList("itemKeys"),
                 evalConfig.getString("daoConfigKey"),
                 injector);
     }
@@ -115,6 +119,6 @@ public class RecommendationEvaluatorConfig extends AbstractComponentConfig imple
         List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
                 expandersConfig, injector);
         return new RecommendationEvaluator(recommender, entityDao, entityExpanders,
-                groupKeys, metrics, indexers, recIndexers);
+                groupKeys, itemKeys, metrics, indexers, recIndexers);
     }
 }

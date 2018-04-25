@@ -22,6 +22,7 @@
 
 package org.grouplens.samantha.server.evaluator;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.instance.GroupedEntityList;
 import org.grouplens.samantha.modeler.metric.Metric;
@@ -43,6 +44,7 @@ public class RecommendationEvaluator implements Evaluator {
     final private EntityDAO entityDAO;
     final private List<EntityExpander> expanders;
     final private List<String> groupKeys;
+    final private List<String> itemKeys;
     final private List<Metric> metrics;
     final private List<Indexer> indexers;
     final private List<Indexer> recIndexers;
@@ -51,6 +53,7 @@ public class RecommendationEvaluator implements Evaluator {
                                    EntityDAO entityDAO,
                                    List<EntityExpander> expanders,
                                    List<String> groupKeys,
+                                   List<String> itemKeys,
                                    List<Metric> metrics,
                                    List<Indexer> indexers, 
                                    List<Indexer> recIndexers) {
@@ -61,10 +64,24 @@ public class RecommendationEvaluator implements Evaluator {
         this.indexers = indexers;
         this.recIndexers = recIndexers;
         this.groupKeys = groupKeys;
+        this.itemKeys = itemKeys;
     }
 
     private void getRecommendationMetrics(RequestContext requestContext,
                                           List<ObjectNode> entityList) {
+        if (itemKeys != null && itemKeys.size() > 0) {
+            boolean include = false;
+            for (JsonNode entity : entityList) {
+                for (String itemKey : itemKeys) {
+                    if (!"".equals(entity.get(itemKey).asText())) {
+                        include = true;
+                    }
+                }
+            }
+            if (!include) {
+                return;
+            }
+        }
         long start = System.currentTimeMillis();
         ObjectNode request = entityList.get(entityList.size() - 1).deepCopy();
         IOUtilities.parseEntityFromJsonNode(requestContext.getRequestBody(), request);
