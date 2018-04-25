@@ -84,5 +84,5 @@ def layer_wise_inference(cluster_probs, cluster_vocab_size,
     item_sum_exp_logits = tf.gather(sum_exp_logits, item2cluster)
     within_cluster_probs = exp_logits / item_sum_exp_logits
     item_cluster_probs = tf.gather(tf.transpose(cluster_probs), item2cluster)
-    item_probs = tf.transpose(item_cluster_probs * within_cluster_probs, name='%s_probs' % target)
+    item_probs = tf.transpose(item_cluster_probs * within_cluster_probs, name='%s_pred_op' % target)
     return item_probs
