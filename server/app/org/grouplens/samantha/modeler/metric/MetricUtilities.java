@@ -72,6 +72,17 @@ public class MetricUtilities {
             String relevanceKey, List<ObjectNode> groundTruth) {
         Object2DoubleMap<String> releItems = new Object2DoubleOpenHashMap<>();
         for (JsonNode entity : groundTruth) {
+            boolean include = true;
+            for (String itemKey : itemKeys) {
+                String itemStr = entity.get(itemKey).asText();
+                if ("".equals(itemStr)) {
+                    include = false;
+                    break;
+                }
+            }
+            if (!include) {
+                continue;
+            }
             if (separator != null) {
                 List<String[]> values = new ArrayList<>();
                 for (String itemKey : itemKeys) {
@@ -100,6 +111,17 @@ public class MetricUtilities {
             String relevanceKey, double threshold, List<ObjectNode> groundTruth) {
         Set<String> releItems = new HashSet<>();
         for (JsonNode entity : groundTruth) {
+            boolean include = true;
+            for (String itemKey : itemKeys) {
+                String itemStr = entity.get(itemKey).asText();
+                if ("".equals(itemStr)) {
+                    include = false;
+                    break;
+                }
+            }
+            if (!include) {
+                continue;
+            }
             if (separator != null) {
                 List<String[]> values = new ArrayList<>();
                 int size = 0;
