@@ -155,7 +155,7 @@ def compute_per_batch_eval_metrics(metrics, predictions, used_labels, labels, in
     updates += compute_regression_metrics(
             metrics, ori_predictions, used_labels, indices, config, context)
     updates += compute_ranking_metrics(
-            metrics, used_indices, new_batch_idx, used_labels, predictions)
+            metrics, used_indices, new_batch_idx, used_labels, predictions, config)
     return updates
 
 
@@ -185,12 +185,15 @@ def compute_recommendation_metrics(metrics, eval_labels, predictions):
     return updates
 
 
-def compute_ranking_metrics(metrics, used_indices, new_batch_idx, used_labels, predictions):
+def compute_ranking_metrics(metrics, used_indices, new_batch_idx, used_labels, predictions, config):
     updates = []
     for metric in metrics.split(' '):
         if 'AUC' == metric:
+            num_sampled = None
+            if 'AUC' in config and 'num_sampled' in config['AUC']:
+                num_sampled = config['AUC']['num_sampled']
             updates.append(compute_auc_metric(used_indices, new_batch_idx,
-                used_labels, predictions)[1])
+                used_labels, predictions, num_sampled=num_sampled)[1])
     return updates
 
 
