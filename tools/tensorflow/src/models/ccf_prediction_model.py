@@ -1,10 +1,10 @@
 
 import tensorflow as tf
 
-from src.models.prediction_model import BasicPredictionModel
+from src.models.prediction_model import SigmoidPredictionModel
 
 
-class CCFSoftmaxModel(BasicPredictionModel):
+class CCFSoftmaxModel(SigmoidPredictionModel):
 
     def __init__(self, user_attr, user_vocab_size, display_attr, display_size, config=None):
         super(CCFSoftmaxModel, self).__init__(config=config)
