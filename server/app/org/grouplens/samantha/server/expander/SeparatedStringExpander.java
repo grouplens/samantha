@@ -70,11 +70,11 @@ public class SeparatedStringExpander implements EntityExpander {
                 int size = name2values.values().iterator().next().length;
                 for (int i = 0; i < size; i++) {
                     ObjectNode newEntity = entity.deepCopy();
-                    for (String valueAttr : valueAttrs) {
-                        if (name2values.containsKey(valueAttr)) {
-                            newEntity.put(valueAttr, name2values.get(valueAttr)[i]);
+                    for (int j=0; j<valueAttrs.size(); j++) {
+                        if (name2values.containsKey(nameAttrs.get(j))) {
+                            newEntity.put(valueAttrs.get(j), name2values.get(nameAttrs.get(j))[i]);
                         } else if (withDefault != null) {
-                            newEntity.put(valueAttr, withDefault);
+                            newEntity.put(valueAttrs.get(j), withDefault);
                         }
                     }
                     oneExpanded.add(newEntity);
