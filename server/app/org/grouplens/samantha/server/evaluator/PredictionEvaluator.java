@@ -74,6 +74,7 @@ public class PredictionEvaluator implements Evaluator {
     private void getPredictionMetrics(RequestContext requestContext, List<ObjectNode> entityList) {
         List<ObjectNode> labels = new ArrayList<>();
         List<Prediction> preds;
+        List<Prediction> predictions;
         if (labelAttr != null && separator != null) {
             List<ObjectNode> topreds = new ArrayList<>();
             for (ObjectNode entity : entityList) {
@@ -84,7 +85,7 @@ public class PredictionEvaluator implements Evaluator {
             }
             preds = new ArrayList<>();
             if (topreds.size() > 0) {
-                List<Prediction> predictions = predictor.predict(topreds, requestContext);
+                predictions = predictor.predict(topreds, requestContext);
                 for (Prediction pred : predictions) {
                     String[] labelValues = pred.getEntity().get(labelAttr).asText().split(separator, -1);
                     double[] scores = pred.getScores();
@@ -95,9 +96,12 @@ public class PredictionEvaluator implements Evaluator {
                         labels.add(label);
                     }
                 }
+            } else {
+                predictions = new ArrayList<>();
             }
         } else {
             preds = predictor.predict(entityList, requestContext);
+            predictions = preds;
             for (Prediction pred : preds) {
                 labels.add(pred.getEntity());
             }
@@ -106,7 +110,7 @@ public class PredictionEvaluator implements Evaluator {
             metric.add(labels, preds);
         }
         for (Indexer indexer : predIndexers) {
-            for (Prediction pred : preds) {
+            for (Prediction pred : predictions) {
                 indexer.index(pred.toJson(), requestContext);
             }
         }
