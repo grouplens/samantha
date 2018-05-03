@@ -198,8 +198,14 @@ class RecommenderBuilder(ModelBuilder):
             tf.reshape(sequence_length, [-1]),
             self._max_train_steps)
         tf.summary.histogram('batch_sequence_length', length_limit)
-        split_limit = tf.maximum(length_limit - self._eval_steps, 0)
-        start_limit = tf.maximum(split_limit - self._train_steps, 0)
+        if 0.0 < self._eval_steps < 1.0 and 0.0 < self._train_steps < 1.0:
+            split_limit = tf.maximum(
+                length_limit - tf.cast(tf.cast(length_limit, tf.float32) * self._eval_steps, tf.int32), 0)
+            start_limit = tf.maximum(
+                split_limit - tf.cast(tf.cast(length_limit, tf.float32) * self._train_steps, tf.int32), 0)
+        else:
+            split_limit = tf.maximum(length_limit - self._eval_steps, 0)
+            start_limit = tf.maximum(split_limit - self._train_steps, 0)
         train_loss = 0.0
         eval_loss = 0.0
         sum_weight = 0.0
