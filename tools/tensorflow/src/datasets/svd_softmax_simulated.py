@@ -42,7 +42,8 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
     def _generate_item_weights(self, attr_weights, item2attr):
         cluster_weights = []
         for attr_idx in item2attr:
-            cluster_weights.append(list(np.random.nrand(self._config['embedding_dim']) + attr_weights[attr_idx]))
+            cluster_weights.append(
+                list(np.random.standard_normal(size=[self._config['embedding_dim']]) + attr_weights[attr_idx]))
         random_weights = np.random.rand(self._config['item_vocab'], self._config['embedding_dim'])
         return ((1.0 - self._config['cluster_weight']) * random_weights +
                 self._config['cluster_weight'] * cluster_weights)
