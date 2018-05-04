@@ -27,7 +27,8 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
             'item_weights_file': 'item_weights.txt',
             'user_weights_file': 'user_weights.txt',
             'attr_weights_file': 'attr_weights.txt',
-            'gamma_shape': 100.0,
+            'attr_items_gamma_shape': 100.0,
+            'user_gamma_shape': 1.0,
             'cluster_weight': 0.0,
         }
         if config is not None:
@@ -36,16 +37,32 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
         self._item2attr = None
         self._item2attr, self._attr2items, self._non_empty_attrs = self._generate_item_attr()
         self._weights = {
-            'user': np.random.rand(self._config['user_vocab'], self._config['embedding_dim']),
             'attr': np.random.rand(self._config['attr_vocab'], self._config['embedding_dim']),
         }
         self._weights['item'] = self._generate_item_weights(self._weights['attr'], self._item2attr)
+        self._weights['user'] = self._generate_user_weights(self._weights['attr'])
         with open(self._config['user_weights_file'], 'w') as fout:
             for weight in self._weights['user']:
                 fout.write(' '.join([str(x) for x in list(weight)]) + '\n')
         with open(self._config['attr_weights_file'], 'w') as fout:
             for weight in self._weights['attr']:
                 fout.write(' '.join([str(x) for x in list(weight)]) + '\n')
+
+    def _generate_user_weights(self, attr_weights):
+        weights = []
+        for i in range(self._config['user_vocab']):
+            ps = np.random.dirichlet(
+                np.random.gamma(
+                    self._config['user_gamma_shape'], 1.0, size=[self._config['attr_vocab']]))
+            weight = None
+            for j in range(len(ps)):
+                if ps[j] > 0.0:
+                    if weight is None:
+                        weight = ps[j] * attr_weights[j]
+                    else:
+                        weight += ps[j] * attr_weights[j]
+            weights.append(list(weight))
+        return np.array(weights)
 
     def _generate_item_weights(self, attr_weights, item2attr):
         cluster_weights = []
@@ -62,7 +79,8 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
         return item_weights
 
     def _generate_item_attr(self):
-        p = np.random.dirichlet(np.random.gamma(self._config['gamma_shape'], 1.0, size=[self._config['attr_vocab']]))
+        p = np.random.dirichlet(
+            np.random.gamma(self._config['attr_items_gamma_shape'], 1.0, size=[self._config['attr_vocab']]))
         item2attr = np.random.choice(range(self._config['attr_vocab']), size=[self._config['item_vocab']], p=p)
         attr2items = [[] for _ in range(self._config['attr_vocab'])]
         for item_idx in range(len(item2attr)):
