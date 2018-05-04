@@ -34,7 +34,7 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
             self._config.update(config)
         self._user_idx = 0
         self._item2attr = None
-        self._item2attr, self._attr2items = self._generate_item_attr()
+        self._item2attr, self._attr2items, self._non_empty_attrs = self._generate_item_attr()
         self._weights = {
             'user': np.random.rand(self._config['user_vocab'], self._config['embedding_dim']),
             'attr': np.random.rand(self._config['attr_vocab'], self._config['embedding_dim']),
@@ -68,9 +68,13 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
         for item_idx in range(len(item2attr)):
             attr_idx = item2attr[item_idx]
             attr2items[attr_idx].append(item_idx)
+        non_empty_attrs = []
+        for attr_idx in range(len(attr2items)):
+            if len(attr2items[attr_idx]) > 0:
+                non_empty_attrs.append(attr_idx)
         with open(self._config['item_attr_file'], 'w') as fout:
             fout.write(' '.join([str(x) for x in item2attr]) + '\n')
-        return item2attr, attr2items
+        return item2attr, attr2items, non_empty_attrs
 
     def _generate_from_full_softmax(self, input, weights, size):
         logits = np.matmul(input, np.transpose(weights))
@@ -79,26 +83,26 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
         dices = np.random.choice(range(len(probs)), size=[size], p=probs)
         return list(dices)
 
-    def _generate_from_sub_softmax(self, input, weights, includes):
+    def _generate_from_sub_softmax(self, input, weights, size, includes):
         part_weights = []
         for idx in includes:
             part_weights.append(weights[idx])
         logits = np.matmul(input, np.transpose(part_weights))
         exp_logits = np.exp(logits)
         probs = np.divide(exp_logits, np.sum(exp_logits))
-        dices = np.random.choice(range(len(probs)), size=[1], p=probs)
-        return dices[0]
+        dices = np.random.choice(range(len(probs)), size=[size], p=probs)
+        return [includes[x] for x in dices]
 
     def _generate_user_item_attr(self, user_idx, size):
         if self._config['hierarchical']:
-            attr_indices = self._generate_from_full_softmax(
+            attr_indices = self._generate_from_sub_softmax(
                 self._weights['user'][user_idx],
-                self._weights['attr'], size)
+                self._weights['attr'], size, self._non_empty_attrs)
             item_indices = []
             for attr_idx in attr_indices:
                 item_idx = self._generate_from_sub_softmax(
                     self._weights['attr'][attr_idx],
-                    self._weights['item'], self._attr2items[attr_idx])
+                    self._weights['item'], 1, self._attr2items[attr_idx])[0]
                 item_indices.append(item_idx)
         else:
             item_indices = self._generate_from_full_softmax(
