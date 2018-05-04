@@ -25,6 +25,8 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
             'json_file': 'json_file.json',
             'item_attr_file': 'item_attr.txt',
             'item_weights_file': 'item_weights.txt',
+            'user_weights_file': 'user_weights.txt',
+            'attr_weights_file': 'attr_weights.txt',
             'gamma_shape': 100.0,
             'cluster_weight': 0.0,
         }
@@ -38,6 +40,12 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
             'attr': np.random.rand(self._config['attr_vocab'], self._config['embedding_dim']),
         }
         self._weights['item'] = self._generate_item_weights(self._weights['attr'], self._item2attr)
+        with open(self._config['user_weights_file'], 'w') as fout:
+            for weight in self._weights['user']:
+                fout.write(' '.join(list(weight)) + '\n')
+        with open(self._config['attr_weights_file'], 'w') as fout:
+            for weight in self._weights['attr']:
+                fout.write(' '.join(list(weight)) + '\n')
 
     def _generate_item_weights(self, attr_weights, item2attr):
         cluster_weights = []
@@ -46,8 +54,12 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
                 list(np.random.standard_normal(size=[self._config['embedding_dim']]) + attr_weights[attr_idx]))
         cluster_weights = np.array(cluster_weights)
         random_weights = np.random.rand(self._config['item_vocab'], self._config['embedding_dim'])
-        return ((1.0 - self._config['cluster_weight']) * random_weights +
-                self._config['cluster_weight'] * cluster_weights)
+        item_weights = ((1.0 - self._config['cluster_weight']) * random_weights +
+                        self._config['cluster_weight'] * cluster_weights)
+        with open(self._config['item_weights_file'], 'w') as fout:
+            for weight in item_weights:
+                fout.write(' '.join(list(weight)) + '\n')
+        return item_weights
 
     def _generate_item_attr(self):
         p = np.random.dirichlet(np.random.gamma(self._config['gamma_shape'], 1.0, size=[self._config['attr_vocab']]))
@@ -56,6 +68,8 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
         for item_idx in range(len(item2attr)):
             attr_idx = item2attr[item_idx]
             attr2items[attr_idx].append(item_idx)
+        with open(self._config['item_attr_file'], 'w') as fout:
+            fout.write(' '.join(item2attr) + '\n')
         return item2attr, attr2items
 
     def _generate_from_full_softmax(self, input, weights, size):
