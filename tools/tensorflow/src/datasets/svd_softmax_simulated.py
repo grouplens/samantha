@@ -42,10 +42,10 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
         self._weights['item'] = self._generate_item_weights(self._weights['attr'], self._item2attr)
         with open(self._config['user_weights_file'], 'w') as fout:
             for weight in self._weights['user']:
-                fout.write(' '.join(list(weight)) + '\n')
+                fout.write(' '.join([str(x) for x in list(weight)]) + '\n')
         with open(self._config['attr_weights_file'], 'w') as fout:
             for weight in self._weights['attr']:
-                fout.write(' '.join(list(weight)) + '\n')
+                fout.write(' '.join([str(x) for x in list(weight)]) + '\n')
 
     def _generate_item_weights(self, attr_weights, item2attr):
         cluster_weights = []
@@ -58,7 +58,7 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
                         self._config['cluster_weight'] * cluster_weights)
         with open(self._config['item_weights_file'], 'w') as fout:
             for weight in item_weights:
-                fout.write(' '.join(list(weight)) + '\n')
+                fout.write(' '.join([str(x) for x in list(weight)]) + '\n')
         return item_weights
 
     def _generate_item_attr(self):
@@ -69,7 +69,7 @@ class SVDSoftmaxSimulatedDataSet(DataSet):
             attr_idx = item2attr[item_idx]
             attr2items[attr_idx].append(item_idx)
         with open(self._config['item_attr_file'], 'w') as fout:
-            fout.write(' '.join(item2attr) + '\n')
+            fout.write(' '.join([str(x) for x in item2attr]) + '\n')
         return item2attr, attr2items
 
     def _generate_from_full_softmax(self, input, weights, size):
