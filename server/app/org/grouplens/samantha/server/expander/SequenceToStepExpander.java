@@ -85,6 +85,10 @@ public class SequenceToStepExpander implements EntityExpander {
                                    RequestContext requestContext) {
         List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
+            String attrStr = entity.get(nameAttrs.get(0)).asText();
+            if ("".equals(attrStr)) {
+                continue;
+            }
             List<String[]> values = new ArrayList<>();
             int size = 0;
             for (String nameAttr : nameAttrs) {
