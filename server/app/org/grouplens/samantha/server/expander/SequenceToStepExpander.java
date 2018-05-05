@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
+import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,7 @@ public class SequenceToStepExpander implements EntityExpander {
     final private List<String> nameAttrs;
     final private List<String> valueAttrs;
     final private List<String> historyAttrs;
+    final private List<String> otherAttrs;
     final private String tstampAttr;
     final private int splitTstamp;
     final private String separator;
@@ -43,12 +45,13 @@ public class SequenceToStepExpander implements EntityExpander {
     final private Integer maxStepNum;
     final private boolean backward;
 
-    public SequenceToStepExpander(List<String> nameAttrs, List<String> valueAttrs,
+    public SequenceToStepExpander(List<String> nameAttrs, List<String> valueAttrs, List<String> otherAttrs,
                                   List<String> historyAttrs, String separator, String joiner,
                                   Integer maxStepNum, boolean backward, String tstampAttr, int splitTstamp) {
         this.nameAttrs = nameAttrs;
         this.valueAttrs = valueAttrs;
         this.historyAttrs = historyAttrs;
+        this.otherAttrs = otherAttrs;
         this.joiner = joiner;
         this.separator = separator;
         this.maxStepNum = maxStepNum;
@@ -70,6 +73,7 @@ public class SequenceToStepExpander implements EntityExpander {
         return new SequenceToStepExpander(
                 expanderConfig.getStringList("nameAttrs"),
                 expanderConfig.getStringList("valueAttrs"),
+                expanderConfig.getStringList("otherAttrs"),
                 expanderConfig.getStringList("historyAttrs"),
                 expanderConfig.getString("separator"),
                 expanderConfig.getString("joiner"),
@@ -115,11 +119,16 @@ public class SequenceToStepExpander implements EntityExpander {
                 }
             }
             for (int i=start; i<end; i++) {
-                ObjectNode newEntity = entity.deepCopy();
+                ObjectNode newEntity = Json.newObject();
+                for (String attr : otherAttrs) {
+                    newEntity.set(attr, entity.get(attr));
+                }
                 for (int j=0; j<values.size(); j++) {
                     newEntity.put(valueAttrs.get(j), values.get(j)[i]);
-                    newEntity.put(historyAttrs.get(j), StringUtils.join(
-                            ArrayUtils.subarray(values.get(j), 0, i), joiner));
+                    if (historyAttrs != null && historyAttrs.size() > j) {
+                        newEntity.put(historyAttrs.get(j), StringUtils.join(
+                                ArrayUtils.subarray(values.get(j), 0, i), joiner));
+                    }
                 }
                 expanded.add(newEntity);
             }
