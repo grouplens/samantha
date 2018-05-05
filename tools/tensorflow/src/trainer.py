@@ -113,6 +113,7 @@ class ModelTrainer(object):
                         break
                 if early_stopped:
                     logger.info("Early stopped because of non-decreasing evaluation loss")
+                logger.info("Stopped at epoch %s, step %s." % (epoch, step))
                 train_writer.close()
-                self._export_model(session, os.path.join(self._export_dir, 'final_epoch_%s_step_%s' % (epoch, step)))
+                self._export_model(session, os.path.join(self._export_dir, 'final'))
             session.close()
