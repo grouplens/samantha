@@ -48,6 +48,7 @@ public class NegativeSamplingExpander implements EntityExpander {
     final private String labelAttr;
     final private String separator;
     final private String joiner;
+    final private List<String> fillInAttrs;
     final private Integer maxIdx;
     final private Integer maxNumSample;
     final private AbstractLearningModel model;
@@ -56,6 +57,7 @@ public class NegativeSamplingExpander implements EntityExpander {
                                     String itemIndex,
                                     String keyPrefix,
                                     String labelAttr,
+                                    List<String> fillInAttrs,
                                     String separator,
                                     String joiner,
                                     Integer maxIdx,
@@ -65,6 +67,7 @@ public class NegativeSamplingExpander implements EntityExpander {
         this.labelAttr = labelAttr;
         this.joiner = joiner;
         this.itemAttr = itemAttr;
+        this.fillInAttrs = fillInAttrs;
         this.itemIndex = itemIndex;
         this.keyPrefix = keyPrefix;
         this.model = model;
@@ -87,6 +90,7 @@ public class NegativeSamplingExpander implements EntityExpander {
                 expanderConfig.getString("itemAttr"),
                 expanderConfig.getString("itemIndex"), keyPrefix,
                 expanderConfig.getString("labelAttr"),
+                expanderConfig.getStringList("fillInAttr"),
                 expanderConfig.getString("separator"),
                 expanderConfig.getString("joiner"),
                 expanderConfig.getInt("maxIdx"),
@@ -136,6 +140,17 @@ public class NegativeSamplingExpander implements EntityExpander {
                             (String)model.getKeyForIndex(itemIndex, sample));
                     itemArr.add(key2val.get(keyPrefix));
                     labelArr.add("0");
+                }
+                if (fillInAttrs != null && fillInAttrs.size() > 0 && samples.size() > 0) {
+                    for (int i=0; i<fillInAttrs.size(); i++) {
+                        String fillStr = entity.get(fillInAttrs.get(i)).asText();
+                        String[] fills = fillStr.split(separator, -1);
+                        List<String> fillEls = Lists.newArrayList(fillStr);
+                        for (int j=0; j<samples.size(); j++) {
+                            fillEls.add(fills[fills.length - 1]);
+                        }
+                        entity.put(fillInAttrs.get(i), StringUtils.join(fillEls, joiner));
+                    }
                 }
                 entity.put(labelAttr, StringUtils.join(labelArr, joiner));
                 entity.put(itemAttr, StringUtils.join(itemArr, joiner));
