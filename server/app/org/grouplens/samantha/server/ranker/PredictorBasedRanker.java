@@ -55,6 +55,9 @@ public class PredictorBasedRanker extends AbstractRanker {
     public RankedResult rank(RetrievedResult retrievedResult,
                              RequestContext requestContext) {
         List<ObjectNode> entityList = retrievedResult.getEntityList();
+        for (EntityExpander expander : entityExpanders) {
+            entityList = expander.expand(entityList, requestContext);
+        }
         List<Prediction> predictions = predictor.predict(entityList, requestContext);
         int curLimit = limit;
         if (pageSize == 0 || limit > predictions.size()) {
@@ -68,13 +71,6 @@ public class PredictorBasedRanker extends AbstractRanker {
             recs = new ArrayList<>();
         } else {
             recs = candidates.subList(offset, candidates.size());
-        }
-        List<ObjectNode> recEntities = new ArrayList<>(recs.size());
-        for (Prediction pred : recs) {
-            recEntities.add(pred.getEntity());
-        }
-        for (EntityExpander expander : entityExpanders) {
-            expander.expand(recEntities, requestContext);
         }
         return new RankedResult(recs, offset, curLimit, predictions.size());
     }
