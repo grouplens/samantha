@@ -90,7 +90,7 @@ public class NegativeSamplingExpander implements EntityExpander {
                 expanderConfig.getString("itemAttr"),
                 expanderConfig.getString("itemIndex"), keyPrefix,
                 expanderConfig.getString("labelAttr"),
-                expanderConfig.getStringList("fillInAttr"),
+                expanderConfig.getStringList("fillInAttrs"),
                 expanderConfig.getString("separator"),
                 expanderConfig.getString("joiner"),
                 expanderConfig.getInt("maxIdx"),
