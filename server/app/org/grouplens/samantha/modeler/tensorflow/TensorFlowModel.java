@@ -241,7 +241,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (JsonNode entity : entities) {
             instances.add(featurize(entity, true));
         }
-        double[][] preds = predict(instances);
+        double[][] preds = inference(instances, outputOper, 0);
         List<double[]> ones = new ArrayList<>();
         for (int i=0; i<preds[0].length; i++) {
             ones.add(new double[2]);
