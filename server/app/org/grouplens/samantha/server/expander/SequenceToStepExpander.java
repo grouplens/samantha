@@ -123,9 +123,14 @@ public class SequenceToStepExpander implements EntityExpander {
                 }
             }
             for (int i=start; i<end; i++) {
-                ObjectNode newEntity = Json.newObject();
-                for (String attr : otherAttrs) {
-                    newEntity.set(attr, entity.get(attr));
+                ObjectNode newEntity;
+                if (otherAttrs != null) {
+                    newEntity = Json.newObject();
+                    for (String attr : otherAttrs) {
+                        newEntity.set(attr, entity.get(attr));
+                    }
+                } else {
+                    newEntity = entity.deepCopy();
                 }
                 for (int j=0; j<values.size(); j++) {
                     newEntity.put(valueAttrs.get(j), values.get(j)[i]);

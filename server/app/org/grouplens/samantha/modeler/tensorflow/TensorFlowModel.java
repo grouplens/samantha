@@ -25,6 +25,7 @@ package org.grouplens.samantha.modeler.tensorflow;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -39,6 +40,7 @@ import org.grouplens.samantha.modeler.solver.StochasticOracle;
 import org.grouplens.samantha.modeler.model.IndexSpace;
 import org.grouplens.samantha.modeler.model.UncollectableModel;
 import org.grouplens.samantha.modeler.model.VariableSpace;
+import org.grouplens.samantha.modeler.tree.SortingUtilities;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.grouplens.samantha.server.io.IOUtilities;
@@ -232,6 +234,42 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             return itemPreds;
         }
         return preds;
+    }
+
+    public List<ObjectNode> recommend(List<ObjectNode> entities, int k) {
+        List<LearningInstance> instances = new ArrayList<>();
+        for (JsonNode entity : entities) {
+            instances.add(featurize(entity, true));
+        }
+        double[][] preds = predict(instances);
+        List<double[]> ones = new ArrayList<>();
+        for (int i=0; i<preds[0].length; i++) {
+            ones.add(new double[2]);
+        }
+        if (preds[0].length < k) {
+            k = preds[0].length;
+        }
+        List<ObjectNode> recs = new ArrayList<>();
+        for (int i=0; i<preds.length; i++) {
+            for (int j=0; j<preds[i].length; j++) {
+                ones.get(j)[0] = j;
+                ones.get(j)[1] = preds[i][j];
+            }
+            Ordering<double[]> ordering = SortingUtilities.pairDoubleSecondOrdering();
+            List<double[]> topK = ordering.greatestOf(ones, k);
+            for (int j=0; j<k; j++) {
+                int itemIdx = (int) topK.get(j)[0];
+                if (indexSpace.getKeyMapSize(itemIndex) > itemIdx) {
+                    String fea = (String) indexSpace.getKeyForIndex(itemIndex, itemIdx);
+                    ObjectNode rec = Json.newObject();
+                    rec.put(topKId, i);
+                    IOUtilities.parseEntityFromStringMap(rec, FeatureExtractorUtilities.decomposeKey(fea));
+                    rec.put(topKValue, topK.get(j)[1]);
+                    recs.add(rec);
+                }
+            }
+        }
+        return recs;
     }
 
     public List<ObjectNode> recommend(List<ObjectNode> entities) {

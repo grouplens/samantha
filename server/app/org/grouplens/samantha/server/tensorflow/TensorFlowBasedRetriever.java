@@ -38,10 +38,13 @@ import java.util.List;
 
 public class TensorFlowBasedRetriever extends AbstractRetriever {
     private final TensorFlowModel model;
+    private final Integer N;
     private final List<EntityExpander> expanders;
 
-    public TensorFlowBasedRetriever(TensorFlowModel model, List<EntityExpander> expanders, Configuration config) {
+    public TensorFlowBasedRetriever(TensorFlowModel model, Integer N,
+                                    List<EntityExpander> expanders, Configuration config) {
         super(config);
+        this.N = N;
         this.model = model;
         this.expanders = expanders;
     }
@@ -52,7 +55,12 @@ public class TensorFlowBasedRetriever extends AbstractRetriever {
         List<ObjectNode> entities = new ArrayList<>();
         entities.add(entity);
         entities = ExpanderUtilities.expand(entities, expanders, requestContext);
-        List<ObjectNode> results = model.recommend(entities);
+        List<ObjectNode> results;
+        if (N == null) {
+            results = model.recommend(entities);
+        } else {
+            results = model.recommend(entities, N);
+        }
         return new RetrievedResult(results, results.size());
     }
 }

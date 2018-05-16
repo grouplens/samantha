@@ -40,13 +40,15 @@ public class TensorFlowBasedRetrieverConfig extends AbstractComponentConfig impl
     private final Injector injector;
     private final String predictorName;
     private final String modelName;
+    private final Integer N;
 
-    private TensorFlowBasedRetrieverConfig(String predictorName, String modelName,
+    private TensorFlowBasedRetrieverConfig(String predictorName, String modelName, Integer N,
                                            Injector injector, Configuration config) {
         super(config);
         this.injector = injector;
         this.modelName = modelName;
         this.predictorName = predictorName;
+        this.N = N;
     }
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
@@ -54,6 +56,7 @@ public class TensorFlowBasedRetrieverConfig extends AbstractComponentConfig impl
         return new TensorFlowBasedRetrieverConfig(
                 retrieverConfig.getString("predictorName"),
                 retrieverConfig.getString("modelName"),
+                retrieverConfig.getInt("N"),
                 injector, retrieverConfig);
     }
 
@@ -64,6 +67,6 @@ public class TensorFlowBasedRetrieverConfig extends AbstractComponentConfig impl
         ModelService modelService = injector.instanceOf(ModelService.class);
         configService.getPredictor(predictorName, requestContext);
         TensorFlowModel model = (TensorFlowModel) modelService.getModel(requestContext.getEngineName(), modelName);
-        return new TensorFlowBasedRetriever(model, entityExpanders, config);
+        return new TensorFlowBasedRetriever(model, N, entityExpanders, config);
     }
 }
