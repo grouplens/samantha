@@ -38,11 +38,14 @@ public class PredictorBasedExpander implements EntityExpander {
     private final Predictor predictor;
     private final String scoreAttr;
     private final String scoresAttr;
+    private final String joiner;
 
-    public PredictorBasedExpander(Predictor predictor, String scoreAttr, String scoresAttr) {
+    public PredictorBasedExpander(Predictor predictor, String scoreAttr,
+                                  String scoresAttr, String joiner) {
         this.predictor = predictor;
         this.scoreAttr = scoreAttr;
         this.scoresAttr = scoresAttr;
+        this.joiner = joiner;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
@@ -50,8 +53,12 @@ public class PredictorBasedExpander implements EntityExpander {
         String predictorName = expanderConfig.getString("predictorName");
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         Predictor predictor = configService.getPredictor(predictorName, requestContext);
+        String joiner = expanderConfig.getString("joiner");
+        if (joiner == null) {
+            joiner = ",";
+        }
         return new PredictorBasedExpander(predictor, expanderConfig.getString("scoreAttr"),
-                expanderConfig.getString("scoresAttr"));
+                expanderConfig.getString("scoresAttr"), joiner);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
@@ -59,14 +66,16 @@ public class PredictorBasedExpander implements EntityExpander {
         List<Prediction> predictions = predictor.predict(initialResult, requestContext);
         for (int i=0; i<predictions.size(); i++) {
             ObjectNode entity = initialResult.get(i);
-            entity.put(scoreAttr, predictions.get(i).getScore());
+            if (scoreAttr != null) {
+                entity.put(scoreAttr, predictions.get(i).getScore());
+            }
             if (scoresAttr != null) {
                 List<String> scoreStrArr = new ArrayList<>();
                 double[] scores = predictions.get(i).getScores();
                 for (int j=0; j<scores.length; j++) {
                     scoreStrArr.add(Double.toString(scores[j]));
                 }
-                entity.put(scoresAttr, StringUtils.join(scoreStrArr, ","));
+                entity.put(scoresAttr, StringUtils.join(scoreStrArr, joiner));
             }
         }
         return initialResult;
