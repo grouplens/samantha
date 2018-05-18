@@ -263,6 +263,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                     String fea = (String) indexSpace.getKeyForIndex(itemIndex, itemIdx);
                     ObjectNode rec = Json.newObject();
                     rec.put(topKId, i);
+                    //TODO: this is problematic because the recommended item attr names are error-prone
                     IOUtilities.parseEntityFromStringMap(rec, FeatureExtractorUtilities.decomposeKey(fea));
                     rec.put(topKValue, topK.get(j)[1]);
                     recs.add(rec);
@@ -309,6 +310,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                     String fea = (String) indexSpace.getKeyForIndex(itemIndex, itemIdx);
                     ObjectNode rec = Json.newObject();
                     rec.put(topKId, i);
+                    //TODO: this is problematic because the recommended item attr names are error-prone
                     IOUtilities.parseEntityFromStringMap(rec, FeatureExtractorUtilities.decomposeKey(fea));
                     rec.put(topKValue, valBuffer.get(iter));
                     recs.add(rec);

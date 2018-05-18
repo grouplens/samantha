@@ -86,7 +86,7 @@ public class Recall implements Metric {
             for (int j=0; j<N.size(); j++) {
                 int n = N.get(j);
                 if (rank == n) {
-                    ar[j] = (1.0 * hits / Math.min(rank, releItems.size()));
+                    ar[j] = (1.0 * hits / releItems.size());
                 }
             }
             if (rank > maxN) {
