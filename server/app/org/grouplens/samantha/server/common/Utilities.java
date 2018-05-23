@@ -27,8 +27,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Utilities {
     private static Logger logger = LoggerFactory.getLogger(Utilities.class);
@@ -53,5 +57,21 @@ public class Utilities {
             }
         }
         return complete;
+    }
+
+    public static boolean isInHosts(List<String> hosts) {
+        Set<String> shosts = new HashSet<>(hosts);
+        try {
+            String ip = InetAddress.getLocalHost().getHostAddress();
+            String port = System.getProperty("http.port");
+            if (!shosts.contains(ip + ":" + port)) {
+                return false;
+            } else {
+                return true;
+            }
+        } catch (UnknownHostException e) {
+            logger.error(e.getMessage());
+            return false;
+        }
     }
 }

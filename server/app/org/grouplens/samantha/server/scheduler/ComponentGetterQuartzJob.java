@@ -24,6 +24,7 @@ package org.grouplens.samantha.server.scheduler;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.typesafe.config.ConfigRenderOptions;
+import org.grouplens.samantha.server.common.Utilities;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.EngineComponent;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
@@ -38,6 +39,8 @@ import play.Logger;
 import play.inject.Injector;
 import play.libs.Json;
 
+import java.util.List;
+
 public class ComponentGetterQuartzJob implements Job {
 
     public void execute(JobExecutionContext context) {
@@ -47,6 +50,10 @@ public class ComponentGetterQuartzJob implements Job {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         Configuration jobConfig = (Configuration) dataMap.get("jobConfig");
         for (Configuration taskConfig: jobConfig.getConfigList("tasks")) {
+            List<String> hosts = taskConfig.getStringList("hosts");
+            if (hosts != null && !Utilities.isInHosts(hosts)) {
+                continue;
+            }
             ObjectNode reqBody = Json.newObject();
             for (Configuration indexedData : taskConfig.getConfigList("indexerData")) {
                 RequestContext pseudoRequest = new RequestContext(
