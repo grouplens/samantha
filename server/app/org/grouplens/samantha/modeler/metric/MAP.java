@@ -22,19 +22,13 @@
 
 package org.grouplens.samantha.modeler.metric;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.server.predictor.Prediction;
-import org.grouplens.samantha.server.config.ConfigKey;
 import play.Logger;
-import play.libs.Json;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -43,15 +37,19 @@ public class MAP implements Metric {
     private DoubleList AP;
     private final List<Integer> N;
     private final List<String> itemKeys;
+    private final List<String> recKeys;
     private final String relevanceKey;
+    private final String separator;
     private final double threshold;
     private final double minValue;
 
-    public MAP(List<Integer> N, List<String> itemKeys, String relevanceKey,
-               double threshold, double minValue) {
+    public MAP(List<Integer> N, List<String> itemKeys, List<String> recKeys, String relevanceKey,
+               String separator, double threshold, double minValue) {
         this.N = N;
         this.itemKeys = itemKeys;
+        this.recKeys = recKeys;
         this.relevanceKey = relevanceKey;
+        this.separator = separator;
         this.threshold = threshold;
         this.minValue = minValue;
         this.AP = new DoubleArrayList(N.size());
@@ -61,13 +59,8 @@ public class MAP implements Metric {
     }
 
     public void add(List<ObjectNode> groundTruth, List<Prediction> recommendations) {
-        Set<String> releItems = new HashSet<>();
-        for (JsonNode entity : groundTruth) {
-            if (relevanceKey == null || entity.get(relevanceKey).asDouble() >= threshold) {
-                String item = FeatureExtractorUtilities.composeConcatenatedKey(entity, itemKeys);
-                releItems.add(item);
-            }
-        }
+        Set<String> releItems = MetricUtilities.getRelevantItems(
+                itemKeys, separator, relevanceKey, threshold, groundTruth);
         if (releItems.size() == 0) {
             return;
         }
@@ -85,8 +78,8 @@ public class MAP implements Metric {
         double[] ap = new double[N.size()];
         for (int i=0; i<recommendations.size(); i++) {
             int rank = i + 1;
-            String recItem = FeatureExtractorUtilities.composeConcatenatedKey(
-                    recommendations.get(i).getEntity(), itemKeys);
+            String recItem = FeatureExtractorUtilities.composeConcatenatedKeyWithoutName(
+                    recommendations.get(i).getEntity(), recKeys);
             int hit = 0;
             if (releItems.contains(recItem)) {
                 hit = 1;
@@ -103,33 +96,13 @@ public class MAP implements Metric {
             }
         }
         for (int i=0; i<N.size(); i++) {
-            AP.set(i, AP.getDouble(i) + ap[i] / releItems.size());
+            AP.set(i, AP.getDouble(i) +
+                    ap[i] / Math.min(releItems.size(), N.get(i)));
         }
         cnt += 1;
     }
 
     public MetricResult getResults() {
-        List<ObjectNode> results = new ArrayList<>(N.size());
-        ObjectNode metricPara = Json.newObject();
-        metricPara.put("threshold", threshold);
-        metricPara.put("minValue", minValue);
-        boolean pass = true;
-        for (int i=0; i<N.size(); i++) {
-            ObjectNode result = Json.newObject();
-            result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "MAP");
-            metricPara.put("N", N.get(i));
-            result.put(ConfigKey.EVALUATOR_METRIC_PARA.get(),
-                    metricPara.toString());
-            double value = 0.0;
-            if (cnt > 0) {
-                value = AP.getDouble(i) / cnt;
-            }
-            result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
-            results.add(result);
-            if (value < minValue) {
-                pass = false;
-            }
-        }
-        return new MetricResult(results, pass);
+        return MetricUtilities.getTopNResults("MAP", N, threshold, minValue, AP, cnt);
     }
 }

@@ -129,8 +129,6 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
             }
         }
         if (hasRequired) {
-            String[] fields = entity.get(attr).asText().split(separator, -1);
-            String[] indices = entity.get(inGrpRank).asText().split(separator, -1);
             Map<String, String[]> act2bools = new HashMap<>();
             Map<String, List<Feature>> act2feas = new HashMap<>();
             Map<String, List<Feature>> act2bfeas = new HashMap<>();
@@ -139,13 +137,21 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
                 act2feas.put(act, new ArrayList<>());
                 act2bfeas.put(act, new ArrayList<>());
             }
-            Map.Entry<Integer, Integer> entry = FeatureExtractorUtilities.getStartAndNumGroup(
-                    indices, maxGrpNum, grpSize);
-            int start = entry.getKey();
-            int numGrp = entry.getValue();
+            String attrStr = entity.get(attr).asText();
+            int start = 0;
+            String[] fields = {};
+            String[] indices = {};
             double val = 1.0;
-            if (numGrp > 0 && normalize) {
-                val = 1.0 / Math.sqrt(numGrp);
+            if (!"".equals(attrStr)) {
+                indices = entity.get(inGrpRank).asText().split(separator, -1);
+                Map.Entry<Integer, Integer> entry = FeatureExtractorUtilities.getStartAndNumGroup(
+                        indices, maxGrpNum, grpSize);
+                start = entry.getKey();
+                int numGrp = entry.getValue();
+                fields = attrStr.split(separator, -1);
+                if (numGrp > 0 && normalize) {
+                    val = 1.0 / Math.sqrt(numGrp);
+                }
             }
             int prevRank = Integer.MIN_VALUE;
             int inGrpSize = 0;
@@ -163,19 +169,22 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
                 String disAct = "";
                 for (int j=0; j<actionAttrs.size(); j++) {
                     String act = actionAttrs.get(j);
-                    String bact = act2bools.get(act)[i];
-                    if (bact.equals("1")) {
+                    String bactStr = act2bools.get(act)[i];
+                    double bactVal = Double.parseDouble(bactStr);
+                    if (bactVal > 0.0) {
                         processFeature(indexSpace, update, act2feas.get(act),
                                 actionIndices.get(j), act, fields[i], val);
                         disAct = act;
+                        bactStr = "True";
                     } else {
                         processFeature(indexSpace, update, act2feas.get(act),
                                 actionIndices.get(j), act, null, val);
+                        bactStr = "False";
                     }
                     if (extractBools.get(j)) {
                         processFeature(indexSpace, update, act2bfeas.get(act),
                                 actionIndices.get(j) + "_BOOL", act,
-                                fields[i] + "_" + bact, val);
+                                fields[i] + "_" + bactStr, val);
                     }
                 }
                 if (displayActionIndex != null) {
@@ -185,8 +194,10 @@ public class DisplayActionGroupExtractor implements FeatureExtractor {
                 inGrpSize++;
                 prevRank = curRank;
             }
-            addFillings(inGrpSize, indexSpace, update, features, disActFeas,
-                    act2feas, act2bfeas, val);
+            if (len > 0) {
+                addFillings(inGrpSize, indexSpace, update, features, disActFeas,
+                        act2feas, act2bfeas, val);
+            }
             feaMap.put(fea, features);
             if (displayActionFea != null) {
                 feaMap.put(displayActionFea, disActFeas);

@@ -22,27 +22,30 @@
 
 package org.grouplens.samantha.server.expander;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.StringUtils;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.predictor.Predictor;
 import play.Configuration;
 import play.inject.Injector;
-import play.libs.Json;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PredictorBasedExpander implements EntityExpander {
     private final Predictor predictor;
     private final String scoreAttr;
     private final String scoresAttr;
+    private final String joiner;
 
-    public PredictorBasedExpander(Predictor predictor, String scoreAttr, String scoresAttr) {
+    public PredictorBasedExpander(Predictor predictor, String scoreAttr,
+                                  String scoresAttr, String joiner) {
         this.predictor = predictor;
         this.scoreAttr = scoreAttr;
         this.scoresAttr = scoresAttr;
+        this.joiner = joiner;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
@@ -50,8 +53,12 @@ public class PredictorBasedExpander implements EntityExpander {
         String predictorName = expanderConfig.getString("predictorName");
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         Predictor predictor = configService.getPredictor(predictorName, requestContext);
+        String joiner = expanderConfig.getString("joiner");
+        if (joiner == null) {
+            joiner = ",";
+        }
         return new PredictorBasedExpander(predictor, expanderConfig.getString("scoreAttr"),
-                expanderConfig.getString("scoresAttr"));
+                expanderConfig.getString("scoresAttr"), joiner);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
@@ -59,14 +66,16 @@ public class PredictorBasedExpander implements EntityExpander {
         List<Prediction> predictions = predictor.predict(initialResult, requestContext);
         for (int i=0; i<predictions.size(); i++) {
             ObjectNode entity = initialResult.get(i);
-            entity.put(scoreAttr, predictions.get(i).getScore());
+            if (scoreAttr != null) {
+                entity.put(scoreAttr, predictions.get(i).getScore());
+            }
             if (scoresAttr != null) {
-                ArrayNode scoreArr = Json.newArray();
+                List<String> scoreStrArr = new ArrayList<>();
                 double[] scores = predictions.get(i).getScores();
                 for (int j=0; j<scores.length; j++) {
-                    scoreArr.add(scores[j]);
+                    scoreStrArr.add(Double.toString(scores[j]));
                 }
-                entity.set(scoresAttr, scoreArr);
+                entity.put(scoresAttr, StringUtils.join(scoreStrArr, joiner));
             }
         }
         return initialResult;

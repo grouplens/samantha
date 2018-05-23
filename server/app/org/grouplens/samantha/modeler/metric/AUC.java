@@ -28,12 +28,15 @@ import com.google.common.collect.Ordering;
 import org.grouplens.samantha.modeler.tree.SortingUtilities;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.predictor.Prediction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.libs.Json;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class AUC implements Metric {
+    private static Logger logger = LoggerFactory.getLogger(AUC.class);
     private final String labelName;
     private final List<double[]> list = new ArrayList<>();
     private final double threshold;
@@ -57,7 +60,13 @@ public class AUC implements Metric {
                 area += numPos;
             }
         }
-        return area / (numNeg * numPos);
+        if (numNeg < 1.0 || numPos < 1.0) {
+            logger.warn("AUC is set to 0.5 for the number of negatives and positives is: {}, {}",
+                    numNeg, numPos);
+            return 0.5;
+        }
+        double auc = area / (numNeg * numPos);
+        return auc;
     }
 
     private interface aucMethods {
@@ -135,10 +144,10 @@ public class AUC implements Metric {
         ObjectNode para = Json.newObject();
         para.put("type", aucType.get());
         para.put("threshold", threshold);
-        para.put("N", N);
-        result.put(ConfigKey.EVALUATOR_METRIC_PARA.get(), para.toString());
+        result.set(ConfigKey.EVALUATOR_METRIC_PARA.get(), para);
         double value = aucType.getAUC(this);
         result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
+        result.put(ConfigKey.EVALUATOR_METRIC_SUPPORT.get(), N);
         List<ObjectNode> results = new ArrayList<>(1);
         results.add(result);
         boolean pass = true;

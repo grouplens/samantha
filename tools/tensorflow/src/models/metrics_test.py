@@ -35,7 +35,7 @@ class MetricsTest(unittest.TestCase):
                     session.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
                     session.run(updates)
                     maps = session.run(values)
-                    # self.assertAlmostEqual(maps[0], 0.416, delta=0.001) TODO: this doesn't pass, why?
+                    self.assertAlmostEqual(maps[0], 1.000, delta=0.001)
                     self.assertAlmostEqual(maps[1], 0.547, delta=0.001)
                     self.assertAlmostEqual(maps[2], 0.610, delta=0.001)
 

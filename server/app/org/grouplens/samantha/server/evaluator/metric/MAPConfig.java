@@ -33,17 +33,21 @@ import java.util.List;
 public class MAPConfig implements MetricConfig {
     private final List<Integer> N;
     private final List<String> itemKeys;
+    private final List<String> recKeys;
     private final String relevanceKey;
+    private final String separator;
     private final double threshold;
     private final double minValue;
 
-    private MAPConfig(List<Integer> N, List<String> itemKeys, String relevanceKey,
-                      double threshold, double minValue) {
+    private MAPConfig(List<Integer> N, List<String> itemKeys, List<String> recKeys, String relevanceKey,
+                      double threshold, double minValue, String separator) {
         this.N = N;
         this.itemKeys = itemKeys;
+        this.recKeys = recKeys;
         this.relevanceKey = relevanceKey;
         this.threshold = threshold;
         this.minValue = minValue;
+        this.separator = separator;
     }
 
     public static MetricConfig getMetricConfig(Configuration metricConfig,
@@ -56,12 +60,17 @@ public class MAPConfig implements MetricConfig {
         if (metricConfig.asMap().containsKey("minValue")) {
             minValue = metricConfig.getDouble("minValue");
         }
+        List<String> itemKeys = metricConfig.getStringList("itemKeys");
+        List<String> recKeys = metricConfig.getStringList("recKeys");
+        if (recKeys == null) {
+            recKeys = itemKeys;
+        }
         return new MAPConfig(metricConfig.getIntList("N"),
-                metricConfig.getStringList("itemKeys"), metricConfig.getString("relevanceKey"),
-                threshold, minValue);
+                itemKeys, recKeys, metricConfig.getString("relevanceKey"),
+                threshold, minValue, metricConfig.getString("separator"));
     }
 
     public Metric getMetric(RequestContext requestContext) {
-        return new MAP(N, itemKeys, relevanceKey, threshold, minValue);
+        return new MAP(N, itemKeys, recKeys, relevanceKey, separator, threshold, minValue);
     }
 }

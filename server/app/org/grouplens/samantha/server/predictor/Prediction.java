@@ -71,6 +71,9 @@ public class Prediction {
             }
             obj.set("scores", scoreArr);
         }
+        if (instance != null) {
+            obj.set("instance", Json.toJson(instance));
+        }
         return obj;
     }
 }

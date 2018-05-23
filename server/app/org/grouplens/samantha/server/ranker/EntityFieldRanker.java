@@ -24,6 +24,7 @@ package org.grouplens.samantha.server.ranker;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
+import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
@@ -40,10 +41,13 @@ public class EntityFieldRanker extends AbstractRanker {
     private final boolean whetherOrder;
     private final String orderField;
     private final boolean ascending;
+    private final List<EntityExpander> entityExpanders;
 
-    public EntityFieldRanker(Configuration config, int offset, int limit, int pageSize,
+    public EntityFieldRanker(Configuration config, List<EntityExpander> entityExpanders,
+                             int offset, int limit, int pageSize,
                              boolean whetherOrder, String orderField, boolean ascending) {
         super(config);
+        this.entityExpanders = entityExpanders;
         this.offset = offset;
         this.limit = limit;
         this.pageSize = pageSize;
@@ -55,13 +59,17 @@ public class EntityFieldRanker extends AbstractRanker {
     public RankedResult rank(RetrievedResult retrievedResult,
                              RequestContext requestContext) {
         List<ObjectNode> entityList = retrievedResult.getEntityList();
+        for (EntityExpander expander : entityExpanders) {
+            entityList = expander.expand(entityList, requestContext);
+        }
         int curLimit = limit;
         if (pageSize == 0 || limit > entityList.size()) {
             curLimit = entityList.size();
         }
         List<Prediction> scoredList = new ArrayList<>(entityList.size());
         for (ObjectNode entity : entityList) {
-            scoredList.add(new Prediction(entity, null, 0.0, null));
+            scoredList.add(new Prediction(entity, null,
+                    entity.get(orderField).asDouble(), null));
         }
         List<Prediction> candidates;
         if (whetherOrder) {

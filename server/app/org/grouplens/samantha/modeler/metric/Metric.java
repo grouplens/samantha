@@ -27,6 +27,8 @@ import org.grouplens.samantha.server.predictor.Prediction;
 
 import java.util.List;
 
+//TODO: split this into several interfaces: RegressionMetric, ClassificationMetric, RankingMetric, RecommendationMetric
+//TODO: use raw data type instead of Json or Prediction
 public interface Metric {
     void add(List<ObjectNode> groundTruth, List<Prediction> results);
     MetricResult getResults();

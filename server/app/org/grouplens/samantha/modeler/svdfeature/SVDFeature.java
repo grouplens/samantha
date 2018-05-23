@@ -219,7 +219,7 @@ public class SVDFeature extends AbstractLearningModel implements Featurizer {
         if (entity.has(labelName)) {
             label = entity.get(labelName).asDouble();
         } else if (feaMap.containsKey(labelName)) {
-            label = feaMap.get(labelName).get(0).getValue();
+            label = feaMap.get(labelName).get(0).getIndex();
         }
         if (entity.has(weightName)) {
             weight = entity.get(weightName).asDouble();

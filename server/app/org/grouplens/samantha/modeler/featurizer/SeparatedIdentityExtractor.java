@@ -59,16 +59,18 @@ public class SeparatedIdentityExtractor implements FeatureExtractor {
         if (entity.has(attrName)) {
             List<Feature> features = new ArrayList<>();
             String attr = entity.get(attrName).asText();
-            String[] fields = attr.split(separator, -1);
-            int start = 0;
-            if (maxFeatures != null && fields.length > maxFeatures) {
-                start = fields.length - maxFeatures;
-            }
-            for (int i=start; i<fields.length; i++) {
-                String field = fields[i];
-                double value = Double.parseDouble(field);
-                FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                        indexSpace, indexName, attrName, value);
+            if (!"".equals(attr)) {
+                String[] fields = attr.split(separator, -1);
+                int start = 0;
+                if (maxFeatures != null && fields.length > maxFeatures) {
+                    start = fields.length - maxFeatures;
+                }
+                for (int i = start; i < fields.length; i++) {
+                    String field = fields[i];
+                    double value = Double.parseDouble(field);
+                    FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
+                            indexSpace, indexName, attrName, value);
+                }
             }
             feaMap.put(feaName, features);
         } else {

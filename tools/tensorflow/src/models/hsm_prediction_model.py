@@ -54,7 +54,7 @@ class HierarchicalPredictionModel(PredictionModel):
         return paras
 
     def _compute_metrics(self, paras, attr2labels, labels,
-            indices, user_model, target):
+            indices, user_model, target, config, context):
         hierarchy = self._hierarchies[target]
         updates = []
         for i in range(len(hierarchy) - 1):
@@ -66,17 +66,19 @@ class HierarchicalPredictionModel(PredictionModel):
                 masked_labels = tf.boolean_mask(used_labels, mask)
                 masked_indices = tf.boolean_mask(indices, mask)
                 if not self._eval_per_step:
-                    used_model, uniq_batch_idx, ori_batch_idx, step_idx = metrics.get_eval_user_model(
+                    used_model, uniq_batch_idx, ori_batch_idx, step_idx = metrics.get_per_batch_eval_user_model(
                             user_model, masked_indices)
                     attr2preds = self._compute_predictions(used_model, paras, target, limit=i)
-                    updates += metrics.compute_eval_label_metrics(
+                    updates += metrics.compute_per_batch_eval_metrics(
                             self._eval_metrics, attr2preds[attr], masked_labels, labels,
-                            masked_indices, uniq_batch_idx, ori_batch_idx, step_idx)
+                            masked_indices, uniq_batch_idx, ori_batch_idx, step_idx,
+                            config, context)
                 else:
                     used_model = metrics.get_per_step_eval_user_model(user_model, masked_indices)
                     attr2preds = self._compute_predictions(used_model, paras, target, limit=i)
-                    updates += metrics.compute_per_step_eval_label_metrics(
-                        self._eval_metrics, attr2preds[attr], masked_labels)
+                    updates += metrics.compute_per_step_eval_metrics(
+                        self._eval_metrics, attr2preds[attr], masked_labels,
+                        masked_indices, config, context)
         return updates
 
     def get_target_loss(self, used_model, labels, indices, user_model,
@@ -125,7 +127,8 @@ class HierarchicalPredictionModel(PredictionModel):
         updates = []
         if mode == 'eval' and self._eval_metrics is not None:
             updates = self._compute_metrics(paras, hierarchical_labels,
-                                            labels, indices, user_model, target)
+                                            labels, indices, user_model, target,
+                                            config, context)
         loss = tf.reduce_sum(losses)
         return tf.shape(used_labels)[0], loss, updates
 
@@ -144,7 +147,7 @@ class HierarchicalPredictionModel(PredictionModel):
             level = hierarchy[i]
             if i == 0:
                 logits = tf.matmul(used_model, tf.transpose(weights[level['attr']])) + biases[level['attr']]
-                preds = tf.nn.softmax(logits, name='%s_probs' % level['attr'])
+                preds = tf.nn.softmax(logits, name='%s_prob_op' % level['attr'])
             else:
                 parent_level = hierarchy[i-1]
                 preds = hsm.layer_wise_inference(
@@ -154,6 +157,6 @@ class HierarchicalPredictionModel(PredictionModel):
             target2preds[level['attr']] = preds
         return target2preds
 
-    def get_target_prediction(self, used_model, paras, target, config):
+    def get_target_prediction(self, used_model, indices, paras, target, config, context):
         target2preds = self._compute_predictions(used_model, paras, target)
         return target2preds[target]

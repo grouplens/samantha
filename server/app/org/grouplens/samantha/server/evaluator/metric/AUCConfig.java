@@ -22,6 +22,7 @@
 
 package org.grouplens.samantha.server.evaluator.metric;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.metric.AUC;
 import org.grouplens.samantha.modeler.metric.Metric;
 import org.grouplens.samantha.server.io.RequestContext;
@@ -31,12 +32,15 @@ import play.inject.Injector;
 public class AUCConfig implements MetricConfig {
     final private AUC.AUCType aucType;
     final private String labelName;
+    final private String labelKey;
     final private double threshold;
     final private double minValue;
 
-    private AUCConfig(AUC.AUCType aucType, String labelName, double threshold, double minValue) {
+    private AUCConfig(AUC.AUCType aucType, String labelName, String labelKey,
+                      double threshold, double minValue) {
         this.aucType = aucType;
         this.labelName = labelName;
+        this.labelKey = labelKey;
         this.threshold = threshold;
         this.minValue = minValue;
     }
@@ -52,11 +56,18 @@ public class AUCConfig implements MetricConfig {
         if (metricConfig.asMap().containsKey("minValue")) {
             minValue = metricConfig.getDouble("minValue");
         }
-        return new AUCConfig(AUC.AUCType.valueOf(aucType), metricConfig.getString("labelName"),
+        return new AUCConfig(AUC.AUCType.valueOf(aucType),
+                metricConfig.getString("labelName"),
+                metricConfig.getString("labelKey"),
                 threshold, minValue);
     }
 
     public Metric getMetric(RequestContext requestContext) {
-        return new AUC(labelName, aucType, threshold, minValue);
+        String label = labelName;
+        JsonNode reqBody = requestContext.getRequestBody();
+        if (reqBody.has(labelKey)) {
+            label = reqBody.get(labelKey).asText();
+        }
+        return new AUC(label, aucType, threshold, minValue);
     }
 }

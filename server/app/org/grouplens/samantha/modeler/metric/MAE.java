@@ -45,8 +45,8 @@ public class MAE implements Metric {
         int num = groundTruth.size();
         n += num;
         for (int i=0; i<num; i++) {
-            error += Math.abs(groundTruth.get(i).get(labelName).asDouble()
-                    - predictions.get(i).getScore());
+            error += (Math.abs(groundTruth.get(i).get(labelName).asDouble()
+                    - predictions.get(i).getScore()));
         }
     }
 
@@ -54,13 +54,13 @@ public class MAE implements Metric {
         ObjectNode result = Json.newObject();
         result.put(ConfigKey.EVALUATOR_METRIC_NAME.get(), "MAE");
         ObjectNode para = Json.newObject();
-        para.put("N", n);
         result.set(ConfigKey.EVALUATOR_METRIC_PARA.get(), para);
         double value = 0.0;
         if (n > 0) {
             value = error / n;
         }
         result.put(ConfigKey.EVALUATOR_METRIC_VALUE.get(), value);
+        result.put(ConfigKey.EVALUATOR_METRIC_SUPPORT.get(), n);
         List<ObjectNode> results = new ArrayList<>(1);
         results.add(result);
         boolean pass = true;

@@ -32,6 +32,7 @@ public class SeparatedStringExtractorConfig implements FeatureExtractorConfig {
     private final String indexName;
     private final String feaName;
     private final String attrName;
+    private final String keyPrefix;
     private final String separator;
     private final boolean normalize;
     private final String fillIn;
@@ -39,6 +40,7 @@ public class SeparatedStringExtractorConfig implements FeatureExtractorConfig {
 
     private SeparatedStringExtractorConfig(String indexName,
                                            String attrName,
+                                           String keyPrefix,
                                            String feaName,
                                            String separator,
                                            boolean normalize,
@@ -47,6 +49,7 @@ public class SeparatedStringExtractorConfig implements FeatureExtractorConfig {
         this.indexName = indexName;
         this.attrName = attrName;
         this.feaName = feaName;
+        this.keyPrefix = keyPrefix;
         this.separator = separator;
         this.normalize = normalize;
         this.fillIn = fillIn;
@@ -54,7 +57,8 @@ public class SeparatedStringExtractorConfig implements FeatureExtractorConfig {
     }
 
     public FeatureExtractor getFeatureExtractor(RequestContext requestContext) {
-        return new SeparatedStringExtractor(indexName, attrName, feaName, separator,
+        return new SeparatedStringExtractor(indexName, attrName,
+                keyPrefix, feaName, separator,
                 normalize, fillIn, maxFeatures);
     }
 
@@ -65,9 +69,14 @@ public class SeparatedStringExtractorConfig implements FeatureExtractorConfig {
         if (normalize == null) {
             normalize = true;
         }
+        String keyPrefix = extractorConfig.getString("keyPrefix");
+        if (keyPrefix == null) {
+            keyPrefix = extractorConfig.getString("attrName");
+        }
         return new SeparatedStringExtractorConfig(
                 extractorConfig.getString("indexName"),
                 extractorConfig.getString("attrName"),
+                keyPrefix,
                 extractorConfig.getString("feaName"),
                 extractorConfig.getString("separator"),
                 normalize, extractorConfig.getString("fillIn"),

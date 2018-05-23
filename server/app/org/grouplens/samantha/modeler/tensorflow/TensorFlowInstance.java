@@ -22,6 +22,7 @@
 
 package org.grouplens.samantha.modeler.tensorflow;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.grouplens.samantha.modeler.common.LearningInstance;
 import org.grouplens.samantha.modeler.instance.AbstractLearningInstance;
 
@@ -29,12 +30,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TensorFlowInstance extends AbstractLearningInstance {
+    @JsonProperty
     private static final long serialVersionUID = 1L;
 
+    @JsonProperty
     protected double weight;
+    @JsonProperty
     protected double label;
 
+    @JsonProperty
     protected final Map<String, double[]> name2values;
+    @JsonProperty
     protected final Map<String, int[]> name2indices;
 
     public TensorFlowInstance(String group) {

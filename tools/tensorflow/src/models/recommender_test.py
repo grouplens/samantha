@@ -1,6 +1,7 @@
 
 import unittest
 import random
+import shutil
 import numpy as np
 import tensorflow as tf
 
@@ -9,8 +10,12 @@ from src.datasets.json_list import JsonListDataSet
 from src.models.sequence_user_model import SequenceUserModel
 from src.models.svdpp_user_model import SVDPPUserModel
 from src.models.softmax_prediction_model import SoftmaxPredictionModel
+from src.models.logistic_prediction_model import LogisticPredictionModel
+from src.models.sampled_bpr_model import SampledBPRModel
 from src.models.ccf_prediction_model import CCFSoftmaxModel
 from src.models.bpr_prediction_model import BPRPredictionModel
+from src.models.ctr_prediction_model import CTRPredictionModel
+from src.models.regression_prediction_model import RegressionPredictionModel
 from src.models.hsm_prediction_model import HierarchicalPredictionModel
 from src.models.recommender import RecommenderBuilder
 
@@ -19,6 +24,7 @@ class RecommenderTest(unittest.TestCase):
 
     def setUp(self):
         self._test_path = '/tmp/tflearn_logs/'
+        self._export_dir = '/tmp/tflearn_models/'
 
     def test_run_seq_flat_default_eval(self):
         embedding_dim = 10
@@ -26,7 +32,7 @@ class RecommenderTest(unittest.TestCase):
         rnn_size = 5
         user_model = SequenceUserModel(rnn_size)
         softmax_model = SoftmaxPredictionModel(config={
-            'item': {'vocab_size': item_vocab_size, 'softmax_dim': rnn_size}})
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': rnn_size}})
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             attr2config={
@@ -69,7 +75,7 @@ class RecommenderTest(unittest.TestCase):
         rnn_size = 5
         user_model = SequenceUserModel(rnn_size)
         softmax_model = SoftmaxPredictionModel(config={
-            'item': {'vocab_size': item_vocab_size, 'softmax_dim': rnn_size}})
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': rnn_size}})
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             attr2config={
@@ -178,10 +184,14 @@ class RecommenderTest(unittest.TestCase):
                             batch['item_idx'][l].append(0)
             batches.append(batch)
         train_data = JsonListDataSet(batches)
+        run_name = 'test_sequence_hsm_model'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
-            tensorboard_dir=self._test_path)
-        model_trainer.train('recommender_test_sequence_hsm_model_run0')
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
 
     def test_train_sequence_softmax_model(self):
         embedding_dim = 10
@@ -191,7 +201,7 @@ class RecommenderTest(unittest.TestCase):
         page_size = 3
         user_model = SequenceUserModel(rnn_size)
         softmax_model = SoftmaxPredictionModel(config={
-            'item': {'vocab_size': item_vocab_size, 'softmax_dim': rnn_size}})
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': rnn_size}})
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             page_size=page_size,
@@ -232,23 +242,28 @@ class RecommenderTest(unittest.TestCase):
                             batch['item_idx'][l].append(0)
             batches.append(batch)
         train_data = JsonListDataSet(batches)
+        run_name = 'test_sequence_softmax_model'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
-            tensorboard_dir=self._test_path)
-        model_trainer.train('recommender_test_sequence_softmax_model_run0')
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir,
+            early_stop_by='step')
+        model_trainer.train(run_name)
 
     def test_train_ccf_softmax_model(self):
         user_vocab_size = 15
         item_vocab_size = 20
         embedding_dim = 5
-        softmax_dim = embedding_dim
         page_size = 3
         user_model = SVDPPUserModel(item_attrs=[])
         softmax_model = CCFSoftmaxModel('user', user_vocab_size, 'display', page_size, config={
-            'item': {'vocab_size': item_vocab_size, 'softmax_dim': softmax_dim}})
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': embedding_dim}})
         model_builder = RecommenderBuilder(
             user_model, softmax_model,
             page_size=page_size,
+            eval_metrics='MAP@1,5 AUC ShownAUC AP@1,5 AR@1,5',
             attr2config={
                 'display': {
                     'vocab_size': item_vocab_size,
@@ -272,7 +287,10 @@ class RecommenderTest(unittest.TestCase):
             embedding_attrs=['user'],
             target2config={
                 'item': {
-                    'weight': 1.0
+                    'weight': 1.0,
+                    'ShownAUC': {
+                        'context': 'display'
+                    }
                 }
             },
         )
@@ -301,22 +319,25 @@ class RecommenderTest(unittest.TestCase):
                             batch['item_idx'][l].append(0)
             batches.append(batch)
         train_data = JsonListDataSet(batches)
+        run_name = 'test_ccf_softmax_model'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
-            tensorboard_dir=self._test_path)
-        model_trainer.train('recommender_test_ccf_softmax_model_run0')
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
 
     def test_train_bpr_model(self):
         user_vocab_size = 15
         item_vocab_size = 20
         embedding_dim = 5
-        sigmoid_dim = embedding_dim
         page_size = 3
         user_model = SVDPPUserModel(item_attrs=[])
-        softmax_model = BPRPredictionModel('display', page_size, config={
-            'item': {'vocab_size': item_vocab_size, 'sigmoid_dim': sigmoid_dim}})
+        sigmoid_model = BPRPredictionModel('display', page_size, config={
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': embedding_dim}})
         model_builder = RecommenderBuilder(
-            user_model, softmax_model,
+            user_model, sigmoid_model,
             page_size=page_size,
             attr2config={
                 'display': {
@@ -370,10 +391,282 @@ class RecommenderTest(unittest.TestCase):
                             batch['item_idx'][l].append(0)
             batches.append(batch)
         train_data = JsonListDataSet(batches)
+        run_name = 'test_bpr_sigmoid_model'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
         model_trainer = ModelTrainer(
             train_data, builder=model_builder, max_steps=10,
-            tensorboard_dir=self._test_path)
-        model_trainer.train('recommender_test_bpr_model_run0')
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
+
+    def test_train_ctr_model(self):
+        user_vocab_size = 15
+        item_vocab_size = 20
+        embedding_dim = 5
+        page_size = 3
+        user_model = SVDPPUserModel(item_attrs=[])
+        sigmoid_model = CTRPredictionModel('display', config={
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': embedding_dim, 'user_bias': 'user'},
+            'user': {'vocab_size': user_vocab_size}
+        })
+        model_builder = RecommenderBuilder(
+            user_model, sigmoid_model,
+            page_size=page_size,
+            attr2config={
+                'display': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'item': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'user': {
+                    'vocab_size': user_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'user'
+                }
+            },
+            embedding_attrs=['user'],
+            target2config={
+                'item': {
+                    'weight': 1.0
+                }
+            },
+        )
+        batches = []
+        batch_size = 4
+        for i in range(10):
+            max_seq_len = random.randint(5, 10)
+            batch = {'user_idx': [], 'item_idx': [], 'display_idx': [], 'sequence_length_val': []}
+            for l in range(batch_size):
+                batch['user_idx'].append([random.randint(1, user_vocab_size - 1)])
+                batch['sequence_length_val'].append([random.randint(2, max_seq_len) * page_size])
+                batch['item_idx'].append([])
+                batch['display_idx'].append([])
+                for j in range(max_seq_len):
+                    for k in range(page_size):
+                        if j < batch['sequence_length_val'][l][0] / page_size:
+                            idx = random.randint(1, item_vocab_size - 1)
+                            batch['display_idx'][l].append(idx)
+                            act_dice = random.random()
+                            if act_dice < 0.5:
+                                batch['item_idx'][l].append(idx)
+                            else:
+                                batch['item_idx'][l].append(0)
+                        else:
+                            batch['display_idx'][l].append(0)
+                            batch['item_idx'][l].append(0)
+            batches.append(batch)
+        train_data = JsonListDataSet(batches)
+        run_name = 'test_ctr_sigmoid_model'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
+        model_trainer = ModelTrainer(
+            train_data, builder=model_builder, max_steps=10,
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
+
+    def test_train_sequence_logistic_model(self):
+        embedding_dim = 10
+        user_vocab_size = 15
+        item_vocab_size = 20
+        rnn_size = 5
+        page_size = 3
+        user_model = SequenceUserModel(rnn_size)
+        logistic_model = LogisticPredictionModel(config={
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': rnn_size}})
+        model_builder = RecommenderBuilder(
+            user_model, logistic_model,
+            page_size=page_size,
+            attr2config={
+                'item': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'user': {
+                    'vocab_size': user_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'user'
+                }
+            },
+            target2config={
+                'item': {
+                    'weight': 1.0
+                }
+            },
+        )
+        batches = []
+        batch_size = 4
+        for i in range(10):
+            max_seq_len = random.randint(5, 10)
+            batch = {'user_idx': [], 'item_idx': [], 'sequence_length_val': []}
+            for l in range(batch_size):
+                batch['user_idx'].append([random.randint(1, user_vocab_size - 1)])
+                batch['sequence_length_val'].append([random.randint(2, max_seq_len) * page_size])
+                batch['item_idx'].append([])
+                for j in range(max_seq_len):
+                    for k in range(page_size):
+                        if j < batch['sequence_length_val'][l][0] / page_size:
+                            batch['item_idx'][l].append(random.randint(1, item_vocab_size - 1))
+                        else:
+                            batch['item_idx'][l].append(0)
+            batches.append(batch)
+        train_data = JsonListDataSet(batches)
+        run_name = 'test_sequence_logistic_model'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
+        model_trainer = ModelTrainer(
+            train_data, builder=model_builder, max_steps=10,
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
+
+    def test_train_regression_model(self):
+        user_vocab_size = 15
+        item_vocab_size = 20
+        embedding_dim = 5
+        page_size = 3
+        user_model = SVDPPUserModel(item_attrs=[])
+        regression_model = RegressionPredictionModel(config={
+            'rating': {'context': 'item', 'vocab_size': item_vocab_size, 'embedding_dim': embedding_dim}})
+        model_builder = RecommenderBuilder(
+            user_model, regression_model,
+            page_size=page_size,
+            attr2config={
+                'rating': {
+                    'is_numerical': True,
+                    'level': 'item'
+                },
+                'item': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'user': {
+                    'vocab_size': user_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'user'
+                }
+            },
+            embedding_attrs=['user'],
+            target2config={
+                'rating': {
+                    'weight': 1.0,
+                    'MAE': {
+                        'context': 'item',
+                    },
+                    'RMSE': {
+                        'context': 'item',
+                    },
+                }
+            },
+            eval_metrics='MAE RMSE',
+        )
+        batches = []
+        batch_size = 4
+        for i in range(10):
+            max_seq_len = random.randint(5, 10)
+            batch = {'user_idx': [], 'item_idx': [], 'rating_val': [], 'sequence_length_val': []}
+            for l in range(batch_size):
+                batch['user_idx'].append([random.randint(1, user_vocab_size - 1)])
+                batch['sequence_length_val'].append([random.randint(2, max_seq_len) * page_size])
+                batch['item_idx'].append([])
+                batch['rating_val'].append([])
+                for j in range(max_seq_len):
+                    for k in range(page_size):
+                        if j < batch['sequence_length_val'][l][0] / page_size:
+                            idx = random.randint(1, item_vocab_size - 1)
+                            act_dice = random.random()
+                            if act_dice < 0.5:
+                                batch['item_idx'][l].append(idx)
+                                batch['rating_val'][l].append(random.randint(1, 5) * 1.0)
+                            else:
+                                batch['item_idx'][l].append(0)
+                                batch['rating_val'][l].append(0.0)
+                        else:
+                            batch['rating_val'][l].append(0.0)
+                            batch['item_idx'][l].append(0)
+            batches.append(batch)
+        train_data = JsonListDataSet(batches)
+        run_name = 'test_regression_l2_model'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
+        model_trainer = ModelTrainer(
+            train_data, builder=model_builder, max_steps=10,
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
+
+    def test_train_sequence_sampled_bpr_model(self):
+        embedding_dim = 10
+        user_vocab_size = 15
+        item_vocab_size = 20
+        rnn_size = 5
+        page_size = 3
+        user_model = SequenceUserModel(rnn_size)
+        bpr_model = SampledBPRModel(config={
+            'item': {'vocab_size': item_vocab_size, 'embedding_dim': rnn_size}})
+        model_builder = RecommenderBuilder(
+            user_model, bpr_model,
+            page_size=page_size,
+            attr2config={
+                'item': {
+                    'vocab_size': item_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'item'
+                },
+                'user': {
+                    'vocab_size': user_vocab_size,
+                    'embedding_dim': embedding_dim,
+                    'is_numerical': False,
+                    'level': 'user'
+                }
+            },
+            target2config={
+                'item': {
+                    'weight': 1.0
+                }
+            },
+        )
+        batches = []
+        batch_size = 4
+        for i in range(10):
+            max_seq_len = random.randint(5, 10)
+            batch = {'user_idx': [], 'item_idx': [], 'sequence_length_val': []}
+            for l in range(batch_size):
+                batch['user_idx'].append([random.randint(1, user_vocab_size - 1)])
+                batch['sequence_length_val'].append([random.randint(2, max_seq_len) * page_size])
+                batch['item_idx'].append([])
+                for j in range(max_seq_len):
+                    for k in range(page_size):
+                        if j < batch['sequence_length_val'][l][0] / page_size:
+                            batch['item_idx'][l].append(random.randint(1, item_vocab_size - 1))
+                        else:
+                            batch['item_idx'][l].append(0)
+            batches.append(batch)
+        train_data = JsonListDataSet(batches)
+        run_name = 'test_sequence_sampled_bpr_model'
+        export_dir = self._export_dir + run_name
+        shutil.rmtree(export_dir, ignore_errors=True)
+        model_trainer = ModelTrainer(
+            train_data, builder=model_builder, max_steps=10,
+            tensorboard_dir=self._test_path,
+            export_dir=export_dir)
+        model_trainer.train(run_name)
 
 if __name__ == '__main__':
     unittest.main()

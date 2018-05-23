@@ -25,9 +25,13 @@ package org.grouplens.samantha.server.ranker;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.ConfigKey;
+import org.grouplens.samantha.server.expander.EntityExpander;
+import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
+
+import java.util.List;
 
 public class EntityFieldRankerConfig implements RankerConfig {
     private final int pageSize;
@@ -35,10 +39,14 @@ public class EntityFieldRankerConfig implements RankerConfig {
     private final boolean whetherOrder;
     private final boolean ascending;
     private final Configuration config;
+    private final Injector injector;
+    private final List<Configuration> expandersConfig;
 
-    private EntityFieldRankerConfig(Configuration config, int pageSize,
-                                    String orderField, boolean whetherOrder, boolean ascending) {
+    private EntityFieldRankerConfig(Configuration config, List<Configuration> expandersConfig, Injector injector,
+                                    int pageSize, String orderField, boolean whetherOrder, boolean ascending) {
         this.pageSize = pageSize;
+        this.injector = injector;
+        this.expandersConfig = expandersConfig;
         this.orderField = orderField;
         this.whetherOrder = whetherOrder;
         this.ascending = ascending;
@@ -55,8 +63,14 @@ public class EntityFieldRankerConfig implements RankerConfig {
         if (rankerConfig.asMap().containsKey("whetherOrder")) {
             whetherOrder = rankerConfig.getBoolean("whetherOrder"); 
         }
-        return new EntityFieldRankerConfig(rankerConfig, pageSize, rankerConfig.getString("orderField"),
-                whetherOrder, rankerConfig.getBoolean("ascending"));
+        Boolean ascending = rankerConfig.getBoolean("ascending");
+        if (ascending == null) {
+            ascending = false;
+        }
+        List<Configuration> expanders = ExpanderUtilities.getEntityExpandersConfig(rankerConfig);
+        return new EntityFieldRankerConfig(rankerConfig, expanders, injector,
+                pageSize, rankerConfig.getString("orderField"),
+                whetherOrder, ascending);
     }
 
     public Ranker getRanker(RequestContext requestContext) {
@@ -65,7 +79,9 @@ public class EntityFieldRankerConfig implements RankerConfig {
         int offset = JsonHelpers.getOptionalInt(requestBody,
                 ConfigKey.RANKER_OFFSET.get(), (page - 1) * pageSize);
         int limit = JsonHelpers.getOptionalInt(requestBody, ConfigKey.RANKER_LIMIT.get(), pageSize);
-        return new EntityFieldRanker(config, offset, limit, pageSize,
+        List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
+                expandersConfig, injector);
+        return new EntityFieldRanker(config, entityExpanders, offset, limit, pageSize,
                 whetherOrder, orderField, ascending);
     }
 }

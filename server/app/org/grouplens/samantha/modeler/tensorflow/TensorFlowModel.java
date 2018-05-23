@@ -24,6 +24,8 @@ package org.grouplens.samantha.modeler.tensorflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -38,29 +40,28 @@ import org.grouplens.samantha.modeler.solver.StochasticOracle;
 import org.grouplens.samantha.modeler.model.IndexSpace;
 import org.grouplens.samantha.modeler.model.UncollectableModel;
 import org.grouplens.samantha.modeler.model.VariableSpace;
+import org.grouplens.samantha.modeler.tree.SortingUtilities;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.grouplens.samantha.server.io.IOUtilities;
-import org.tensorflow.Graph;
-import org.tensorflow.Session;
-import org.tensorflow.Tensor;
+import org.tensorflow.*;
 import play.libs.Json;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TensorFlowModel extends AbstractLearningModel implements Featurizer, UncollectableModel {
     private static final long serialVersionUID = 1L;
     transient private Graph graph;
     transient private Session session;
+    private Set<String> feedFeas;
+    private final String graphDefFile;
+    private final String exportDir;
     private final List<FeatureExtractor> featureExtractors;
     private final String lossOper;
     private final String updateOper;
@@ -71,16 +72,19 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
     private final String topKValue;
     private final String itemIndex;
     private final List<String> groupKeys;
+    private final String predItemFea;
     private final List<List<String>> equalSizeChecks;
 
+    public static final String SAVED_MODEL_TAG = "train_eval_serve";
     public static final String OOV = "";
     public static final int OOV_INDEX = 0;
     public static final String INDEX_APPENDIX = "_idx";
     public static final String VALUE_APPENDIX = "_val";
 
-    public TensorFlowModel(Graph graph,
+    public TensorFlowModel(Graph graph, Session session,
+                           String graphDefFile, String exportDir,
                            IndexSpace indexSpace, VariableSpace variableSpace,
-                           List<FeatureExtractor> featureExtractors,
+                           List<FeatureExtractor> featureExtractors, String predItemFea,
                            String lossOper, String updateOper, String topKId, String itemIndex,
                            String topKValue, String outputOper, String topKOper, String initOper,
                            List<String> groupKeys, List<List<String>> equalSizeChecks) {
@@ -88,6 +92,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         this.groupKeys = groupKeys;
         this.equalSizeChecks = equalSizeChecks;
         this.featureExtractors = featureExtractors;
+        this.predItemFea = predItemFea;
         this.lossOper = lossOper;
         this.updateOper = updateOper;
         this.outputOper = outputOper;
@@ -97,10 +102,26 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         this.topKOper = topKOper;
         this.initOper = initOper;
         this.graph = graph;
+        this.session = session;
+        this.graphDefFile = graphDefFile;
+        this.exportDir = exportDir;
         if (graph != null) {
-            this.session = new Session(graph);
-            session.runner().addTarget(initOper).run();
+            this.feedFeas = getFeedFeas(graph);
+        } else {
+            this.feedFeas = new HashSet<>();
         }
+    }
+
+    private Set<String> getFeedFeas(Graph graph) {
+        Set<String> feedFeas = new HashSet<>();
+        Iterator<Operation> iter = graph.operations();
+        while (iter.hasNext()) {
+            String name = iter.next().name();
+            if (name.endsWith("_idx") || name.endsWith("_val")) {
+                feedFeas.add(name);
+            }
+        }
+        return feedFeas;
     }
 
     public double[] predict(LearningInstance ins) {
@@ -114,37 +135,142 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         return insPreds;
     }
 
-    public double[][] predict(List<LearningInstance> instances) {
-        Session.Runner runner = session.runner();
-        Map<String, Tensor> feedDict = getFeedDict(instances);
+    private void feed(Session.Runner runner, Map<String, Tensor> feedDict) {
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             runner.feed(entry.getKey(), entry.getValue());
         }
-        runner.fetch(outputOper);
-        List<Tensor<?>> results = runner.run();
+    }
+
+    private void closeFeedDict(Map<String, Tensor> feedDict) {
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             entry.getValue().close();
         }
-        Tensor<?> tensorOutput = results.get(0);
-        if (tensorOutput.numDimensions() != 2) {
-            throw new BadRequestException(
-                    "The TensorFlow model should always predict with a two dimensional tensor.");
+    }
+
+    private List<double[][]> fetch(Session.Runner runner, List<String> operations, List<Integer> outputIndices) {
+        for (int i=0; i<operations.size(); i++) {
+            runner.fetch(operations.get(i), outputIndices.get(i));
         }
-        long[] outputShape = tensorOutput.shape();
-        double[][] preds = new double[(int)outputShape[0]][(int)outputShape[1]];
-        DoubleBuffer buffer = DoubleBuffer.allocate(tensorOutput.numElements());
-        tensorOutput.writeTo(buffer);
-        int k = 0;
-        for (int i=0; i<instances.size(); i++) {
-            for (int j=0; j<preds[0].length; j++) {
-                preds[i][j] = buffer.get(k++);
+        List<Tensor<?>> results = runner.run();
+        List<double[][]> predsList = new ArrayList<>();
+        for (int x=0; x<operations.size(); x++) {
+            Tensor<?> tensorOutput = results.get(x);
+            int dim = tensorOutput.numDimensions();
+            if (dim > 2) {
+                throw new BadRequestException(
+                        "The TensorFlow model should always output with a one or two dimensional tensor. " +
+                                "Currently it is " + Integer.valueOf(dim).toString());
+            }
+            long[] outputShape = tensorOutput.shape();
+            long ncol = 1;
+            if (outputShape.length > 1) {
+                ncol = outputShape[1];
+            }
+            double[][] preds = new double[(int) outputShape[0]][(int) ncol];
+            FloatBuffer buffer = FloatBuffer.allocate(tensorOutput.numElements());
+            tensorOutput.writeTo(buffer);
+            int k = 0;
+            for (int i = 0; i < preds.length; i++) {
+                for (int j = 0; j < preds[0].length; j++) {
+                    preds[i][j] = buffer.get(k++);
+                }
+            }
+            buffer.clear();
+            results.get(x).close();
+            predsList.add(preds);
+        }
+        return predsList;
+    }
+
+    public double[][] inference(String operation, int idx) {
+        Session.Runner runner = session.runner();
+        return fetch(runner, Lists.newArrayList(operation), Lists.newArrayList(idx)).get(0);
+    }
+
+    public double[][] inference(List<LearningInstance> instances, String operation, int idx) {
+        Session.Runner runner = session.runner();
+        Map<String, Tensor> feedDict = getFeedDict(instances);
+        feed(runner, feedDict);
+        double[][] preds = fetch(runner, Lists.newArrayList(operation), Lists.newArrayList(idx)).get(0);
+        closeFeedDict(feedDict);
+        return preds;
+    }
+
+    public List<double[][]> inference(List<LearningInstance> instances,
+                                      List<String> operations,
+                                      List<Integer> outputIndices) {
+        Session.Runner runner = session.runner();
+        Map<String, Tensor> feedDict = getFeedDict(instances);
+        feed(runner, feedDict);
+        List<double[][]> preds = fetch(runner, operations, outputIndices);
+        closeFeedDict(feedDict);
+        return preds;
+    }
+
+    public double[][] predict(List<LearningInstance> instances) {
+        double[][] preds = inference(instances, outputOper, 0);
+        if (predItemFea != null) {
+            double[][] itemPreds = new double[instances.size()][];
+            for (int i=0; i<instances.size(); i++) {
+                TensorFlowInstance tfIns = (TensorFlowInstance) instances.get(i);
+                if (tfIns.getName2Indices().containsKey(predItemFea)) {
+                    int[] indices = tfIns.getName2Indices().get(predItemFea);
+                    if (indices.length == 0) {
+                        return preds;
+                    }
+                    double[] insPreds = new double[indices.length];
+                    for (int j = 0; j < indices.length; j++) {
+                        if (indices[j] < preds[i].length) {
+                            insPreds[j] = preds[i][indices[j]];
+                        } else {
+                            insPreds[j] = preds[i][0];
+                        }
+                    }
+                    itemPreds[i] = insPreds;
+                } else {
+                    return preds;
+                }
+            }
+            return itemPreds;
+        }
+        return preds;
+    }
+
+    public List<ObjectNode> recommend(List<ObjectNode> entities, int k) {
+        List<LearningInstance> instances = new ArrayList<>();
+        for (JsonNode entity : entities) {
+            instances.add(featurize(entity, true));
+        }
+        double[][] preds = inference(instances, outputOper, 0);
+        List<double[]> ones = new ArrayList<>();
+        for (int i=0; i<preds[0].length; i++) {
+            ones.add(new double[2]);
+        }
+        if (preds[0].length < k) {
+            k = preds[0].length;
+        }
+        List<ObjectNode> recs = new ArrayList<>();
+        for (int i=0; i<preds.length; i++) {
+            for (int j=0; j<preds[i].length; j++) {
+                ones.get(j)[0] = j;
+                ones.get(j)[1] = preds[i][j];
+            }
+            Ordering<double[]> ordering = SortingUtilities.pairDoubleSecondOrdering();
+            List<double[]> topK = ordering.greatestOf(ones, k);
+            for (int j=0; j<k; j++) {
+                int itemIdx = (int) topK.get(j)[0];
+                if (indexSpace.getKeyMapSize(itemIndex) > itemIdx) {
+                    String fea = (String) indexSpace.getKeyForIndex(itemIndex, itemIdx);
+                    ObjectNode rec = Json.newObject();
+                    rec.put(topKId, i);
+                    //TODO: this is problematic because the recommended item attr names are error-prone
+                    IOUtilities.parseEntityFromStringMap(rec, FeatureExtractorUtilities.decomposeKey(fea));
+                    rec.put(topKValue, topK.get(j)[1]);
+                    recs.add(rec);
+                }
             }
         }
-        for (int i=0; i<results.size(); i++) {
-            results.get(i).close();
-        }
-        buffer.clear();
-        return preds;
+        return recs;
     }
 
     public List<ObjectNode> recommend(List<ObjectNode> entities) {
@@ -157,7 +283,8 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             runner.feed(entry.getKey(), entry.getValue());
         }
-        runner.fetch(topKOper);
+        runner.fetch(topKOper, 0);
+        runner.fetch(topKOper, 1);
         List<Tensor<?>> results = runner.run();
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             entry.getValue().close();
@@ -171,20 +298,24 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         long[] outputShape = topKIndices.shape();
         int k = (int)outputShape[1];
         IntBuffer idxBuffer = IntBuffer.allocate(topKIndices.numElements());
-        DoubleBuffer valBuffer = DoubleBuffer.allocate(topKValues.numElements());
+        FloatBuffer valBuffer = FloatBuffer.allocate(topKValues.numElements());
         topKIndices.writeTo(idxBuffer);
         topKValues.writeTo(valBuffer);
         List<ObjectNode> recs = new ArrayList<>();
         int iter = 0;
         for (int i=0; i<instances.size(); i++) {
             for (int j=0; j<k; j++) {
-                ObjectNode rec = Json.newObject();
-                rec.put(topKId, i);
-                int itemIdx = idxBuffer.get(iter++);
-                String fea = (String) indexSpace.getKeyForIndex(itemIndex, itemIdx);
-                IOUtilities.parseEntityFromStringMap(rec, FeatureExtractorUtilities.decomposeKey(fea));
-                rec.put(topKValue, valBuffer.get(iter++));
-                recs.add(rec);
+                int itemIdx = idxBuffer.get(iter);
+                if (indexSpace.getKeyMapSize(itemIndex) > itemIdx) {
+                    String fea = (String) indexSpace.getKeyForIndex(itemIndex, itemIdx);
+                    ObjectNode rec = Json.newObject();
+                    rec.put(topKId, i);
+                    //TODO: this is problematic because the recommended item attr names are error-prone
+                    IOUtilities.parseEntityFromStringMap(rec, FeatureExtractorUtilities.decomposeKey(fea));
+                    rec.put(topKValue, valBuffer.get(iter));
+                    recs.add(rec);
+                }
+                iter++;
             }
         }
         for (int i=0; i<results.size(); i++) {
@@ -203,7 +334,13 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                 int size = -1;
                 for (String fea : features) {
                     if (size < 0) {
-                        size = feaMap.get(fea).size();
+                        if (feaMap.containsKey(fea)) {
+                            size = feaMap.get(fea).size();
+                        } else {
+                            throw new BadRequestException(
+                                    "Feature " + fea + " is not present in the extracted feature map with keys " +
+                                            feaMap.keySet().toString());
+                        }
                     } else if (size != feaMap.get(fea).size()) {
                         throw new ConfigurationException(
                                 "Equal size checks with " + features.toString() +
@@ -239,7 +376,7 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                 String name = entry.getKey();
                 int[] values = entry.getValue();
                 int cur = numCols.getOrDefault(name, 0);
-                if (values.length > cur) {
+                if (values.length >= cur) {
                     numCols.put(name, values.length);
                 }
             }
@@ -309,6 +446,8 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
                     }
                 }
             }
+            valBuffer.rewind();
+            idxBuffer.rewind();
             valBufferMap.put(name, valBuffer);
             idxBufferMap.put(name, idxBuffer);
         }
@@ -326,14 +465,18 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
             int numCol = entry.getValue();
             long[] shape = {batch, numCol};
             if (valBufferMap.containsKey(name)) {
-                DoubleBuffer buffer = valBufferMap.get(name).asDoubleBuffer();
-                buffer.rewind();
-                tensorMap.put(name + VALUE_APPENDIX, Tensor.create(shape, buffer));
+                String feaName = name + VALUE_APPENDIX;
+                if (feedFeas.contains(feaName)) {
+                    DoubleBuffer buffer = valBufferMap.get(name).asDoubleBuffer();
+                    tensorMap.put(feaName, Tensor.create(shape, buffer));
+                }
             }
             if (idxBufferMap.containsKey(name)) {
-                IntBuffer buffer = idxBufferMap.get(name).asIntBuffer();
-                buffer.rewind();
-                tensorMap.put(name + INDEX_APPENDIX, Tensor.create(shape, buffer));
+                String feaName = name + INDEX_APPENDIX;
+                if (feedFeas.contains(feaName)) {
+                    IntBuffer buffer = idxBufferMap.get(name).asIntBuffer();
+                    tensorMap.put(feaName, Tensor.create(shape, buffer));
+                }
             }
         }
         return tensorMap;
@@ -350,7 +493,8 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         for (Map.Entry<String, Tensor> entry : feedDict.entrySet()) {
             entry.getValue().close();
         }
-        StochasticOracle oracle = new StochasticOracle(results.get(0).doubleValue(), 0.0, 1.0);
+        StochasticOracle oracle = new StochasticOracle(
+                (double)results.get(0).floatValue(), 0.0, 1.0);
         results.get(0).close();
         List<StochasticOracle> oracles = new ArrayList<>(1);
         oracles.add(oracle);
@@ -370,21 +514,22 @@ public class TensorFlowModel extends AbstractLearningModel implements Featurizer
         }
     }
 
-    private void writeObject(ObjectOutputStream stream) throws IOException {
-        stream.defaultWriteObject();
-        byte[] graphDef = graph.toGraphDef();
-        stream.writeInt(graphDef.length);
-        stream.write(graph.toGraphDef());
-    }
-
     private void readObject(ObjectInputStream stream) throws ClassNotFoundException, IOException {
         stream.defaultReadObject();
-        int len = stream.readInt();
-        byte[] graphDef = new byte[len];
-        stream.readFully(graphDef);
-        graph = new Graph();
-        graph.importGraphDef(graphDef);
-        session = new Session(graph);
-        session.runner().addTarget(initOper).run();
+        if (exportDir != null) {
+            SavedModelBundle savedModel = TensorFlowModelProducer.loadTensorFlowSavedModel(exportDir);
+            if (savedModel != null) {
+                graph = savedModel.graph();
+                session = savedModel.session();
+                feedFeas = getFeedFeas(graph);
+            }
+        } else if (graphDefFile != null) {
+            graph = TensorFlowModelProducer.loadTensorFlowGraph(graphDefFile);
+            if (graph != null) {
+                session = new Session(graph);
+                session.runner().addTarget(initOper).run();
+                feedFeas = getFeedFeas(graph);
+            }
+        }
     }
 }

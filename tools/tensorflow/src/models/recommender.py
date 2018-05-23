@@ -3,6 +3,7 @@ import tensorflow as tf
 
 from src.builder import ModelBuilder
 from src.models import metrics
+from src.models import context_metrics
 
 
 class RecommenderBuilder(ModelBuilder):
@@ -15,7 +16,7 @@ class RecommenderBuilder(ModelBuilder):
                  embedding_attrs=None,
                  target2config=None,
                  eval_metrics='MAP@1,5 AUC AP@1,5 AR@1,5',
-                 eval_per_step=True,
+                 eval_per_step=False,
                  loss_split_steps=500,
                  max_train_steps=500,
                  train_steps=1,
@@ -103,20 +104,33 @@ class RecommenderBuilder(ModelBuilder):
                 paras, target, config, mode, context)
         return num_labels, loss, updates
 
-    def _compute_target_metrics(self, user_model, indices, labels, paras, target, config):
-        used_labels = tf.gather_nd(labels, indices)
+    def _compute_target_metrics(self, eval_metrics, user_model, indices, labels, paras,
+            target, config, context):
+        mask = tf.gather_nd(labels, indices) > 0
+        used_indices = tf.boolean_mask(indices, mask)
+        used_labels = tf.gather_nd(labels, used_indices)
         if not self._eval_per_step:
-            used_model, uniq_batch_idx, ori_batch_idx, step_idx = metrics.get_eval_user_model(
+            used_model, used_model_indices, ori_batch_idx, step_idx = metrics.get_per_batch_eval_user_model(
+                    user_model, used_indices)
+            used_preds = self._prediction_model.get_target_prediction(
+                    used_model, used_model_indices, paras, target, config, context)
+            updates = metrics.compute_per_batch_eval_metrics(
+                    eval_metrics, used_preds, used_labels, labels, used_indices,
+                    used_model_indices, ori_batch_idx, step_idx, config, context)
+            with tf.variable_scope('context'):
+                used_model, used_model_indices, ori_batch_idx, _ = metrics.get_per_batch_eval_user_model(
                     user_model, indices)
-            predictions = self._prediction_model.get_target_prediction(
-                    used_model, paras, target, config)
-            return metrics.compute_eval_label_metrics(
-                    self._eval_metrics, predictions, used_labels, tf.shape(labels), indices,
-                    uniq_batch_idx, ori_batch_idx, step_idx)
+                predictions = self._prediction_model.get_target_prediction(
+                    used_model, used_model_indices, paras, target, config, context)
+                updates += context_metrics.compute_per_batch_eval_metrics(
+                    eval_metrics, predictions, labels, indices, ori_batch_idx, config, context)
+            return updates
         else:
-            used_model = metrics.get_per_step_eval_user_model(user_model, indices)
-            predictions = self._prediction_model.get_target_prediction(used_model, paras, target, config)
-            return metrics.compute_per_step_eval_label_metrics(self._eval_metrics, predictions, used_labels)
+            used_model = metrics.get_per_step_eval_user_model(user_model, used_indices)
+            predictions = self._prediction_model.get_target_prediction(used_model, used_indices,
+                                                                       paras, target, config)
+            return metrics.compute_per_step_eval_metrics(
+                    eval_metrics, predictions, used_labels, used_indices, config, context)
 
     def _get_default_train_eval_indices(self, labels, start_limit, split_limit, length_limit):
         indices = tf.cast(tf.where(labels >= 0), tf.int32)
@@ -171,32 +185,44 @@ class RecommenderBuilder(ModelBuilder):
             train_indices = self._get_constrained_steps(train_indices, 'train')
         if self._eval_steps < self._max_train_steps:
             eval_indices = self._get_constrained_steps(eval_indices, 'eval')
+        tf.summary.scalar('num_left_of_split', tf.shape(train_indices)[0])
+        tf.summary.scalar('num_right_of_split', tf.shape(eval_indices)[0])
+        train_tstamps = tf.gather_nd(tstamp, train_indices)
+        eval_tstamps = tf.gather_nd(tstamp, eval_indices)
+        tf.summary.histogram('train_tstamps', train_tstamps)
+        tf.summary.histogram('eval_tstamps', eval_tstamps)
         return train_indices, eval_indices
 
     def _get_loss_metrics(self, sequence_length, user_model, attr2input):
         length_limit = tf.minimum(
             tf.reshape(sequence_length, [-1]),
             self._max_train_steps)
-        # TODO: remove this for it's expensive
         tf.summary.histogram('batch_sequence_length', length_limit)
-        split_limit = tf.maximum(length_limit - self._eval_steps, 0)
-        start_limit = tf.maximum(split_limit - self._train_steps, 0)
+        if 0.0 < self._eval_steps < 1.0 and 0.0 < self._train_steps < 1.0:
+            split_limit = tf.maximum(
+                length_limit - tf.cast(tf.cast(length_limit, tf.float32) * self._eval_steps, tf.int32), 0)
+            start_limit = tf.maximum(
+                split_limit - tf.cast(tf.cast(length_limit, tf.float32) * self._train_steps, tf.int32), 0)
+        else:
+            split_limit = tf.maximum(length_limit - self._eval_steps, 0)
+            start_limit = tf.maximum(split_limit - self._train_steps, 0)
         train_loss = 0.0
         eval_loss = 0.0
-        num_train_labels = 0.0
-        num_eval_labels = 0.0
+        sum_weight = 0.0
         updates = []
         target2paras = {}
-        for target, config in self._target2config.iteritems():
-            with tf.variable_scope('paras'):
+        if self._split_tstamp is not None:
+            train_indices, eval_indices = self._get_train_eval_indices_by_tstamp(
+                attr2input[self._tstamp_attr])
+        with tf.variable_scope('paras'):
+            for target, config in self._target2config.iteritems():
                 target2paras[target] = self._prediction_model.get_target_paras(target, config)
+        for target, config in self._target2config.iteritems():
             with tf.variable_scope(target):
+                sum_weight += config['weight']
                 if self._split_tstamp is None:
                     train_indices, eval_indices = self._get_default_train_eval_indices(
                         attr2input[target], start_limit, split_limit, length_limit)
-                else:
-                    train_indices, eval_indices = self._get_train_eval_indices_by_tstamp(
-                        attr2input[self._tstamp_attr])
                 self._test_tensors['train_indices'] = train_indices
                 self._test_tensors['eval_indices'] = eval_indices
                 with tf.variable_scope('train'):
@@ -205,25 +231,32 @@ class RecommenderBuilder(ModelBuilder):
                         target, config, 'train', attr2input)
                     updates += model_updates
                     tf.summary.scalar('num_labels', num_target_train_labels)
-                    num_train_labels += config['weight'] * tf.cast(num_target_train_labels, tf.float32)
+                    num_target_train_labels = tf.cast(num_target_train_labels, tf.float32)
+                    mean_train_target_loss = train_target_loss / tf.maximum(num_target_train_labels, 1.0)
+                    tf.summary.scalar('loss', mean_train_target_loss)
+                    train_loss += config['weight'] * mean_train_target_loss
                 with tf.variable_scope('eval'):
                     num_target_eval_labels, eval_target_loss, model_updates = self._compute_target_loss(
                         user_model, eval_indices, attr2input[target], target2paras[target],
                         target, config, 'eval', attr2input)
                     updates += model_updates
                     tf.summary.scalar('num_labels', num_target_eval_labels)
-                    num_eval_labels += config['weight'] * tf.cast(num_target_eval_labels, tf.float32)
-                    if self._eval_metrics is not None:
+                    num_target_eval_labels = tf.cast(num_target_eval_labels, tf.float32)
+                    mean_eval_target_loss = eval_target_loss / tf.maximum(num_target_eval_labels, 1.0)
+                    tf.summary.scalar('loss', mean_eval_target_loss)
+                    eval_loss += config['weight'] * mean_eval_target_loss
+                    eval_metrics = self._eval_metrics
+                    if 'metrics' in config:
+                        eval_metrics = config['metrics']
+                    if eval_metrics is not None:
                         updates += self._compute_target_metrics(
-                            user_model, eval_indices, attr2input[target],
-                            target2paras[target], target, config)
-            train_loss += config['weight'] * train_target_loss
-            eval_loss += config['weight'] * eval_target_loss
-        train_loss = train_loss / tf.maximum(1.0, num_train_labels)
-        eval_loss = eval_loss / tf.maximum(1.0, num_eval_labels)
+                            eval_metrics, user_model, eval_indices, attr2input[target],
+                            target2paras[target], target, config, attr2input)
+        train_loss /= sum_weight
+        eval_loss /= sum_weight
         tf.summary.scalar('train_loss', train_loss)
         tf.summary.scalar('eval_loss', eval_loss)
-        return train_loss, updates, target2paras
+        return train_loss, eval_loss, updates, target2paras
 
     def _get_inputs(self):
         attr2input = {}
@@ -234,10 +267,13 @@ class RecommenderBuilder(ModelBuilder):
                 size = 1
             if config['is_numerical']:
                 name = '%s_val' % attr
+                inputs = tf.cast(
+                    tf.placeholder(tf.float64, shape=(None, size), name=name),
+                    tf.float32)
             else:
                 name = '%s_idx' % attr
-            inputs = tf.placeholder(
-                tf.int32, shape=(None, size), name=name)
+                inputs = tf.placeholder(
+                    tf.int32, shape=(None, size), name=name)
             if config['level'] == 'item':
                 max_seq_len = tf.shape(inputs)[1] / self._page_size
                 inputs = tf.reshape(inputs, [tf.shape(inputs)[0], max_seq_len, self._page_size])
@@ -247,7 +283,8 @@ class RecommenderBuilder(ModelBuilder):
         if max_seq_len is None:
             raise Exception('There must be an item level attribute in attr2config.')
         sequence_length = tf.placeholder(
-                tf.int32, shape=(None, 1), name='sequence_length_val') / self._page_size
+                tf.float64, shape=(None, 1), name='sequence_length_val') / self._page_size
+        sequence_length = tf.cast(sequence_length, tf.int32)
         return max_seq_len, sequence_length, attr2input
 
     def _get_embedders(self):
@@ -277,16 +314,16 @@ class RecommenderBuilder(ModelBuilder):
             attr2embedding[attr] = embedding
         return attr2embedding
 
-    def _get_prediction(self, sequence_length, user_model, target2paras):
+    def _get_prediction(self, sequence_length, user_model, target2paras, attr2input):
         seq_idx = sequence_length
         batch_idx = tf.expand_dims(tf.range(tf.shape(sequence_length)[0]), 1)
-        output_idx = tf.concat([batch_idx, seq_idx], 1)
-        model_output = tf.gather_nd(user_model, output_idx)
+        indices = tf.concat([batch_idx, seq_idx], 1)
+        used_model = tf.gather_nd(user_model, indices)
         target2preds = {}
         for target, config in self._target2config.iteritems():
             target2preds[target] = self._prediction_model.get_target_prediction(
-                model_output, target2paras[target], target, config)
-            tf.nn.top_k(target2preds[target], k=self._top_k, sorted=True, name='%s_top_k' % target)
+                used_model, indices, target2paras[target], target, config, attr2input)
+            tf.nn.top_k(target2preds[target], k=self._top_k, sorted=True, name='%s_top_k_op' % target)
         return target2preds
 
     def build_model(self):
@@ -300,9 +337,9 @@ class RecommenderBuilder(ModelBuilder):
             initial = tf.zeros([tf.shape(user_model)[0], 1, tf.shape(user_model)[2]])
             user_model = tf.concat([initial, user_model], axis=1)
         with tf.variable_scope('metrics'):
-            loss, updates, target2paras = self._get_loss_metrics(
+            train_loss, eval_loss, updates, target2paras = self._get_loss_metrics(
                 sequence_length, user_model, attr2input)
         with tf.variable_scope('prediction'):
-            self._get_prediction(sequence_length, user_model, target2paras)
-        return loss, updates
+            self._get_prediction(sequence_length, user_model, target2paras, attr2input)
+        return train_loss, eval_loss, updates
 

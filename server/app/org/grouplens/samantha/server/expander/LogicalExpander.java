@@ -75,13 +75,17 @@ public class LogicalExpander implements EntityExpander {
                     values[i] = "0";
                 }
                 for (int j=0; j<sources.size(); j++) {
-                    double val = Double.parseDouble(sources.get(j)[i]);
-                    if (val > 0.0 && or) {
-                        values[i] = "1";
-                        break;
-                    } else if (val <= 0.0 && !or) {
-                        values[i] = "0";
-                        break;
+                    if ("".equals(sources.get(j))) {
+                        values[i] = "";
+                    } else {
+                        double val = Double.parseDouble(sources.get(j)[i]);
+                        if (val > 0.0 && or) {
+                            values[i] = "1";
+                            break;
+                        } else if (val <= 0.0 && !or) {
+                            values[i] = "0";
+                            break;
+                        }
                     }
                 }
             }

@@ -24,6 +24,7 @@ package org.grouplens.samantha.modeler.featurizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.model.IndexSpace;
+import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +38,7 @@ public class SeparatedStringExtractor implements FeatureExtractor {
     private static Logger logger = LoggerFactory.getLogger(SeparatedStringExtractor.class);
     private final String indexName;
     private final String attrName;
+    private final String keyPrefix;
     private final String feaName;
     private final String separator;
     private final boolean normalize;
@@ -45,6 +47,7 @@ public class SeparatedStringExtractor implements FeatureExtractor {
 
     public SeparatedStringExtractor(String indexName,
                                     String attrName,
+                                    String keyPrefix,
                                     String feaName,
                                     String separator,
                                     boolean normalize,
@@ -52,6 +55,11 @@ public class SeparatedStringExtractor implements FeatureExtractor {
                                     Integer maxFeatures) {
         this.indexName = indexName;
         this.attrName = attrName;
+        if (keyPrefix != null) {
+            this.keyPrefix = keyPrefix;
+        } else {
+            this.keyPrefix = attrName;
+        }
         this.feaName = feaName;
         this.separator = separator;
         this.normalize = normalize;
@@ -68,20 +76,27 @@ public class SeparatedStringExtractor implements FeatureExtractor {
             if (entity.has(attrName)) {
                 attr = entity.get(attrName).asText();
             }
-            String[] fields = attr.split(separator, -1);
-            int start = 0;
-            if (maxFeatures != null && fields.length > maxFeatures) {
-                start = fields.length - maxFeatures;
-            }
-            double val = 1.0;
-            if (fields.length > 0 && normalize) {
-                val = 1.0 / Math.sqrt(fields.length - start);
-            }
-            for (int i=start; i<fields.length; i++) {
-                String field = fields[i];
-                String key = FeatureExtractorUtilities.composeKey(attrName, field);
-                FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
-                        indexSpace, indexName, key, val);
+            if (!"".equals(attr) || "".equals(fillIn)) {
+                String[] fields = attr.split(separator, -1);
+                int start = 0;
+                if (maxFeatures != null && fields.length > maxFeatures) {
+                    start = fields.length - maxFeatures;
+                }
+                double val = 1.0;
+                if (fields.length > 0 && normalize) {
+                    val = 1.0 / Math.sqrt(fields.length - start);
+                }
+                for (int i = start; i < fields.length; i++) {
+                    String field = fields[i];
+                    String key;
+                    if ("".equals(field)) {
+                        key = TensorFlowModel.OOV;
+                    } else {
+                        key = FeatureExtractorUtilities.composeKey(keyPrefix, field);
+                    }
+                    FeatureExtractorUtilities.getOrSetIndexSpaceToFeaturize(features, update,
+                            indexSpace, indexName, key, val);
+                }
             }
             feaMap.put(feaName, features);
         }

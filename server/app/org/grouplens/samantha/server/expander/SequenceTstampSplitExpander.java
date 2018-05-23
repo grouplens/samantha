@@ -34,18 +34,23 @@ import java.util.List;
 
 public class SequenceTstampSplitExpander implements EntityExpander {
     final private List<String> nameAttrs;
+    final private List<String> beforeAttrs;
+    final private List<String> afterAttrs;
     final private String tstampAttr;
     final private int splitTstamp;
     final private String separator;
     final private String joiner;
 
     public SequenceTstampSplitExpander(List<String> nameAttrs, String separator, String joiner,
-                                       String tstampAttr, int splitTstamp) {
+                                       String tstampAttr, int splitTstamp, List<String> beforeAttrs,
+                                       List<String> afterAttrs) {
         this.nameAttrs = nameAttrs;
         this.joiner = joiner;
         this.separator = separator;
         this.splitTstamp = splitTstamp;
         this.tstampAttr = tstampAttr;
+        this.beforeAttrs = beforeAttrs;
+        this.afterAttrs = afterAttrs;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
@@ -58,12 +63,13 @@ public class SequenceTstampSplitExpander implements EntityExpander {
                 expanderConfig.getStringList("nameAttrs"),
                 expanderConfig.getString("separator"),
                 expanderConfig.getString("joiner"),
-                expanderConfig.getString("tstampAttr"), splitTstamp);
+                expanderConfig.getString("tstampAttr"), splitTstamp,
+                expanderConfig.getStringList("beforeAttrs"),
+                expanderConfig.getStringList("afterAttrs"));
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult,
                                    RequestContext requestContext) {
-        List<ObjectNode> expanded = new ArrayList<>();
         for (ObjectNode entity : initialResult) {
             List<String[]> values = new ArrayList<>();
             for (String nameAttr : nameAttrs) {
@@ -81,13 +87,12 @@ public class SequenceTstampSplitExpander implements EntityExpander {
                 }
             }
             for (int i=0; i<nameAttrs.size(); i++) {
-                String nameAttr = nameAttrs.get(i);
-                entity.put(nameAttr + "Before", StringUtils.join(
+                entity.put(beforeAttrs.get(i), StringUtils.join(
                         ArrayUtils.subarray(values.get(i), 0, split), joiner));
-                entity.put(nameAttr + "After", StringUtils.join(
+                entity.put(afterAttrs.get(i), StringUtils.join(
                         ArrayUtils.subarray(values.get(i), split, size), joiner));
             }
         }
-        return expanded;
+        return initialResult;
     }
 }

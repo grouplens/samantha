@@ -24,12 +24,15 @@ package org.grouplens.samantha.server.evaluator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
+import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.dao.EntityDAOUtilities;
 import org.grouplens.samantha.modeler.metric.Metric;
 import org.grouplens.samantha.server.evaluator.metric.MetricConfig;
+import org.grouplens.samantha.server.expander.EntityExpander;
+import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.indexer.Indexer;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.predictor.Predictor;
@@ -39,25 +42,31 @@ import play.inject.Injector;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PredictionEvaluatorConfig implements EvaluatorConfig {
+public class PredictionEvaluatorConfig extends AbstractComponentConfig implements EvaluatorConfig {
     final private Injector injector;
     final private String predictorName;
     final private String predictorNameKey;
     final private List<String> groupKeys;
     final private List<String> indexerNames;
     final private List<String> predIndexerNames;
+    final private String labelAttr;
+    final private String separator;
     final private List<MetricConfig> metricConfigs;
     final private Configuration daoConfigs;
     final private String daoConfigKey;
 
-    private PredictionEvaluatorConfig(List<MetricConfig> metricConfigs,
+    private PredictionEvaluatorConfig(Configuration config,
+                                      List<MetricConfig> metricConfigs,
                                       String predictorName,
                                       String predictorNameKey,
                                       List<String> groupKeys,
                                       List<String> indexerNames,
                                       List<String> predIndexerNames,
+                                      String labelAttr,
+                                      String separator,
                                       Configuration daoConfigs,
                                       Injector injector, String daoConfigKey) {
+        super(config);
         this.metricConfigs = metricConfigs;
         this.predictorName = predictorName;
         this.predictorNameKey = predictorNameKey;
@@ -67,18 +76,23 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
         this.injector = injector;
         this.daoConfigs = daoConfigs;
         this.daoConfigKey = daoConfigKey;
+        this.labelAttr = labelAttr;
+        this.separator = separator;
     }
 
     public static EvaluatorConfig getEvaluatorConfig(Configuration evalConfig,
                                               Injector injector) {
         List<MetricConfig> metricConfigs = EvaluatorUtilities
                 .getMetricConfigs(evalConfig.getConfigList("metrics"), injector);
-        return new PredictionEvaluatorConfig(metricConfigs,
+        return new PredictionEvaluatorConfig(evalConfig,
+                metricConfigs,
                 evalConfig.getString("predictor"),
                 evalConfig.getString("predictorKey"),
                 evalConfig.getStringList("groupKeys"),
                 evalConfig.getStringList("indexers"),
                 evalConfig.getStringList("predictionIndexers"),
+                evalConfig.getString("labelAttr"),
+                evalConfig.getString("separator"),
                 evalConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()), injector,
                 evalConfig.getString("daoConfigKey"));
     }
@@ -104,6 +118,9 @@ public class PredictionEvaluatorConfig implements EvaluatorConfig {
         }
         EntityDAO entityDao = EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 reqBody.get(daoConfigKey), injector);
-        return new PredictionEvaluator(predictor, entityDao, groupKeys, metrics, indexers, predIndexers);
+        List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
+                expandersConfig, injector);
+        return new PredictionEvaluator(predictor, entityDao, entityExpanders,
+                groupKeys, metrics, indexers, predIndexers, labelAttr, separator);
     }
 }

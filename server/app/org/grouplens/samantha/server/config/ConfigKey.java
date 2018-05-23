@@ -58,6 +58,7 @@ public enum ConfigKey {
     EVALUATOR_METRIC_NAME("metricName"),
     EVALUATOR_METRIC_PARA("metricPara"),
     EVALUATOR_METRIC_VALUE("metricValue"),
+    EVALUATOR_METRIC_SUPPORT("metricSupport"),
     EXPANDERS_CONFIG("expandersConfig"),
     EXPANDER_CLASS("expanderClass"),
     STATE_PROBABILITY_NAME("prob"),
@@ -74,6 +75,7 @@ public enum ConfigKey {
     OBJECTIVE_CLASS("objectiveClass"),
     DATA_SUBSCRIBERS("dataSubscribers"),
     DATA_OPERATION("dataOperation"),
+    LABEL_INDEX_NAME("CLASS"),
     ;
     private final String key;
 

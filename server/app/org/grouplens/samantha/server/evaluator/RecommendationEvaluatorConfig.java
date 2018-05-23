@@ -24,12 +24,15 @@ package org.grouplens.samantha.server.evaluator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
+import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.dao.EntityDAOUtilities;
 import org.grouplens.samantha.modeler.metric.Metric;
 import org.grouplens.samantha.server.evaluator.metric.MetricConfig;
+import org.grouplens.samantha.server.expander.EntityExpander;
+import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.indexer.Indexer;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.recommender.Recommender;
@@ -39,7 +42,7 @@ import play.inject.Injector;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RecommendationEvaluatorConfig implements EvaluatorConfig {
+public class RecommendationEvaluatorConfig extends AbstractComponentConfig implements EvaluatorConfig {
     final private Injector injector;
     final private String recommenderName;
     final private String recommenderNameKey;
@@ -49,16 +52,19 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
     final private Configuration daoConfigs;
     final private String daoConfigKey;
     final private List<String> groupKeys;
+    final private List<String> itemKeys;
 
-    private RecommendationEvaluatorConfig(List<MetricConfig> metricConfigs,
+    private RecommendationEvaluatorConfig(Configuration config, List<MetricConfig> metricConfigs,
                                           String recommenderName,
                                           String recommenderNameKey,
                                           List<String> indexerNames,
                                           List<String> recIndexerNames,
                                           Configuration daoConfigs,
                                           List<String> groupKeys,
+                                          List<String> itemKeys,
                                           String daoConfigKey,
                                           Injector injector) {
+        super(config);
         this.metricConfigs = metricConfigs;
         this.recommenderName = recommenderName;
         this.recommenderNameKey = recommenderNameKey;
@@ -67,6 +73,7 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
         this.injector = injector;
         this.daoConfigKey = daoConfigKey;
         this.groupKeys = groupKeys;
+        this.itemKeys = itemKeys;
         this.daoConfigs = daoConfigs;
     }
 
@@ -74,13 +81,15 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
                                                      Injector injector) {
         List<MetricConfig> metricConfigs = EvaluatorUtilities
                 .getMetricConfigs(evalConfig.getConfigList("metrics"), injector);
-        return new RecommendationEvaluatorConfig(metricConfigs,
+        return new RecommendationEvaluatorConfig(evalConfig,
+                metricConfigs,
                 evalConfig.getString("recommender"),
                 evalConfig.getString("recommenderKey"),
                 evalConfig.getStringList("indexers"),
                 evalConfig.getStringList("recommendationIndexers"),
                 evalConfig.getConfig(ConfigKey.ENTITY_DAOS_CONFIG.get()),
                 evalConfig.getStringList("groupKeys"),
+                evalConfig.getStringList("itemKeys"),
                 evalConfig.getString("daoConfigKey"),
                 injector);
     }
@@ -107,7 +116,9 @@ public class RecommendationEvaluatorConfig implements EvaluatorConfig {
         }
         EntityDAO entityDao = EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 reqBody.get(daoConfigKey), injector);
-        return new RecommendationEvaluator(recommender, entityDao, groupKeys,
-                metrics, indexers, recIndexers);
+        List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
+                expandersConfig, injector);
+        return new RecommendationEvaluator(recommender, entityDao, entityExpanders,
+                groupKeys, itemKeys, metrics, indexers, recIndexers);
     }
 }

@@ -1,11 +1,11 @@
 
 import json
-import numpy as np
 import logging
 
 from src.dataset import DataSet
 
 logger = logging.getLogger('json_files')
+
 
 class JsonFilesDataSet(DataSet):
 
@@ -27,14 +27,10 @@ class JsonFilesDataSet(DataSet):
                 for line in fin:
                     obj = json.loads(line.strip())
                     feed_dict = {}
-                    if self._includes is None:
-                        for key, val in obj.iteritems():
-                            if key not in self._excludes:
-                                feed_dict['%s:0' % key] = np.array(val)
-                    else:
-                        for key in self._includes:
-                            if key not in self._excludes:
-                                feed_dict['%s:0' % key] = np.array(obj[key])
+                    for key, val in obj.iteritems():
+                        if (self._includes is None or key in self._includes) and (key not in self._excludes):
+                            feed_key = '%s:0' % key
+                            feed_dict[feed_key] = val
                     yield feed_dict
 
     def reset(self):

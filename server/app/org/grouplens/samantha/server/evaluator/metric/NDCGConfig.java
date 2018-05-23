@@ -33,13 +33,18 @@ import java.util.List;
 public class NDCGConfig implements MetricConfig {
     private final List<Integer> N;
     private final List<String> itemKeys;
+    private final List<String> recKeys;
     private final String relevanceKey;
+    private final String separator;
     private final double minValue;
 
-    private NDCGConfig(List<Integer> N, List<String> itemKeys, String relevanceKey, double minValue) {
+    private NDCGConfig(List<Integer> N, List<String> itemKeys, List<String> recKeys,
+                       String relevanceKey, String separator, double minValue) {
         this.N = N;
         this.itemKeys = itemKeys;
+        this.recKeys = recKeys;
         this.relevanceKey = relevanceKey;
+        this.separator = separator;
         this.minValue = minValue;
     }
 
@@ -49,12 +54,19 @@ public class NDCGConfig implements MetricConfig {
         if (metricConfig.asMap().containsKey("minValue")) {
             minValue = metricConfig.getDouble("minValue");
         }
+        List<String> itemKeys = metricConfig.getStringList("itemKeys");
+        List<String> recKeys = metricConfig.getStringList("recKeys");
+        if (recKeys == null) {
+            recKeys = itemKeys;
+        }
         return new NDCGConfig(metricConfig.getIntList("N"),
-                metricConfig.getStringList("itemKeys"),
-                metricConfig.getString("relevanceKey"), minValue);
+                itemKeys, recKeys,
+                metricConfig.getString("relevanceKey"),
+                metricConfig.getString("separator"),
+                minValue);
     }
 
     public Metric getMetric(RequestContext requestContext) {
-        return new NDCG(N, itemKeys, relevanceKey, minValue);
+        return new NDCG(N, itemKeys, recKeys, relevanceKey, separator, minValue);
     }
 }

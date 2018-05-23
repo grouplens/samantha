@@ -48,10 +48,16 @@ public class StochasticGradientDescentConfig implements LearningMethodConfig {
         if (methodConfig.asMap().containsKey("maxIter")) {
             maxIter = methodConfig.getInt("maxIter");
         }
+        Double l2coef = methodConfig.getDouble("l2coef");
+        if (l2coef == null) {
+            l2coef = 0.0;
+        }
+        Double lr = methodConfig.getDouble("learningRate");
+        if (lr == null) {
+            lr = 0.01;
+        }
         OnlineOptimizationMethod onlineMethod = new StochasticGradientDescent(
-                maxIter, minIter, methodConfig.getDouble("l2coef"),
-                methodConfig.getDouble("learningRate"), tol
-        );
+                maxIter, minIter, l2coef, lr, tol);
         return onlineMethod;
     }
 }
