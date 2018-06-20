@@ -97,6 +97,6 @@ public class RedisBasedIndexerConfig implements IndexerConfig {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         return new RedisBasedIndexer(redisService, structure, configService, keyFieldsKey, sortFieldKey,
                 indexPrefixKey, hashFieldsKey, daoConfigs, injector, keyFields, hashFields, sortField,
-                indexPrefix, daoConfigKey, config);
+                indexPrefix, daoConfigKey, config, 128, requestContext);
     }
 }

@@ -60,6 +60,7 @@ public enum ConfigKey {
     EVALUATOR_METRIC_VALUE("metricValue"),
     EVALUATOR_METRIC_SUPPORT("metricSupport"),
     EXPANDERS_CONFIG("expandersConfig"),
+    POST_EXPANDERS_CONFIG("postExpandersConfig"),
     EXPANDER_CLASS("expanderClass"),
     STATE_PROBABILITY_NAME("prob"),
     TRANSITIONER_CLASS("transitionerClass"),

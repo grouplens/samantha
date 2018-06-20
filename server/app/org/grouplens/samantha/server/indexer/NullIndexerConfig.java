@@ -51,6 +51,6 @@ public class NullIndexerConfig implements IndexerConfig {
 
     public Indexer getIndexer(RequestContext requestContext) {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
-        return new NullIndexer(config, configService, injector, daoConfigKey, daoConfigs);
+        return new NullIndexer(config, configService, injector, daoConfigKey, daoConfigs, 128, requestContext);
     }
 }

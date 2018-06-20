@@ -70,8 +70,9 @@ public class GroupedIndexer extends AbstractIndexer {
                           List<String> orderFields, Boolean descending,
                           String filesKey, String daoName, String daoNameKey,
                           String separatorKey, int usedBuckets, boolean skip,
-                          List<String> groupKeysTypes, List<String> orderFieldsTypes) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                          List<String> groupKeysTypes, List<String> orderFieldsTypes,
+                          int batchSize, RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.indexer = indexer;
         this.dataDir = dataDir;
         this.numBuckets = numBuckets;

@@ -90,8 +90,9 @@ public class RedisBasedIndexer extends AbstractIndexer {
                              String hashFieldsKey, Configuration daoConfigs, Injector injector,
                              List<String> keyFields, List<String> hashFields,
                              String sortField, String indexPrefix,
-                             String daoConfigKey, Configuration config) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                             String daoConfigKey, Configuration config,
+                             int batchSize, RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.service = service;
         this.structure = structure;
         this.keyFieldsKey = keyFieldsKey;

@@ -100,6 +100,7 @@ public class AggregateIndexerConfig implements IndexerConfig {
         GroupedIndexer indexer = (GroupedIndexer) configService.getIndexer(indexerName, requestContext);
         return new AggregateIndexer(configService, config, injector, daoConfigs, daoConfigKey,
                 filePathKey, otherFields, separator, daoNameKey, daoName, filesKey, groupKeys,
-                filePath, separatorKey, indexer, aggFields, aggCntName, aggSumAppendix);
+                filePath, separatorKey, indexer, aggFields, aggCntName, aggSumAppendix,
+                128, requestContext);
     }
 }

@@ -47,8 +47,8 @@ public class CatIndexer extends AbstractIndexer {
                       Configuration daoConfigs,
                       String daoConfigKey, String indexersDaoConfigKey,
                       List<String> indexerNames, String daoName,
-                      String daoNameKey) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                      String daoNameKey, int batchSize, RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.indexersDaoConfigKey = indexersDaoConfigKey;
         this.indexerNames = indexerNames;
         this.daoName = daoName;

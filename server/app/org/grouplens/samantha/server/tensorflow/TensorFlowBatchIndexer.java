@@ -47,12 +47,10 @@ public class TensorFlowBatchIndexer extends AbstractIndexer {
                                   Configuration config, Injector injector,
                                   Configuration daoConfigs, String daoConfigKey,
                                   Indexer indexer, TensorFlowModel model,
-                                  int batchSize, String timestampField) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                                  int batchSize, String timestampField, RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.indexer = indexer;
         this.model = model;
-        //TODO: change this into AbstractIndexer constructor
-        this.batchSize = batchSize;
         this.timestampField = timestampField;
     }
 

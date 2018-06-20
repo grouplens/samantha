@@ -51,6 +51,7 @@ public class LoggerBasedIndexerConfig implements IndexerConfig {
 
     public Indexer getIndexer(RequestContext requestContext) {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
-        return new LoggerBasedIndexer(config, configService, daoConfigKey, daoConfigs, injector);
+        return new LoggerBasedIndexer(config, configService, daoConfigKey, daoConfigs, injector,
+                128, requestContext);
     }
 }

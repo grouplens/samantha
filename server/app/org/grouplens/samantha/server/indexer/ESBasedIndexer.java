@@ -58,8 +58,8 @@ public class ESBasedIndexer extends AbstractIndexer {
                           String indexType,
                           List<String> uniqueFields,
                           Injector injector, String daoConfigKey,
-                          Configuration config) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                          Configuration config, int batchSize, RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.elasticSearchService = elasticSearchService;
         this.indexTypeKey = indexTypeKey;
         this.elasticSearchIndex = elasticSearchIndex;

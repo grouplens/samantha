@@ -69,8 +69,8 @@ public class UserReturnIndexer extends AbstractIndexer {
                              String daoNameKey, String daoName, String filesKey,
                              String rewardKey, List<String> groupKeys, String sessionIdKey, String filePath,
                              String separatorKey, GroupedIndexer indexer, int maxTime, int reinforceThreshold,
-                             String usedGroupsFilePath) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                             String usedGroupsFilePath, int batchSize, RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.indexer = indexer;
         this.filePathKey = filePathKey;
         this.timestampField = timestampField;

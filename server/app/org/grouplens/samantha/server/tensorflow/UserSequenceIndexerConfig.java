@@ -99,6 +99,7 @@ public class UserSequenceIndexerConfig implements IndexerConfig {
         GroupedIndexer indexer = (GroupedIndexer) configService.getIndexer(indexerName, requestContext);
         return new UserSequenceIndexer(configService, config, injector, daoConfigs, daoConfigKey,
                 filePathKey, dataFields, separator, daoNameKey, daoName, filesKey,
-                groupKeys, filePath, innerFieldSeparator, separatorKey, indexer, usedGroupsFilePath);
+                groupKeys, filePath, innerFieldSeparator, separatorKey, indexer, usedGroupsFilePath,
+                128, requestContext);
     }
 }

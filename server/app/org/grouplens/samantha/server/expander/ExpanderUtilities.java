@@ -72,6 +72,14 @@ public class ExpanderUtilities {
         return expandersConfig;
     }
 
+    static public List<Configuration> getPostEntityExpandersConfig(Configuration parentConfig) {
+        List<Configuration> expandersConfig = new ArrayList<>();
+        if (parentConfig.asMap().containsKey(ConfigKey.POST_EXPANDERS_CONFIG.get())) {
+            expandersConfig = parentConfig.getConfigList(ConfigKey.POST_EXPANDERS_CONFIG.get());
+        }
+        return expandersConfig;
+    }
+
     static public List<ObjectNode> expand(List<ObjectNode> initial, List<EntityExpander> expanders,
                                           RequestContext requestContext) {
         for (EntityExpander expander : expanders) {

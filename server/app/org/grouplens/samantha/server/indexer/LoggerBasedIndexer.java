@@ -32,8 +32,9 @@ import play.inject.Injector;
 public class LoggerBasedIndexer extends AbstractIndexer {
 
     public LoggerBasedIndexer(Configuration config, SamanthaConfigService configService,
-                              String daoConfigKey, Configuration daoConfigs, Injector injector) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                              String daoConfigKey, Configuration daoConfigs, Injector injector,
+                              int batchSize, RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
     }
 
     public void index(JsonNode documents, RequestContext requestContext) {

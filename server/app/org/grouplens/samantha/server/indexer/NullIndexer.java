@@ -33,8 +33,9 @@ public class NullIndexer extends AbstractIndexer {
     public NullIndexer(Configuration config,
                        SamanthaConfigService configService,
                        Injector injector, String daoConfigKey,
-                       Configuration daoConfigs) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                       Configuration daoConfigs, int batchSize,
+                       RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
     }
 
     public void index(JsonNode data, RequestContext requestContext) {}

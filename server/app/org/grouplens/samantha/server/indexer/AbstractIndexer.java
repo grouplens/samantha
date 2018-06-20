@@ -41,7 +41,6 @@ import play.Configuration;
 import play.inject.Injector;
 import play.libs.Json;
 
-import java.util.ArrayList;
 import java.util.List;
 
 abstract public class AbstractIndexer implements Indexer {
@@ -50,19 +49,24 @@ abstract public class AbstractIndexer implements Indexer {
     protected final Configuration daoConfigs;
     protected final String daoConfigKey;
     protected final Injector injector;
-    protected final List<Configuration> expandersConfig;
+    protected final List<EntityExpander> expanders;
+    protected final List<EntityExpander> postExpanders;
     protected final List<Configuration> subscribers;
-    //TODO: change this to take value from constructor and final
-    protected int batchSize = 128;
+    protected final int batchSize;
 
     public AbstractIndexer(Configuration config, SamanthaConfigService configService,
-                           Configuration daoConfigs, String daoConfigKey, Injector injector) {
+                           Configuration daoConfigs, String daoConfigKey, int batchSize,
+                           RequestContext requestContext, Injector injector) {
         this.config = config;
         this.configService = configService;
         this.daoConfigKey = daoConfigKey;
         this.daoConfigs = daoConfigs;
         this.injector = injector;
-        this.expandersConfig = ExpanderUtilities.getEntityExpandersConfig(config);
+        this.batchSize = batchSize;
+        this.expanders = ExpanderUtilities.getEntityExpanders(requestContext,
+                ExpanderUtilities.getEntityExpandersConfig(config), injector);
+        this.postExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
+                ExpanderUtilities.getPostEntityExpandersConfig(config), injector);
         this.subscribers = config.getConfigList(ConfigKey.DATA_SUBSCRIBERS.get());
     }
 
@@ -96,9 +100,7 @@ abstract public class AbstractIndexer implements Indexer {
         EntityDAO entityDAO = EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
                 reqBody.get(daoConfigKey), injector);
         ArrayNode toIndex = Json.newArray();
-        List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
-                expandersConfig, injector);
-        ExpandedEntityDAO expandedEntityDAO = new ExpandedEntityDAO(entityExpanders, entityDAO, requestContext);
+        ExpandedEntityDAO expandedEntityDAO = new ExpandedEntityDAO(expanders, entityDAO, requestContext);
         while (expandedEntityDAO.hasNextEntity()) {
             toIndex.add(expandedEntityDAO.getNextEntity());
             if (toIndex.size() >= batchSize) {
@@ -116,8 +118,9 @@ abstract public class AbstractIndexer implements Indexer {
     }
 
     public EntityDAO getEntityDAO(RequestContext requestContext) {
-        return EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
-                getIndexedDataDAOConfig(requestContext), injector);
+        return new ExpandedEntityDAO(postExpanders,
+                EntityDAOUtilities.getEntityDAO(daoConfigs, requestContext,
+                        getIndexedDataDAOConfig(requestContext), injector), requestContext);
     }
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {

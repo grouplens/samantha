@@ -92,6 +92,6 @@ public class JsonFileIndexerConfig implements IndexerConfig {
         return new JsonFileIndexer(configService, dataService, config, injector,
                 daoConfigs, daoConfigKey, timestampField, beginTime, beginTimeKey,
                 endTime, endTimeKey, daoName, daoNameKey, filesKey, indexType,
-                subDaoName, subDaoConfigKey);
+                subDaoName, subDaoConfigKey, 128, requestContext);
     }
 }

@@ -110,6 +110,6 @@ public class UserReturnIndexerConfig implements IndexerConfig {
         return new UserReturnIndexer(configService, config, injector, daoConfigs, daoConfigKey,
                 filePathKey, timestampField, dataFields, separator, daoNameKey, daoName, filesKey, rewardKey,
                 groupKeys, sessionIdKey, filePath, separatorKey, indexer, maxTime, reinforceThreshold,
-                usedGroupsFilePath);
+                usedGroupsFilePath, 128, requestContext);
     }
 }

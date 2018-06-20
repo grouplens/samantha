@@ -64,8 +64,9 @@ public class AggregateIndexer extends AbstractIndexer {
                             String daoNameKey, String daoName, String filesKey,
                             List<String> groupKeys, String filePath,
                             String separatorKey, GroupedIndexer indexer,
-                            List<String> aggFields, String aggCntName, String aggSumAppendix) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                            List<String> aggFields, String aggCntName,
+                            String aggSumAppendix, int batchSize, RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.indexer = indexer;
         this.filePathKey = filePathKey;
         this.otherFields = otherFields;

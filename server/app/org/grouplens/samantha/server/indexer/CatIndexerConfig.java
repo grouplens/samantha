@@ -67,6 +67,6 @@ public class CatIndexerConfig implements IndexerConfig {
     public Indexer getIndexer(RequestContext requestContext) {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         return new CatIndexer(configService, config, injector, daoConfigs, daoConfigKey,
-                indexersDaoConfigKey, indexerNames, daoName, daoNameKey);
+                indexersDaoConfigKey, indexerNames, daoName, daoNameKey, 128, requestContext);
     }
 }

@@ -1,3 +1,0 @@
-[submodule "server/extension/xgboost"]
-	path = server/extension/xgboost
-	url = git@github.com:qian2015/samantha-xgboost.git

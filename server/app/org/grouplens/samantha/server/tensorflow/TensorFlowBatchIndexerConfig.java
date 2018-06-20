@@ -99,6 +99,6 @@ public class TensorFlowBatchIndexerConfig implements IndexerConfig {
         JsonNode reqBody = requestContext.getRequestBody();
         int batchSize = JsonHelpers.getOptionalInt(reqBody, batchSizeKey, this.batchSize);
         return new TensorFlowBatchIndexer(configService, config, injector,
-                daoConfigs, daoConfigKey, indexer, model, batchSize, timestampField);
+                daoConfigs, daoConfigKey, indexer, model, batchSize, timestampField, requestContext);
     }
 }

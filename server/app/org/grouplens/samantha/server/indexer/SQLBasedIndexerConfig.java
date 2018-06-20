@@ -83,6 +83,7 @@ public class SQLBasedIndexerConfig implements IndexerConfig {
         DSLContext create = DSL.using(DB.getDataSource(db), SQLDialect.DEFAULT);
         return new SQLBasedIndexer(configService, daoConfigs,
                 create, tableKey, table, injector, daoConfigKey,
-                fields, fieldTypes, matchFields, matchFieldTypes, config);
+                fields, fieldTypes, matchFields, matchFieldTypes, config,
+                128, requestContext);
     }
 }

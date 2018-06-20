@@ -54,8 +54,8 @@ public class SQLBasedIndexer extends AbstractIndexer {
                            Injector injector, String daoConfigKey,
                            List<String> fields, List<String> fieldTypes,
                            List<String> matchFields, List<String> matchFieldTypes,
-                           Configuration config) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                           Configuration config, int batchSize, RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.table = table;
         this.tableKey = tableKey;
         this.fields = new ArrayList<>(fields.size());

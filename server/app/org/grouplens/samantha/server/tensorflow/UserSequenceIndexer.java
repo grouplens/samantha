@@ -69,8 +69,9 @@ public class UserSequenceIndexer extends AbstractIndexer {
                                List<String> dataFields, String separator,
                                String daoNameKey, String daoName, String filesKey,
                                List<String> groupKeys, String filePath, String innerFieldSeparator,
-                               String separatorKey, GroupedIndexer indexer, String usedGroupsFilePath) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                               String separatorKey, GroupedIndexer indexer, String usedGroupsFilePath,
+                               int batchSize, RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.indexer = indexer;
         this.filePathKey = filePathKey;
         this.dataFields = dataFields;

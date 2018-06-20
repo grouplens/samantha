@@ -132,6 +132,7 @@ public class GroupedIndexerConfig implements IndexerConfig {
         Indexer indexer = configService.getIndexer(indexerName, requestContext);
         return new GroupedIndexer(configService, config, injector, daoConfigs, daoConfigKey,
                 indexer, datDir, numBuckets, groupKeys, dataFields, separator, orderFields, descending,
-                filesKey, daoName, daoNameKey, separatorKey, usedBuckets, skip, groupKeysTypes, orderFieldsTypes);
+                filesKey, daoName, daoNameKey, separatorKey, usedBuckets, skip, groupKeysTypes, orderFieldsTypes,
+                128, requestContext);
     }
 }

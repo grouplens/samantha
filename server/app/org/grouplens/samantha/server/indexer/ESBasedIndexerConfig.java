@@ -91,6 +91,6 @@ public class ESBasedIndexerConfig implements IndexerConfig {
         SamanthaConfigService configService = injector
                 .instanceOf(SamanthaConfigService.class);
         return new ESBasedIndexer(elasticSearchService, configService, daoConfigs, elasticSearchIndex,
-                indexTypeKey, indexType, uniqueFields, injector, daoConfigKey, config);
+                indexTypeKey, indexType, uniqueFields, injector, daoConfigKey, config, 128, requestContext);
     }
 }

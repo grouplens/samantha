@@ -100,6 +100,6 @@ public class CSVFileIndexerConfig implements IndexerConfig {
         return new CSVFileIndexer(configService, dataService, config, injector,
                 daoConfigs, daoConfigKey, timestampField, dataFields, beginTime, beginTimeKey,
                 endTime, endTimeKey, daoName, daoNameKey, filesKey, separatorKey, indexType,
-                subDaoName, subDaoConfigKey);
+                subDaoName, subDaoConfigKey, 128, requestContext);
     }
 }

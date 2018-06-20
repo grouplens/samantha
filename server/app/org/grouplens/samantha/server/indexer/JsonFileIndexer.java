@@ -60,8 +60,9 @@ public class JsonFileIndexer extends AbstractIndexer {
                            String daoConfigKey, String timestampField,
                            String beginTimeKey, String beginTime, String endTimeKey, String endTime,
                            String daoNameKey, String daoName, String filesKey,
-                           String indexType, String subDaoName, String subDaoConfigKey) {
-        super(config, configService, daoConfigs, daoConfigKey, injector);
+                           String indexType, String subDaoName, String subDaoConfigKey,
+                           int batchSize, RequestContext requestContext) {
+        super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.dataService = dataService;
         this.indexType = indexType;
         this.timestampField = timestampField;
