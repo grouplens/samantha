@@ -25,10 +25,13 @@ package org.grouplens.samantha.server.indexer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.server.common.DataOperation;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
+import org.grouplens.samantha.server.dao.RetrieverBasedDAO;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.jooq.*;
 import org.jooq.impl.DSL;
@@ -36,17 +39,26 @@ import play.Configuration;
 import play.inject.Injector;
 import play.libs.Json;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SQLBasedIndexer extends AbstractIndexer {
     private final String tableKey;
     private final String table;
+    private final List<String> fieldNames;
     private final List<Field<Object>> fields;
     private final List<Field<Object>> matchFields;
     private final List<String> fieldTypes;
     private final List<String> matchFieldTypes;
     private final DSLContext create;
+    private final String retrieverName;
+    private final String setCursorKey;
+    private final String daoNameKey;
+    private final String daoName;
+    private final String cacheCsvFile;
+    private final String filePathKey;
+    private final String separatorKey;
 
     public SQLBasedIndexer(SamanthaConfigService configService,
                            Configuration daoConfigs,
@@ -54,10 +66,14 @@ public class SQLBasedIndexer extends AbstractIndexer {
                            Injector injector, String daoConfigKey,
                            List<String> fields, List<String> fieldTypes,
                            List<String> matchFields, List<String> matchFieldTypes,
+                           String retrieverName, String setCursorKey,
+                           String daoNameKey, String daoName, String cacheCsvFile,
+                           String filePathKey, String separatorKey,
                            Configuration config, int batchSize, RequestContext requestContext) {
         super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.table = table;
         this.tableKey = tableKey;
+        this.fieldNames = fields;
         this.fields = new ArrayList<>(fields.size());
         for (String field : fields) {
             this.fields.add(DSL.field(field));
@@ -71,6 +87,13 @@ public class SQLBasedIndexer extends AbstractIndexer {
         }
         this.matchFieldTypes = matchFieldTypes;
         this.create = create;
+        this.retrieverName = retrieverName;
+        this.setCursorKey = setCursorKey;
+        this.daoName = daoName;
+        this.daoNameKey = daoNameKey;
+        this.cacheCsvFile = cacheCsvFile;
+        this.filePathKey = filePathKey;
+        this.separatorKey = separatorKey;
     }
 
     public enum BasicType implements GetValue {
@@ -186,5 +209,31 @@ public class SQLBasedIndexer extends AbstractIndexer {
         if (operation.equals(DataOperation.INSERT.get()) || operation.equals(DataOperation.UPSERT.get())) {
             bulkInsert(table, data);
         }
+    }
+
+    public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
+        ObjectNode ret = Json.newObject();
+        ret.put(daoNameKey, daoName);
+        if (cacheCsvFile == null) {
+            ret.put("retrieverName", retrieverName);
+            ret.put("setCursorKey", setCursorKey);
+        } else {
+            try {
+                BufferedWriter writer = new BufferedWriter(new FileWriter(cacheCsvFile));
+                IndexerUtilities.writeCSVHeader(fieldNames, writer, "\t");
+                SamanthaConfigService configService = injector
+                        .instanceOf(SamanthaConfigService.class);
+                EntityDAO dao = new RetrieverBasedDAO(retrieverName, configService, requestContext);
+                while (dao.hasNextEntity()) {
+                    IndexerUtilities.writeCSVFields(dao.getNextEntity(), fieldNames, writer, "\t");
+                }
+                dao.close();
+            } catch (IOException e) {
+                throw new BadRequestException(e);
+            }
+            ret.put(filePathKey, cacheCsvFile);
+            ret.put(separatorKey, "\t");
+        }
+        return ret;
     }
 }
