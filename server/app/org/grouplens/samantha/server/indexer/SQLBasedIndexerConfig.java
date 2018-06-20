@@ -46,11 +46,21 @@ public class SQLBasedIndexerConfig implements IndexerConfig {
     private final List<String> fieldTypes;
     private final List<String> matchFields;
     private final List<String> matchFieldTypes;
+    private final String retrieverName;
+    private final String setCursorKey;
+    private final String daoNameKey;
+    private final String daoName;
+    private final String cacheCsvFile;
+    private final String filePathKey;
+    private final String separatorKey;
 
     private SQLBasedIndexerConfig(Injector injector, Configuration config, Configuration daoConfigs,
                                   String daoConfigKey, String db, String tableKey, String table,
                                   List<String> matchFields, List<String> matchFieldTypes,
-                                  List<String> fields, List<String> fieldTypes) {
+                                  List<String> fields, List<String> fieldTypes,
+                                  String retrieverName, String setCursorKey,
+                                  String daoNameKey, String daoName, String cacheCsvFile,
+                                  String filePathKey, String separatorKey) {
         this.injector = injector;
         this.config = config;
         this.daoConfigKey = daoConfigKey;
@@ -62,6 +72,13 @@ public class SQLBasedIndexerConfig implements IndexerConfig {
         this.fieldTypes = fieldTypes;
         this.matchFields = matchFields;
         this.matchFieldTypes = matchFieldTypes;
+        this.retrieverName = retrieverName;
+        this.setCursorKey = setCursorKey;
+        this.daoName = daoName;
+        this.daoNameKey = daoNameKey;
+        this.cacheCsvFile = cacheCsvFile;
+        this.filePathKey = filePathKey;
+        this.separatorKey = separatorKey;
     }
 
     public static IndexerConfig getIndexerConfig(Configuration indexerConfig,
@@ -75,7 +92,14 @@ public class SQLBasedIndexerConfig implements IndexerConfig {
                 indexerConfig.getStringList("matchFields"),
                 indexerConfig.getStringList("matchFieldTypes"),
                 indexerConfig.getStringList("fields"),
-                indexerConfig.getStringList("fieldTypes"));
+                indexerConfig.getStringList("fieldTypes"),
+                indexerConfig.getString("retrieverName"),
+                indexerConfig.getString("setCursorKey"),
+                indexerConfig.getString("daoNameKey"),
+                indexerConfig.getString("daoName"),
+                indexerConfig.getString("cacheCsvFile"),
+                indexerConfig.getString("filePathKey"),
+                indexerConfig.getString("separatorKey"));
     }
 
     public Indexer getIndexer(RequestContext requestContext) {
@@ -83,7 +107,9 @@ public class SQLBasedIndexerConfig implements IndexerConfig {
         DSLContext create = DSL.using(DB.getDataSource(db), SQLDialect.DEFAULT);
         return new SQLBasedIndexer(configService, daoConfigs,
                 create, tableKey, table, injector, daoConfigKey,
-                fields, fieldTypes, matchFields, matchFieldTypes, config,
-                128, requestContext);
+                fields, fieldTypes, matchFields, matchFieldTypes,
+                retrieverName, setCursorKey, daoNameKey, daoName,
+                cacheCsvFile, filePathKey, separatorKey,
+                config, 128, requestContext);
     }
 }
