@@ -8,7 +8,7 @@ lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
 scalaVersion := "2.11.6"
 
-resolvers += Resolver.mavenLocal
+// resolvers += Resolver.mavenLocal
 
 libraryDependencies ++= Seq(
   javaJdbc,
@@ -35,7 +35,7 @@ libraryDependencies ++= Seq(
 resolvers += "XGBoost GitHub Repo" at "https://raw.githubusercontent.com/CodingCat/xgboost/maven-repo/"
 libraryDependencies ++= Seq(
  "org.scala-lang" % "scala-compiler" % scalaVersion.value,
- "ml.dmlc" % "xgboost4j" % "0.72"
+ "ml.dmlc" % "xgboost4j" % "0.7"
 )
 
 // Play provides two styles of routers, one expects its actions to be injected, the
