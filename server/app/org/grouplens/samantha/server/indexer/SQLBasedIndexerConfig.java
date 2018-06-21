@@ -50,7 +50,7 @@ public class SQLBasedIndexerConfig implements IndexerConfig {
     private final String setCursorKey;
     private final String daoNameKey;
     private final String daoName;
-    private final String cacheCsvFile;
+    private final String cacheJsonFile;
     private final String filePathKey;
     private final String separatorKey;
 
@@ -59,7 +59,7 @@ public class SQLBasedIndexerConfig implements IndexerConfig {
                                   List<String> matchFields, List<String> matchFieldTypes,
                                   List<String> fields, List<String> fieldTypes,
                                   String retrieverName, String setCursorKey,
-                                  String daoNameKey, String daoName, String cacheCsvFile,
+                                  String daoNameKey, String daoName, String cacheJsonFile,
                                   String filePathKey, String separatorKey) {
         this.injector = injector;
         this.config = config;
@@ -76,7 +76,7 @@ public class SQLBasedIndexerConfig implements IndexerConfig {
         this.setCursorKey = setCursorKey;
         this.daoName = daoName;
         this.daoNameKey = daoNameKey;
-        this.cacheCsvFile = cacheCsvFile;
+        this.cacheJsonFile = cacheJsonFile;
         this.filePathKey = filePathKey;
         this.separatorKey = separatorKey;
     }
@@ -97,7 +97,7 @@ public class SQLBasedIndexerConfig implements IndexerConfig {
                 indexerConfig.getString("setCursorKey"),
                 indexerConfig.getString("daoNameKey"),
                 indexerConfig.getString("daoName"),
-                indexerConfig.getString("cacheCsvFile"),
+                indexerConfig.getString("cacheJsonFile"),
                 indexerConfig.getString("filePathKey"),
                 indexerConfig.getString("separatorKey"));
     }
@@ -109,7 +109,7 @@ public class SQLBasedIndexerConfig implements IndexerConfig {
                 create, tableKey, table, injector, daoConfigKey,
                 fields, fieldTypes, matchFields, matchFieldTypes,
                 retrieverName, setCursorKey, daoNameKey, daoName,
-                cacheCsvFile, filePathKey, separatorKey,
+                cacheJsonFile, filePathKey, separatorKey,
                 config, 128, requestContext);
     }
 }

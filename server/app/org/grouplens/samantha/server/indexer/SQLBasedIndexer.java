@@ -46,7 +46,6 @@ import java.util.List;
 public class SQLBasedIndexer extends AbstractIndexer {
     private final String tableKey;
     private final String table;
-    private final List<String> fieldNames;
     private final List<Field<Object>> fields;
     private final List<Field<Object>> matchFields;
     private final List<String> fieldTypes;
@@ -56,7 +55,7 @@ public class SQLBasedIndexer extends AbstractIndexer {
     private final String setCursorKey;
     private final String daoNameKey;
     private final String daoName;
-    private final String cacheCsvFile;
+    private final String cacheJsonFile;
     private final String filePathKey;
     private final String separatorKey;
 
@@ -67,13 +66,12 @@ public class SQLBasedIndexer extends AbstractIndexer {
                            List<String> fields, List<String> fieldTypes,
                            List<String> matchFields, List<String> matchFieldTypes,
                            String retrieverName, String setCursorKey,
-                           String daoNameKey, String daoName, String cacheCsvFile,
+                           String daoNameKey, String daoName, String cacheJsonFile,
                            String filePathKey, String separatorKey,
                            Configuration config, int batchSize, RequestContext requestContext) {
         super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.table = table;
         this.tableKey = tableKey;
-        this.fieldNames = fields;
         this.fields = new ArrayList<>(fields.size());
         for (String field : fields) {
             this.fields.add(DSL.field(field));
@@ -93,7 +91,7 @@ public class SQLBasedIndexer extends AbstractIndexer {
         this.setCursorKey = setCursorKey;
         this.daoName = daoName;
         this.daoNameKey = daoNameKey;
-        this.cacheCsvFile = cacheCsvFile;
+        this.cacheJsonFile = cacheJsonFile;
         this.filePathKey = filePathKey;
         this.separatorKey = separatorKey;
     }
@@ -216,24 +214,23 @@ public class SQLBasedIndexer extends AbstractIndexer {
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
         ObjectNode ret = Json.newObject();
         ret.put(daoNameKey, daoName);
-        if (cacheCsvFile == null) {
+        if (cacheJsonFile == null) {
             ret.put("retrieverName", retrieverName);
             ret.put("setCursorKey", setCursorKey);
         } else {
             try {
-                BufferedWriter writer = new BufferedWriter(new FileWriter(cacheCsvFile));
-                IndexerUtilities.writeCSVHeader(fieldNames, writer, "\t");
+                BufferedWriter writer = new BufferedWriter(new FileWriter(cacheJsonFile));
                 SamanthaConfigService configService = injector
                         .instanceOf(SamanthaConfigService.class);
                 EntityDAO dao = new RetrieverBasedDAO(retrieverName, configService, requestContext);
                 while (dao.hasNextEntity()) {
-                    IndexerUtilities.writeCSVFields(dao.getNextEntity(), fieldNames, writer, "\t");
+                    IndexerUtilities.writeJson(dao.getNextEntity(), writer);
                 }
                 dao.close();
             } catch (IOException e) {
                 throw new BadRequestException(e);
             }
-            ret.put(filePathKey, cacheCsvFile);
+            ret.put(filePathKey, cacheJsonFile);
             ret.put(separatorKey, "\t");
         }
         return ret;
