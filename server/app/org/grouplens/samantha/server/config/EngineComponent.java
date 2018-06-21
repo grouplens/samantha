@@ -22,6 +22,7 @@
 
 package org.grouplens.samantha.server.config;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.grouplens.samantha.server.evaluator.Evaluator;
 import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.indexer.Indexer;
@@ -62,7 +63,10 @@ public enum EngineComponent implements ComponentGetter {
         public void getComponent(SamanthaConfigService configService, String componentName,
                                  RequestContext requestContext) {
             Indexer indexer = configService.getIndexer(componentName, requestContext);
-            indexer.index(requestContext);
+            JsonNode reqBody = requestContext.getRequestBody();
+            if (reqBody.has(ConfigKey.INDEX_DATA.get()) && reqBody.get(ConfigKey.INDEX_DATA.get()).asBoolean()) {
+                indexer.index(requestContext);
+            }
         }
     },
     EVALUATOR("evaluators") {
