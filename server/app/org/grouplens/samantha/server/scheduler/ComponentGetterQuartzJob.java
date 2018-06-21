@@ -49,11 +49,11 @@ public class ComponentGetterQuartzJob implements Job {
         Injector injector = (Injector) dataMap.get("injector");
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         Configuration jobConfig = (Configuration) dataMap.get("jobConfig");
+        List<String> hosts = jobConfig.getStringList("hosts");
+        if (hosts != null && !Utilities.isInHosts(hosts)) {
+            return;
+        }
         for (Configuration taskConfig: jobConfig.getConfigList("tasks")) {
-            List<String> hosts = taskConfig.getStringList("hosts");
-            if (hosts != null && !Utilities.isInHosts(hosts)) {
-                continue;
-            }
             ObjectNode reqBody = Json.newObject();
             for (Configuration indexedData : taskConfig.getConfigList("indexerData")) {
                 RequestContext pseudoRequest = new RequestContext(

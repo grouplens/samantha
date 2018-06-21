@@ -79,11 +79,13 @@ public class SQLBasedIndexer extends AbstractIndexer {
             this.fields.add(DSL.field(field));
         }
         this.fieldTypes = fieldTypes;
-        this.matchFields = new ArrayList<>(matchFields.size());
         if (matchFields != null) {
+            this.matchFields = new ArrayList<>(matchFields.size());
             for (String field : matchFields) {
                 this.matchFields.add(DSL.field(field));
             }
+        } else {
+            this.matchFields = new ArrayList<>();
         }
         this.matchFieldTypes = matchFieldTypes;
         this.create = create;
