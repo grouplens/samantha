@@ -110,7 +110,7 @@ public class SQLBasedRetriever extends AbstractRetriever {
                 if (renameMap.containsKey(key)) {
                     key = renameMap.get(key);
                 }
-                obj.put(key, field.getValue(record).toString());
+                obj.putPOJO(key, field.getValue(record));
             }
             objList.add(obj);
         }
@@ -206,7 +206,7 @@ public class SQLBasedRetriever extends AbstractRetriever {
             result = create.fetch(sql);
         }
         List<ObjectNode> resultList = parseResult(result);
-        ExpanderUtilities.expand(resultList, expanders, requestContext);
+        resultList = ExpanderUtilities.expand(resultList, expanders, requestContext);
         if (setCursor && resultList.size() == 0) {
             cursor.close();
             cursorComplete = true;
