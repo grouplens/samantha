@@ -110,7 +110,7 @@ public class SQLBasedRetriever extends AbstractRetriever {
                 if (renameMap.containsKey(key)) {
                     key = renameMap.get(key);
                 }
-                obj.putPOJO(key, field.getValue(record));
+                obj.put(key, field.getValue(record).toString());
             }
             objList.add(obj);
         }
