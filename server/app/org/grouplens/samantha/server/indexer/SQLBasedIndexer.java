@@ -227,6 +227,7 @@ public class SQLBasedIndexer extends AbstractIndexer {
                     IndexerUtilities.writeJson(dao.getNextEntity(), writer);
                 }
                 dao.close();
+                writer.close();
             } catch (IOException e) {
                 throw new BadRequestException(e);
             }

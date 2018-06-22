@@ -126,4 +126,8 @@ abstract public class AbstractIndexer implements Indexer {
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
         throw new BadRequestException("Reading data from this indexer is not supported.");
     }
+
+    public void index(JsonNode data, RequestContext requestContext) {
+        throw new BadRequestException("Indexing data into this indexer is not supported.");
+    }
 }
