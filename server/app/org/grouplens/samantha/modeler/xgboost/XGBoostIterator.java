@@ -25,12 +25,14 @@ package org.grouplens.samantha.modeler.xgboost;
 import ml.dmlc.xgboost4j.LabeledPoint;
 import org.grouplens.samantha.modeler.common.LearningData;
 import org.grouplens.samantha.modeler.common.LearningInstance;
-import play.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.List;
 
 public class XGBoostIterator implements Iterator {
+    private static Logger logger = LoggerFactory.getLogger(XGBoostIterator.class);
     final private LearningData data;
     private int iter = 0;
     private XGBoostInstance instance;
@@ -62,7 +64,7 @@ public class XGBoostIterator implements Iterator {
             iter = 0;
         }
         if (iter >= instances.size()) {
-            Logger.info("Num of data points: {}", num);
+            logger.info("Number of data points: {}", num);
             return false;
         } else {
             instance = (XGBoostInstance)instances.get(iter++);
