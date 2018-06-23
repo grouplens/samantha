@@ -99,8 +99,9 @@ public enum EngineType implements EngineConfigLoader {
             throws ConfigurationException {
         try {
             Map<String, RetrieverConfig> retrieverConfigs = new HashMap<>();
-            for (Configuration retrConfig : engineConfig
-                    .getConfigList(EngineComponent.RETRIEVER.get())) {
+            Configuration retrConfigs = engineConfig.getConfig(EngineComponent.RETRIEVER.get());
+            for (String name : retrConfigs.keys()) {
+                Configuration retrConfig = retrConfigs.getConfig(name);
                 String retrConfigClass = retrConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
                 Method method = Class.forName(retrConfigClass)
@@ -122,8 +123,9 @@ public enum EngineType implements EngineConfigLoader {
             throws ConfigurationException {
         try {
             Map<String, PredictorConfig> predictorConfigs = new HashMap<>();
-            for (Configuration predConfig : engineConfig
-                    .getConfigList(EngineComponent.PREDICTOR.get())) {
+            Configuration predConfigs = engineConfig.getConfig(EngineComponent.PREDICTOR.get());
+            for (String name : predConfigs.keys()) {
+                Configuration predConfig = predConfigs.getConfig(name);
                 String predConfigClass = predConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
                 Method method = Class.forName(predConfigClass)
@@ -145,8 +147,9 @@ public enum EngineType implements EngineConfigLoader {
             throws ConfigurationException {
         try {
             Map<String, RankerConfig> rankerConfigs = new HashMap<>();
-            for (Configuration rankConfig : engineConfig
-                    .getConfigList(EngineComponent.RANKER.get())) {
+            Configuration rankConfigs = engineConfig.getConfig(EngineComponent.RANKER.get());
+            for (String name : rankConfigs.keys()) {
+                Configuration rankConfig = rankConfigs.getConfig(name);
                 String rankConfigClass = rankConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
                 Method method = Class.forName(rankConfigClass)
@@ -168,8 +171,9 @@ public enum EngineType implements EngineConfigLoader {
             throws ConfigurationException {
         try {
             Map<String, RecommenderConfig> recommenderConfigs = new HashMap<>();
-            for (Configuration recConfig : engineConfig
-                    .getConfigList(EngineComponent.RECOMMENDER.get())) {
+            Configuration recConfigs = engineConfig.getConfig(EngineComponent.RECOMMENDER.get());
+            for (String name : recConfigs.keys()) {
+                Configuration recConfig = recConfigs.getConfig(name);
                 String recConfigClass = recConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
                 Method method = Class.forName(recConfigClass)
@@ -191,16 +195,17 @@ public enum EngineType implements EngineConfigLoader {
             throws ConfigurationException {
         try {
             Map<String, EvaluatorConfig> evaluatorConfigs = new HashMap<>();
-            for (Configuration evaluatorConfig : engineConfig
-                    .getConfigList(EngineComponent.EVALUATOR.get())) {
-                String evaluatorConfigClass = evaluatorConfig.
+            Configuration evalConfigs = engineConfig.getConfig(EngineComponent.EVALUATOR.get());
+            for (String name : evalConfigs.keys()) {
+                Configuration evalConfig = evalConfigs.getConfig(name);
+                String evaluatorConfigClass = evalConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
                 Method method = Class.forName(evaluatorConfigClass)
                         .getMethod("getEvaluatorConfig", Configuration.class,
                                 Injector.class);
                 evaluatorConfigs.put(
-                        evaluatorConfig.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()),
-                        (EvaluatorConfig) method.invoke(null, evaluatorConfig, injector));
+                        evalConfig.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()),
+                        (EvaluatorConfig) method.invoke(null, evalConfig, injector));
             }
             return evaluatorConfigs;
         } catch (IllegalAccessException | InvocationTargetException |
@@ -214,8 +219,9 @@ public enum EngineType implements EngineConfigLoader {
             throws ConfigurationException {
         try {
             Map<String, SchedulerConfig> schedulerConfigs = new HashMap<>();
-            for (Configuration schedulerConfig : engineConfig
-                    .getConfigList(EngineComponent.SCHEDULER.get())) {
+            Configuration scheduleConfigs = engineConfig.getConfig(EngineComponent.SCHEDULER.get());
+            for (String name : scheduleConfigs.keys()) {
+                Configuration schedulerConfig = scheduleConfigs.getConfig(name);
                 String schedulerConfigClass = schedulerConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
                 Method method = Class.forName(schedulerConfigClass)
@@ -257,8 +263,9 @@ public enum EngineType implements EngineConfigLoader {
             throws ConfigurationException {
         try {
             Map<String, IndexerConfig> indexerConfigs = new HashMap<>();
-            for (Configuration indConfig : engineConfig
-                    .getConfigList(EngineComponent.INDEXER.get())) {
+            Configuration indConfigs = engineConfig.getConfig(EngineComponent.INDEXER.get());
+            for (String name : indConfigs.keys()) {
+                Configuration indConfig = indConfigs.getConfig(name);
                 String indConfigClass = indConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
                 Method method = Class.forName(indConfigClass)
