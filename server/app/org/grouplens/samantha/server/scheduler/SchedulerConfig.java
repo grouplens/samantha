@@ -26,9 +26,9 @@ import play.Configuration;
 import play.inject.Injector;
 
 public interface SchedulerConfig {
-    static SchedulerConfig getSchedulerConfig(String engineName,
-                                   Configuration schedulerConfig,
-                                   Injector injector) {return null;}
+    static SchedulerConfig getSchedulerConfig(String engineName, String schedulerName,
+                                              Configuration schedulerConfig,
+                                              Injector injector) {return null;}
     void scheduleJobs();
     void runJobs();
 }

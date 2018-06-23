@@ -61,8 +61,8 @@ public abstract class AbstractPredictor implements Predictor {
             return config;
         } else {
             Map<String, Object> configMap = new HashMap<>();
-            configMap.put(ConfigKey.ENGINE_COMPONENT_NAME.get(),
-                    config.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()));
+            configMap.put(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get(),
+                    config.getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get()));
             return new Configuration(configMap);
         }
     }

@@ -40,17 +40,20 @@ public class QuartzSchedulerConfig implements SchedulerConfig {
     private final Configuration config;
     private final Injector injector;
     private final String engineName;
+    private final String schedulerName;
 
-    private QuartzSchedulerConfig(Injector injector, Configuration config, String engineName) {
+    private QuartzSchedulerConfig(Injector injector, Configuration config,
+                                  String engineName, String schedulerName) {
         this.config = config;
         this.injector = injector;
         this.engineName = engineName;
+        this.schedulerName = schedulerName;
     }
 
-    public static SchedulerConfig getSchedulerConfig(String engineName,
+    public static SchedulerConfig getSchedulerConfig(String engineName, String schedulerName,
                                                      Configuration schedulerConfig,
                                                      Injector injector) {
-        return new QuartzSchedulerConfig(injector, schedulerConfig, engineName);
+        return new QuartzSchedulerConfig(injector, schedulerConfig, engineName, schedulerName);
     }
 
     public void scheduleJobs() {
@@ -65,8 +68,7 @@ public class QuartzSchedulerConfig implements SchedulerConfig {
         } catch (ParseException e) {
             throw new ConfigurationException(e);
         }
-        String name = config.getString(ConfigKey.ENGINE_COMPONENT_NAME.get());
-        Trigger trigger = newTrigger().withIdentity(name).withSchedule(cronSchedule(cronExpr)).build();
+        Trigger trigger = newTrigger().withIdentity(schedulerName).withSchedule(cronSchedule(cronExpr)).build();
         Configuration jobConfig = config.getConfig("jobConfig");
         JobDataMap jobDataMap = new JobDataMap();
         jobDataMap.put("jobConfig", jobConfig);
@@ -75,7 +77,7 @@ public class QuartzSchedulerConfig implements SchedulerConfig {
         String jobClass = config.getString("jobClass");
         try {
             JobDetail jobDetail = newJob(Class.forName(jobClass).asSubclass(Job.class))
-                    .withIdentity(name).usingJobData(jobDataMap).build();
+                    .withIdentity(schedulerName).usingJobData(jobDataMap).build();
             QuartzSchedulerService schedulerService = injector.instanceOf(QuartzSchedulerService.class);
             schedulerService.scheduleJob(trigger, jobDetail);
         } catch (ClassNotFoundException e) {
@@ -84,8 +86,7 @@ public class QuartzSchedulerConfig implements SchedulerConfig {
     }
 
     public void runJobs() {
-        String name = config.getString(ConfigKey.ENGINE_COMPONENT_NAME.get());
         QuartzSchedulerService schedulerService = injector.instanceOf(QuartzSchedulerService.class);
-        schedulerService.triggerJob(new JobKey(name));
+        schedulerService.triggerJob(new JobKey(schedulerName));
     }
 }

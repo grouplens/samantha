@@ -108,8 +108,7 @@ public enum EngineType implements EngineConfigLoader {
                         .getMethod("getRetrieverConfig", Configuration.class,
                                 Injector.class);
                 retrieverConfigs.put(
-                        retrConfig.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()),
-                        (RetrieverConfig) method.invoke(null, retrConfig, injector));
+                        name, (RetrieverConfig) method.invoke(null, retrConfig, injector));
             }
             return retrieverConfigs;
         } catch (IllegalAccessException | InvocationTargetException |
@@ -132,8 +131,7 @@ public enum EngineType implements EngineConfigLoader {
                         .getMethod("getPredictorConfig", Configuration.class,
                                 Injector.class);
                 predictorConfigs.put(
-                        predConfig.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()),
-                        (PredictorConfig) method.invoke(null, predConfig, injector));
+                        name, (PredictorConfig) method.invoke(null, predConfig, injector));
             }
             return predictorConfigs;
         } catch (IllegalAccessException | InvocationTargetException |
@@ -156,8 +154,7 @@ public enum EngineType implements EngineConfigLoader {
                         .getMethod("getRankerConfig", Configuration.class,
                                 Injector.class);
                 rankerConfigs.put(
-                        rankConfig.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()),
-                        (RankerConfig) method.invoke(null, rankConfig, injector));
+                        name, (RankerConfig) method.invoke(null, rankConfig, injector));
             }
             return rankerConfigs;
         } catch (IllegalAccessException | InvocationTargetException |
@@ -180,8 +177,7 @@ public enum EngineType implements EngineConfigLoader {
                         .getMethod("getRecommenderConfig", Configuration.class,
                                 Injector.class);
                 recommenderConfigs.put(
-                        recConfig.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()),
-                        (RecommenderConfig) method.invoke(null, recConfig, injector));
+                        name, (RecommenderConfig) method.invoke(null, recConfig, injector));
             }
             return recommenderConfigs;
         } catch (IllegalAccessException | InvocationTargetException |
@@ -204,8 +200,7 @@ public enum EngineType implements EngineConfigLoader {
                         .getMethod("getEvaluatorConfig", Configuration.class,
                                 Injector.class);
                 evaluatorConfigs.put(
-                        evalConfig.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()),
-                        (EvaluatorConfig) method.invoke(null, evalConfig, injector));
+                        name, (EvaluatorConfig) method.invoke(null, evalConfig, injector));
             }
             return evaluatorConfigs;
         } catch (IllegalAccessException | InvocationTargetException |
@@ -228,9 +223,8 @@ public enum EngineType implements EngineConfigLoader {
                         .getMethod("getSchedulerConfig", String.class,
                                 Configuration.class, Injector.class);
                 SchedulerConfig scheduler = (SchedulerConfig) method
-                        .invoke(null, engineName, schedulerConfig, injector);
-                schedulerConfigs.put(
-                        schedulerConfig.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()), scheduler);
+                        .invoke(null, engineName, name, schedulerConfig, injector);
+                schedulerConfigs.put(name, scheduler);
                 scheduler.scheduleJobs();
             }
             return schedulerConfigs;
@@ -272,8 +266,7 @@ public enum EngineType implements EngineConfigLoader {
                         .getMethod("getIndexerConfig", Configuration.class,
                                 Injector.class);
                 indexerConfigs.put(
-                        indConfig.getString(ConfigKey.ENGINE_COMPONENT_NAME.get()),
-                        (IndexerConfig) method.invoke(null, indConfig, injector));
+                        name, (IndexerConfig) method.invoke(null, indConfig, injector));
             }
             return indexerConfigs;
         } catch (IllegalAccessException | InvocationTargetException |
