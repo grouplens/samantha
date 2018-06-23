@@ -1,5 +1,5 @@
 /*
- * Copyright (c) [2016-2017] [University of Minnesota]
+ * Copyright (c) [2016-2018] [University of Minnesota]
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -187,21 +187,22 @@ public class SQLBasedRetriever extends AbstractRetriever {
                 if (!setCursor) {
                     sql = orderBy.limit(offset, limit).getSQL();
                 } else {
-                    sql = orderBy.fetchSize(Integer.MIN_VALUE).getSQL();
+                    sql = orderBy.getSQL();
                 }
             } else {
                 SelectConditionStep<Record> conditionStep = select.where(conds);
                 if (!setCursor) {
                     sql = conditionStep.limit(offset, limit).getSQL();
                 } else {
-                    sql = conditionStep.fetchSize(Integer.MIN_VALUE).getSQL();
+                    sql = conditionStep.getSQL();
                 }
             }
         }
         Result<Record> result;
         if (setCursor) {
             //TODO: https://stackoverflow.com/questions/26241941/is-jooqs-fetchlazy-truly-lazy
-            cursor = create.fetchLazy(sql);
+            //https://github.com/jOOQ/jOOQ/issues/4280
+            cursor = create.resultQuery(sql).fetchSize(Integer.MIN_VALUE).fetchLazy();
             result = cursor.fetch(limit);
         } else {
             result = create.fetch(sql);
