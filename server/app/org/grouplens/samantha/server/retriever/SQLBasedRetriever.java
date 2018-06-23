@@ -187,19 +187,20 @@ public class SQLBasedRetriever extends AbstractRetriever {
                 if (!setCursor) {
                     sql = orderBy.limit(offset, limit).getSQL();
                 } else {
-                    sql = orderBy.getSQL();
+                    sql = orderBy.fetchSize(Integer.MIN_VALUE).getSQL();
                 }
             } else {
                 SelectConditionStep<Record> conditionStep = select.where(conds);
                 if (!setCursor) {
                     sql = conditionStep.limit(offset, limit).getSQL();
                 } else {
-                    sql = conditionStep.getSQL();
+                    sql = conditionStep.fetchSize(Integer.MIN_VALUE).getSQL();
                 }
             }
         }
         Result<Record> result;
         if (setCursor) {
+            //TODO: https://stackoverflow.com/questions/26241941/is-jooqs-fetchlazy-truly-lazy
             cursor = create.fetchLazy(sql);
             result = cursor.fetch(limit);
         } else {
