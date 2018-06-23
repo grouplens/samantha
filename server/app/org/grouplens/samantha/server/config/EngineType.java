@@ -220,7 +220,7 @@ public enum EngineType implements EngineConfigLoader {
                 String schedulerConfigClass = schedulerConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
                 Method method = Class.forName(schedulerConfigClass)
-                        .getMethod("getSchedulerConfig", String.class,
+                        .getMethod("getSchedulerConfig", String.class, String.class,
                                 Configuration.class, Injector.class);
                 SchedulerConfig scheduler = (SchedulerConfig) method
                         .invoke(null, engineName, name, schedulerConfig, injector);
