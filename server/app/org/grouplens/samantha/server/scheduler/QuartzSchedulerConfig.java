@@ -23,7 +23,6 @@
 package org.grouplens.samantha.server.scheduler;
 
 import org.grouplens.samantha.server.common.Utilities;
-import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.quartz.*;
 import play.Configuration;

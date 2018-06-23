@@ -100,7 +100,7 @@ public enum EngineType implements EngineConfigLoader {
         try {
             Map<String, RetrieverConfig> retrieverConfigs = new HashMap<>();
             Configuration retrConfigs = engineConfig.getConfig(EngineComponent.RETRIEVER.get());
-            for (String name : retrConfigs.keys()) {
+            for (String name : retrConfigs.subKeys()) {
                 Configuration retrConfig = retrConfigs.getConfig(name);
                 String retrConfigClass = retrConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
@@ -123,7 +123,7 @@ public enum EngineType implements EngineConfigLoader {
         try {
             Map<String, PredictorConfig> predictorConfigs = new HashMap<>();
             Configuration predConfigs = engineConfig.getConfig(EngineComponent.PREDICTOR.get());
-            for (String name : predConfigs.keys()) {
+            for (String name : predConfigs.subKeys()) {
                 Configuration predConfig = predConfigs.getConfig(name);
                 String predConfigClass = predConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
@@ -146,7 +146,7 @@ public enum EngineType implements EngineConfigLoader {
         try {
             Map<String, RankerConfig> rankerConfigs = new HashMap<>();
             Configuration rankConfigs = engineConfig.getConfig(EngineComponent.RANKER.get());
-            for (String name : rankConfigs.keys()) {
+            for (String name : rankConfigs.subKeys()) {
                 Configuration rankConfig = rankConfigs.getConfig(name);
                 String rankConfigClass = rankConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
@@ -169,7 +169,7 @@ public enum EngineType implements EngineConfigLoader {
         try {
             Map<String, RecommenderConfig> recommenderConfigs = new HashMap<>();
             Configuration recConfigs = engineConfig.getConfig(EngineComponent.RECOMMENDER.get());
-            for (String name : recConfigs.keys()) {
+            for (String name : recConfigs.subKeys()) {
                 Configuration recConfig = recConfigs.getConfig(name);
                 String recConfigClass = recConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
@@ -192,7 +192,7 @@ public enum EngineType implements EngineConfigLoader {
         try {
             Map<String, EvaluatorConfig> evaluatorConfigs = new HashMap<>();
             Configuration evalConfigs = engineConfig.getConfig(EngineComponent.EVALUATOR.get());
-            for (String name : evalConfigs.keys()) {
+            for (String name : evalConfigs.subKeys()) {
                 Configuration evalConfig = evalConfigs.getConfig(name);
                 String evaluatorConfigClass = evalConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
@@ -215,7 +215,7 @@ public enum EngineType implements EngineConfigLoader {
         try {
             Map<String, SchedulerConfig> schedulerConfigs = new HashMap<>();
             Configuration scheduleConfigs = engineConfig.getConfig(EngineComponent.SCHEDULER.get());
-            for (String name : scheduleConfigs.keys()) {
+            for (String name : scheduleConfigs.subKeys()) {
                 Configuration schedulerConfig = scheduleConfigs.getConfig(name);
                 String schedulerConfigClass = schedulerConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
@@ -258,7 +258,7 @@ public enum EngineType implements EngineConfigLoader {
         try {
             Map<String, IndexerConfig> indexerConfigs = new HashMap<>();
             Configuration indConfigs = engineConfig.getConfig(EngineComponent.INDEXER.get());
-            for (String name : indConfigs.keys()) {
+            for (String name : indConfigs.subKeys()) {
                 Configuration indConfig = indConfigs.getConfig(name);
                 String indConfigClass = indConfig.
                         getString(ConfigKey.ENGINE_COMPONENT_CONFIG_CLASS.get());
