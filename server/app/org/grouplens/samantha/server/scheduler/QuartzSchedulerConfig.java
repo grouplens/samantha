@@ -22,6 +22,7 @@
 
 package org.grouplens.samantha.server.scheduler;
 
+import org.grouplens.samantha.server.common.Utilities;
 import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 import org.quartz.*;
@@ -29,6 +30,7 @@ import play.Configuration;
 import play.inject.Injector;
 
 import java.text.ParseException;
+import java.util.List;
 
 import static org.quartz.CronScheduleBuilder.cronSchedule;
 import static org.quartz.JobBuilder.newJob;
@@ -52,6 +54,10 @@ public class QuartzSchedulerConfig implements SchedulerConfig {
     }
 
     public void scheduleJobs() {
+        List<String> hosts = config.getStringList("hosts");
+        if (hosts != null && !Utilities.isInHosts(hosts)) {
+            return;
+        }
         String cronExprStr = config.getString("cronExpression");
         CronExpression cronExpr;
         try {
