@@ -62,9 +62,10 @@ public class Utilities {
     public static boolean isInHosts(List<String> hosts) {
         Set<String> shosts = new HashSet<>(hosts);
         try {
-            String ip = InetAddress.getLocalHost().getHostAddress();
+            String hostName = InetAddress.getLocalHost().getHostName();
             String port = System.getProperty("http.port");
-            if (!shosts.contains(ip + ":" + port)) {
+            logger.info("The host of the current server instance is {}", hostName + ":" + port);
+            if (!shosts.contains(hostName + ":" + port)) {
                 return false;
             } else {
                 return true;
