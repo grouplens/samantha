@@ -29,13 +29,8 @@ libraryDependencies ++= Seq(
   "mysql" % "mysql-connector-java" % "5.1.18",
   "commons-dbutils" % "commons-dbutils" % "1.6",
   "org.bouncycastle" % "bcprov-jdk15" % "1.44",
-  "org.bouncycastle" % "bcmail-jdk15" % "1.44"
-)
-
-resolvers += "XGBoost GitHub Repo" at "https://raw.githubusercontent.com/CodingCat/xgboost/maven-repo/"
-libraryDependencies ++= Seq(
- "org.scala-lang" % "scala-compiler" % scalaVersion.value,
- "ml.dmlc" % "xgboost4j" % "0.7"
+  "org.bouncycastle" % "bcmail-jdk15" % "1.44",
+  "ml.dmlc" % "xgboost4j" % "0.72"
 )
 
 // Play provides two styles of routers, one expects its actions to be injected, the

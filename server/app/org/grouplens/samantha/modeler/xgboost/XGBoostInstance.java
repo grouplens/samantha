@@ -42,8 +42,7 @@ public class XGBoostInstance implements LearningInstance {
         for (int i=0; i<froms.length; i++) {
             values[i] = (float) froms[i];
         }
-        return LabeledPoint.fromSparseVector((float) instance.getLabel(),
-                features.keySet().toIntArray(), values);
+        return new LabeledPoint((float) instance.getLabel(), features.keySet().toIntArray(), values);
     }
 
     public double getLabel() {
