@@ -73,7 +73,7 @@ class ModelTrainer(object):
                 if run_name is None:
                     run_name = ''.join(
                         random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-                train_writer = tf.summary.FileWriter(self._tensorboard_dir + run_name, graph)
+                train_writer = tf.summary.FileWriter(os.path.join(self._tensorboard_dir, run_name), graph)
                 logger.info('Initializing the model graph.')
                 session.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
                 logger.info('Training the model.')
