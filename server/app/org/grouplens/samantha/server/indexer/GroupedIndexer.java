@@ -42,6 +42,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 
 public class GroupedIndexer extends AbstractIndexer {
     private final Indexer indexer;
@@ -60,6 +62,7 @@ public class GroupedIndexer extends AbstractIndexer {
     private final String separatorKey;
     private final int usedBuckets;
     private final boolean skip;
+    private final int numParallel;
 
     public GroupedIndexer(SamanthaConfigService configService,
                           Configuration config, Injector injector,
@@ -71,7 +74,7 @@ public class GroupedIndexer extends AbstractIndexer {
                           String filesKey, String daoName, String daoNameKey,
                           String separatorKey, int usedBuckets, boolean skip,
                           List<String> groupKeysTypes, List<String> orderFieldsTypes,
-                          int batchSize, RequestContext requestContext) {
+                          int batchSize, RequestContext requestContext, int numParallel) {
         super(config, configService, daoConfigs, daoConfigKey, batchSize, requestContext, injector);
         this.indexer = indexer;
         this.dataDir = dataDir;
@@ -89,6 +92,7 @@ public class GroupedIndexer extends AbstractIndexer {
         this.groupKeysTypes = groupKeysTypes;
         this.orderFieldsTypes = orderFieldsTypes;
         this.skip = skip;
+        this.numParallel = numParallel;
     }
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
@@ -132,48 +136,55 @@ public class GroupedIndexer extends AbstractIndexer {
                 files.add(null);
                 buckets.add(i);
             }
-            buckets.parallelStream().forEach(i -> {
-                String tmpFilePath = prefix + Integer.valueOf(i).toString() + ".tmp";
-                File tmpFile = new File(tmpFilePath);
-                if (tmpFile.isFile()) {
-                    List<ObjectNode> buffer = new ArrayList<>();
-                    EntityDAO csvDao = new CSVFileDAO(separator, tmpFilePath);
-                    while (csvDao.hasNextEntity()) {
-                        buffer.add(csvDao.getNextEntity());
-                    }
-                    csvDao.close();
-                    tmpFile.delete();
-                    Comparator<ObjectNode> comparator;
-                    if (orderFields == null || orderFields.size() == 0) {
-                        comparator = RetrieverUtilities.jsonTypedFieldsComparator(groupKeys, groupKeysTypes);
-                    } else {
-                        List<String> sortFields = new ArrayList<>();
-                        sortFields.addAll(groupKeys);
-                        sortFields.addAll(orderFields);
-                        List<String> sortFieldsTypes = new ArrayList<>();
-                        sortFieldsTypes.addAll(groupKeysTypes);
-                        sortFieldsTypes.addAll(orderFieldsTypes);
-                        comparator = RetrieverUtilities.jsonTypedFieldsComparator(sortFields, sortFieldsTypes);
-                        if (descending != null && descending) {
-                            comparator = comparator.reversed();
-                        }
-                    }
-                    buffer.sort(comparator);
-                    String resultFile = prefix + Integer.valueOf(i).toString() + ".csv";
-                    try {
-                        BufferedWriter writer = new BufferedWriter(new FileWriter(resultFile));
-                        IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
-                        for (ObjectNode entity : buffer) {
-                            IndexerUtilities.writeCSVFields(entity, dataFields, writer, separator);
-                        }
-                        buffer.clear();
-                        writer.close();
-                    } catch (IOException e) {
-                        throw new BadRequestException(e);
-                    }
-                    files.set(i, resultFile);
-                }
-            });
+            ForkJoinPool pool = new ForkJoinPool(numParallel);
+            try {
+                pool.submit(() ->
+                        buckets.parallelStream().forEach(i -> {
+                            String tmpFilePath = prefix + Integer.valueOf(i).toString() + ".tmp";
+                            File tmpFile = new File(tmpFilePath);
+                            if (tmpFile.isFile()) {
+                                List<ObjectNode> buffer = new ArrayList<>();
+                                EntityDAO csvDao = new CSVFileDAO(separator, tmpFilePath);
+                                while (csvDao.hasNextEntity()) {
+                                    buffer.add(csvDao.getNextEntity());
+                                }
+                                csvDao.close();
+                                tmpFile.delete();
+                                Comparator<ObjectNode> comparator;
+                                if (orderFields == null || orderFields.size() == 0) {
+                                    comparator = RetrieverUtilities.jsonTypedFieldsComparator(groupKeys, groupKeysTypes);
+                                } else {
+                                    List<String> sortFields = new ArrayList<>();
+                                    sortFields.addAll(groupKeys);
+                                    sortFields.addAll(orderFields);
+                                    List<String> sortFieldsTypes = new ArrayList<>();
+                                    sortFieldsTypes.addAll(groupKeysTypes);
+                                    sortFieldsTypes.addAll(orderFieldsTypes);
+                                    comparator = RetrieverUtilities.jsonTypedFieldsComparator(sortFields, sortFieldsTypes);
+                                    if (descending != null && descending) {
+                                        comparator = comparator.reversed();
+                                    }
+                                }
+                                buffer.sort(comparator);
+                                String resultFile = prefix + Integer.valueOf(i).toString() + ".csv";
+                                try {
+                                    BufferedWriter writer = new BufferedWriter(new FileWriter(resultFile));
+                                    IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
+                                    for (ObjectNode entity : buffer) {
+                                        IndexerUtilities.writeCSVFields(entity, dataFields, writer, separator);
+                                    }
+                                    buffer.clear();
+                                    writer.close();
+                                } catch (IOException e) {
+                                    throw new BadRequestException(e);
+                                }
+                                files.set(i, resultFile);
+                            }
+                        })
+                ).get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new BadRequestException(e);
+            }
         }
         ObjectNode reqDao = Json.newObject();
         reqDao.set(filesKey, Json.toJson(files));
