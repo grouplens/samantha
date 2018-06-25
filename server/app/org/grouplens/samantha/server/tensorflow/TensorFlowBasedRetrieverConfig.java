@@ -26,15 +26,11 @@ import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
 import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
-import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.retriever.Retriever;
 import org.grouplens.samantha.server.retriever.RetrieverConfig;
 import play.Configuration;
 import play.inject.Injector;
-
-import java.util.List;
 
 public class TensorFlowBasedRetrieverConfig extends AbstractComponentConfig implements RetrieverConfig {
     private final Injector injector;
@@ -61,12 +57,10 @@ public class TensorFlowBasedRetrieverConfig extends AbstractComponentConfig impl
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
-        List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
-                expandersConfig, injector);
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         ModelService modelService = injector.instanceOf(ModelService.class);
         configService.getPredictor(predictorName, requestContext);
         TensorFlowModel model = (TensorFlowModel) modelService.getModel(requestContext.getEngineName(), modelName);
-        return new TensorFlowBasedRetriever(model, N, entityExpanders, config);
+        return new TensorFlowBasedRetriever(model, N, config, requestContext, injector);
     }
 }

@@ -34,8 +34,6 @@ import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.AbstractModelManager;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
-import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -134,8 +132,6 @@ public class FeatureSupportRetrieverConfig extends AbstractComponentConfig imple
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
-        List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
-                expandersConfig, injector);
         FeatureSupportModelManager manager = new FeatureSupportModelManager(modelName, modelFile, injector);
         IndexedVectorModel model = (IndexedVectorModel) manager.manage(requestContext);
         List<ObjectNode> results = new ArrayList<>();
@@ -150,6 +146,6 @@ public class FeatureSupportRetrieverConfig extends AbstractComponentConfig imple
             }
             results.add(one);
         }
-        return new PrecomputedRetriever(results, entityExpanders, config);
+        return new PrecomputedRetriever(results, config, requestContext, injector);
     }
 }

@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.dao.EntityDAO;
 import org.grouplens.samantha.server.common.JsonHelpers;
 import org.grouplens.samantha.server.dao.EntityDAOUtilities;
-import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
@@ -37,15 +36,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RequestBasedRetriever extends AbstractRetriever {
-    private final List<EntityExpander> expanders;
     private final Configuration entityDaoConfigs;
     private final Injector injector;
     private final String daoConfigKey;
 
-    public RequestBasedRetriever(Configuration entityDaoConfigs, List<EntityExpander> expanders,
+    public RequestBasedRetriever(Configuration entityDaoConfigs, RequestContext requestContext,
                                  Injector injector, String daoConfigKey, Configuration config) {
-        super(config);
-        this.expanders = expanders;
+        super(config, requestContext, injector);
         this.entityDaoConfigs = entityDaoConfigs;
         this.injector = injector;
         this.daoConfigKey = daoConfigKey;
@@ -61,7 +58,7 @@ public class RequestBasedRetriever extends AbstractRetriever {
             while (entityDAO.hasNextEntity()) {
                 hits.add(entityDAO.getNextEntity());
             }
-            hits = ExpanderUtilities.expand(hits, expanders, requestContext);
+            hits = ExpanderUtilities.expand(hits, postExpanders, requestContext);
         }
         return new RetrievedResult(hits, hits.size());
     }

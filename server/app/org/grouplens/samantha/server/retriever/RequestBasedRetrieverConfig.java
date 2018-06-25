@@ -24,13 +24,9 @@ package org.grouplens.samantha.server.retriever;
 
 import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.config.ConfigKey;
-import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
-
-import java.util.List;
 
 public class RequestBasedRetrieverConfig extends AbstractComponentConfig implements RetrieverConfig {
     private final Configuration entityDaoConfigs;
@@ -53,8 +49,6 @@ public class RequestBasedRetrieverConfig extends AbstractComponentConfig impleme
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
-        List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
-                expandersConfig, injector);
-        return new RequestBasedRetriever(entityDaoConfigs, entityExpanders, injector, daoConfigKey, config);
+        return new RequestBasedRetriever(entityDaoConfigs, requestContext, injector, daoConfigKey, config);
     }
 }

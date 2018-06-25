@@ -30,11 +30,11 @@ import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import org.grouplens.samantha.modeler.featurizer.FeatureExtractorUtilities;
 import org.grouplens.samantha.modeler.knn.KnnModelTrigger;
 import org.grouplens.samantha.modeler.tree.SortingUtilities;
-import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.inject.Injector;
 import play.libs.Json;
 
 import java.util.ArrayList;
@@ -43,7 +43,6 @@ import java.util.List;
 public class UserKnnRetriever extends AbstractRetriever {
     private final Retriever retriever;
     private final KnnModelTrigger trigger;
-    private final List<EntityExpander> expanders;
     private final String weightAttr;
     private final String scoreAttr;
     private final List<String> itemAttrs;
@@ -55,16 +54,16 @@ public class UserKnnRetriever extends AbstractRetriever {
                             List<String> itemAttrs,
                             Retriever retriever,
                             KnnModelTrigger trigger,
-                            List<EntityExpander> expanders,
-                            Configuration config) {
-        super(config);
+                            Configuration config,
+                            RequestContext requestContext,
+                            Injector injector) {
+        super(config, requestContext, injector);
         this.weightAttr = weightAttr;
         this.scoreAttr = scoreAttr;
         this.itemAttrs = itemAttrs;
         this.userAttrs = userAttrs;
         this.retriever = retriever;
         this.trigger = trigger;
-        this.expanders = expanders;
     }
 
     public RetrievedResult retrieve(RequestContext requestContext) {
@@ -107,7 +106,7 @@ public class UserKnnRetriever extends AbstractRetriever {
             String key = FeatureExtractorUtilities.composeConcatenatedKey(result, itemAttrs);
             result.put(scoreAttr, items.getDouble(key));
         }
-        results = ExpanderUtilities.expand(results, expanders, requestContext);
+        results = ExpanderUtilities.expand(results, postExpanders, requestContext);
         results.sort(SortingUtilities.jsonFieldReverseComparator(scoreAttr));
         return new RetrievedResult(results, results.size());
     }

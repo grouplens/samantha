@@ -26,15 +26,11 @@ import org.grouplens.samantha.modeler.xgboost.XGBoostModel;
 import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.ModelService;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
-import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.retriever.Retriever;
 import org.grouplens.samantha.server.retriever.RetrieverConfig;
 import play.Configuration;
 import play.inject.Injector;
-
-import java.util.List;
 
 public class XGBoostClassifierRetrieverConfig extends AbstractComponentConfig implements RetrieverConfig {
     private final Injector injector;
@@ -58,12 +54,10 @@ public class XGBoostClassifierRetrieverConfig extends AbstractComponentConfig im
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
-        List<EntityExpander> entityExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
-                expandersConfig, injector);
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         ModelService modelService = injector.instanceOf(ModelService.class);
         configService.getPredictor(predictorName, requestContext);
         XGBoostModel model = (XGBoostModel) modelService.getModel(requestContext.getEngineName(), modelName);
-        return new XGBoostClassifierRetriever(model, entityExpanders, config);
+        return new XGBoostClassifierRetriever(model, config, requestContext, injector);
     }
 }

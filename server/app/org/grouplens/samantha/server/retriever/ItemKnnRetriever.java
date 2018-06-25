@@ -24,26 +24,26 @@ package org.grouplens.samantha.server.retriever;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.knn.KnnModelTrigger;
-import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.Logger;
+import play.inject.Injector;
 
 import java.util.List;
 
 public class ItemKnnRetriever extends AbstractRetriever {
     private final Retriever retriever;
     private final KnnModelTrigger trigger;
-    private final List<EntityExpander> expanders;
 
     public ItemKnnRetriever(Retriever retriever,
                             KnnModelTrigger trigger,
-                            List<EntityExpander> expanders, Configuration config) {
-        super(config);
+                            Configuration config,
+                            RequestContext requestContext,
+                            Injector injector) {
+        super(config, requestContext, injector);
         this.retriever = retriever;
         this.trigger = trigger;
-        this.expanders = expanders;
     }
 
     public RetrievedResult retrieve(RequestContext requestContext) {
@@ -54,7 +54,7 @@ public class ItemKnnRetriever extends AbstractRetriever {
         List<ObjectNode> results = trigger.getTriggeredFeatures(interactions.getEntityList());
         Logger.debug("Feature trigger time: {}", System.currentTimeMillis() - start);
         start = System.currentTimeMillis();
-        results = ExpanderUtilities.expand(results, expanders, requestContext);
+        results = ExpanderUtilities.expand(results, postExpanders, requestContext);
         Logger.debug("Expanding time: {}", System.currentTimeMillis() - start);
         interactions.setEntityList(results);
         return interactions;

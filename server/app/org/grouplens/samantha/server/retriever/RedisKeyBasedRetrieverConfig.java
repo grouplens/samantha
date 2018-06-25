@@ -24,8 +24,6 @@ package org.grouplens.samantha.server.retriever;
 
 import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.RedisService;
-import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -56,7 +54,7 @@ public class RedisKeyBasedRetrieverConfig extends AbstractComponentConfig implem
 
     public Retriever getRetriever(RequestContext requestContext) {
         RedisService redisService = injector.instanceOf(RedisService.class);
-        List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
-        return new RedisKeyBasedRetriever(redisService, retrieveFields, indexPrefix, keyFields, config, expanders);
+        return new RedisKeyBasedRetriever(redisService, retrieveFields, indexPrefix,
+                keyFields, config, requestContext, injector);
     }
 }

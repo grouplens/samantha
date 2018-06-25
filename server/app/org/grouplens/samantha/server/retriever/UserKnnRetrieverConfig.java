@@ -27,8 +27,6 @@ import org.grouplens.samantha.modeler.knn.KnnModelTrigger;
 import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.ModelManager;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
-import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -109,9 +107,9 @@ public class UserKnnRetrieverConfig extends AbstractComponentConfig implements R
                 svdfeaPredictorName, svdfeaModelName, userAttrs, numMatch, numNeighbors, true, minSupport);
         FeatureKnnModel kdnModel = (FeatureKnnModel) kdnModelManager.manage(requestContext);
         Retriever retriever = configService.getRetriever(retrieverName, requestContext);
-        List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
         KnnModelTrigger trigger = new KnnModelTrigger(knnModel, kdnModel,
                 userAttrs, weightAttr, scoreAttr);
-        return new UserKnnRetriever(weightAttr, scoreAttr, userAttrs, itemAttrs, retriever, trigger, expanders, config);
+        return new UserKnnRetriever(weightAttr, scoreAttr, userAttrs, itemAttrs, retriever,
+                trigger, config, requestContext, injector);
     }
 }

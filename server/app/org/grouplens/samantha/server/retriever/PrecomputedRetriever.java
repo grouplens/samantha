@@ -23,22 +23,21 @@
 package org.grouplens.samantha.server.retriever;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.inject.Injector;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class PrecomputedRetriever extends AbstractRetriever {
-    final private List<EntityExpander> expanders;
     final private List<ObjectNode> results;
 
     public PrecomputedRetriever(List<ObjectNode> results,
-                                List<EntityExpander> expanders, Configuration config) {
-        super(config);
-        this.expanders = expanders;
+                                Configuration config,
+                                RequestContext requestContext, Injector injector) {
+        super(config, requestContext, injector);
         this.results = results;
     }
 
@@ -47,7 +46,7 @@ public class PrecomputedRetriever extends AbstractRetriever {
         for (ObjectNode result : results) {
             entities.add(result.deepCopy());
         }
-        entities = ExpanderUtilities.expand(entities, expanders, requestContext);
+        entities = ExpanderUtilities.expand(entities, postExpanders, requestContext);
         return new RetrievedResult(entities, entities.size());
     }
 }

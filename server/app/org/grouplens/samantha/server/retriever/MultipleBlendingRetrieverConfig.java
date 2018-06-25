@@ -24,8 +24,6 @@ package org.grouplens.samantha.server.retriever;
 
 import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
-import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -61,7 +59,6 @@ public class MultipleBlendingRetrieverConfig extends AbstractComponentConfig imp
         for (String name : retrieverNames) {
             retrievers.add(configService.getRetriever(name, requestContext));
         }
-        List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
-        return new MultipleBlendingRetriever(retrievers, itemAttrs, maxHits, config, expanders);
+        return new MultipleBlendingRetriever(retrievers, itemAttrs, maxHits, config, requestContext, injector);
     }
 }

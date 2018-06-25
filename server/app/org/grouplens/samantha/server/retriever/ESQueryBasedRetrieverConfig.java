@@ -26,8 +26,6 @@ import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.common.ElasticSearchService;
 
 import org.grouplens.samantha.server.exception.ConfigurationException;
-import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -100,9 +98,8 @@ public class ESQueryBasedRetrieverConfig extends AbstractComponentConfig impleme
     public Retriever getRetriever(RequestContext requestContext) {
         ElasticSearchService elasticSearchService = injector
                 .instanceOf(ElasticSearchService.class);
-        List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
-        return new ESQueryBasedRetriever(elasticSearchService, expanders, elasticSearchScoreName,
+        return new ESQueryBasedRetriever(elasticSearchService, elasticSearchScoreName,
                 elasticSearchReqKey, defaultMatchAll, setScrollKey, elasticSearchIndex, retrieveType,
-                retrieveFields, config, matchFields, queryKey);
+                retrieveFields, config, matchFields, queryKey, requestContext, injector);
     }
 }

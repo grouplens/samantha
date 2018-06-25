@@ -23,8 +23,6 @@
 package org.grouplens.samantha.server.retriever;
 
 import org.grouplens.samantha.server.common.AbstractComponentConfig;
-import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
@@ -118,12 +116,10 @@ public class SQLBasedRetrieverConfig extends AbstractComponentConfig implements 
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
-        List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext,
-                expandersConfig, injector);
         DSLContext create = DSL.using(DB.getDataSource(db), SQLDialect.DEFAULT);
-        return new SQLBasedRetriever(config, expanders, setCursorKey,
+        return new SQLBasedRetriever(config, setCursorKey,
                 limit, offset, selectSqlKey, matchFields,
                 greaterFields, lessFields, matchFieldTypes, greaterFieldTypes, lessFieldTypes,
-                create, selectFields, table, orderByFields, renameMap);
+                create, selectFields, table, orderByFields, renameMap, requestContext, injector);
     }
 }

@@ -25,11 +25,11 @@ package org.grouplens.samantha.server.retriever;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.common.RedisService;
-import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.inject.Injector;
 import play.libs.Json;
 
 import java.util.ArrayList;
@@ -40,17 +40,15 @@ public class RedisKeyBasedRetriever extends AbstractRetriever {
     private final List<String> retrieveFields;
     private final String indexPrefix;
     private final List<String> keyFields;
-    private final List<EntityExpander> expanders;
 
     public RedisKeyBasedRetriever(RedisService redisService, List<String> retrieveFields,
                                   String indexPrefix, List<String> keyFields, Configuration config,
-                                  List<EntityExpander> expanders) {
-        super(config);
+                                  RequestContext requestContext, Injector injector) {
+        super(config, requestContext, injector);
         this.keyFields = keyFields;
         this.redisService = redisService;
         this.retrieveFields = retrieveFields;
         this.indexPrefix = indexPrefix;
-        this.expanders = expanders;
     }
 
     private List<ObjectNode> retrieve(JsonNode reqBody) {
@@ -68,7 +66,7 @@ public class RedisKeyBasedRetriever extends AbstractRetriever {
     public RetrievedResult retrieve(RequestContext requestContext) {
         JsonNode reqBody = requestContext.getRequestBody();
         List<ObjectNode> hits = retrieve(reqBody);
-        hits = ExpanderUtilities.expand(hits, expanders, requestContext);
+        hits = ExpanderUtilities.expand(hits, postExpanders, requestContext);
         return new RetrievedResult(hits, hits.size());
     }
 }

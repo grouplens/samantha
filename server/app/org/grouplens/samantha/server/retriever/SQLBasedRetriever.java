@@ -25,13 +25,13 @@ package org.grouplens.samantha.server.retriever;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.server.common.JsonHelpers;
-import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.indexer.SQLBasedIndexer;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 import play.Configuration;
+import play.inject.Injector;
 import play.libs.Json;
 
 import java.util.ArrayList;
@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 
 public class SQLBasedRetriever extends AbstractRetriever {
-    private final List<EntityExpander> expanders;
     private final int limit;
     private final int offset;
     private final String setCursorKey;
@@ -58,14 +57,13 @@ public class SQLBasedRetriever extends AbstractRetriever {
     private Cursor<Record> cursor;
     private boolean cursorComplete = false;
 
-    public SQLBasedRetriever(Configuration config, List<EntityExpander> expanders, String setCursorKey,
+    public SQLBasedRetriever(Configuration config, String setCursorKey,
                              int limit, int offset, String selectSqlKey, List<String> matchFields,
                              List<String> greaterFields, List<String> lessFields, List<String> matchFieldTypes,
                              List<String> greaterFieldTypes, List<String> lessFieldTypes, DSLContext create,
                              List<String> selectFields, String table, Map<String, Boolean> orderByFields,
-                             Map<String, String> renameMap) {
-        super(config);
-        this.expanders = expanders;
+                             Map<String, String> renameMap, RequestContext requestContext, Injector injector) {
+        super(config, requestContext, injector);
         this.offset = offset;
         this.limit = limit;
         this.setCursorKey = setCursorKey;
@@ -126,7 +124,7 @@ public class SQLBasedRetriever extends AbstractRetriever {
             } else if (cursor != null) {
                 Result<Record> result = cursor.fetch(limit);
                 List<ObjectNode> resultList = parseResult(result);
-                resultList = ExpanderUtilities.expand(resultList, expanders, requestContext);
+                resultList = ExpanderUtilities.expand(resultList, postExpanders, requestContext);
                 if (resultList.size() == 0) {
                     cursor.close();
                     cursorComplete = true;
@@ -208,7 +206,7 @@ public class SQLBasedRetriever extends AbstractRetriever {
             result = create.fetch(sql);
         }
         List<ObjectNode> resultList = parseResult(result);
-        resultList = ExpanderUtilities.expand(resultList, expanders, requestContext);
+        resultList = ExpanderUtilities.expand(resultList, postExpanders, requestContext);
         if (setCursor && resultList.size() == 0) {
             cursor.close();
             cursorComplete = true;

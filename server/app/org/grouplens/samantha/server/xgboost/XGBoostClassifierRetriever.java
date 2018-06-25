@@ -24,13 +24,13 @@ package org.grouplens.samantha.server.xgboost;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.xgboost.XGBoostModel;
-import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.retriever.AbstractRetriever;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
 import play.Configuration;
+import play.inject.Injector;
 import play.libs.Json;
 
 import java.util.ArrayList;
@@ -38,12 +38,11 @@ import java.util.List;
 
 public class XGBoostClassifierRetriever extends AbstractRetriever {
     private final XGBoostModel model;
-    private final List<EntityExpander> expanders;
 
-    public XGBoostClassifierRetriever(XGBoostModel model, List<EntityExpander> expanders, Configuration config) {
-        super(config);
+    public XGBoostClassifierRetriever(XGBoostModel model, Configuration config,
+                                      RequestContext requestContext, Injector injector) {
+        super(config, requestContext, injector);
         this.model = model;
-        this.expanders = expanders;
     }
 
     public RetrievedResult retrieve(RequestContext requestContext) {
@@ -53,6 +52,7 @@ public class XGBoostClassifierRetriever extends AbstractRetriever {
         entities.add(entity);
         entities = ExpanderUtilities.expand(entities, expanders, requestContext);
         List<ObjectNode> results = model.classify(entities);
+        results = ExpanderUtilities.expand(results, postExpanders, requestContext);
         return new RetrievedResult(results, results.size());
     }
 }

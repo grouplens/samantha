@@ -28,9 +28,9 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.grouplens.samantha.server.common.ElasticSearchService;
 import org.grouplens.samantha.server.common.JsonHelpers;
-import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.inject.Injector;
 import play.libs.Json;
 
 import java.util.ArrayList;
@@ -40,7 +40,6 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
     private String scrollId = null;
     private boolean scrollComplete = false;
     private final ElasticSearchService elasticSearchService;
-    private final List<EntityExpander> expanders;
     private final String elasticSearchReqKey;
     private final String setScrollKey;
     private final String elasticSearchIndex;
@@ -52,14 +51,14 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
     private final String elasticSearchScoreName;
 
     public ESQueryBasedRetriever(ElasticSearchService elasticSearchService,
-                                 List<EntityExpander> expanders, String elasticSearchScoreName,
+                                 String elasticSearchScoreName,
                                  String elasticSearchReqKey, boolean defaultMatchAll,
                                  String setScrollKey, String elasticSearchIndex, String retrieveType,
                                  List<String> retrieveFields, Configuration config,
-                                 List<String> matchFields, String queryKey) {
-        super(config);
+                                 List<String> matchFields, String queryKey,
+                                 RequestContext requestContext, Injector injector) {
+        super(config, requestContext, injector);
         this.elasticSearchService = elasticSearchService;
-        this.expanders = expanders;
         this.elasticSearchScoreName= elasticSearchScoreName;
         this.elasticSearchIndex = elasticSearchIndex;
         this.elasticSearchReqKey = elasticSearchReqKey;
@@ -102,7 +101,7 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
                         setScroll,
                         scrollId, size, from);
         RetrievedResult initialResult = ESRetrieverUtilities.parse(elasticSearchScoreName, requestContext,
-                searchResponse, expanders, retrieveFields);
+                searchResponse, postExpanders, retrieveFields);
         if (setScroll) {
             scrollId = searchResponse.getScrollId();
             if (initialResult.getEntityList().size() == 0) {

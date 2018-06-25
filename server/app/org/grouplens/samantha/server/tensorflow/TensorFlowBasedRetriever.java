@@ -24,13 +24,13 @@ package org.grouplens.samantha.server.tensorflow;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.grouplens.samantha.modeler.tensorflow.TensorFlowModel;
-import org.grouplens.samantha.server.expander.EntityExpander;
 import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.IOUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.retriever.AbstractRetriever;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
 import play.Configuration;
+import play.inject.Injector;
 import play.libs.Json;
 
 import java.util.ArrayList;
@@ -39,14 +39,13 @@ import java.util.List;
 public class TensorFlowBasedRetriever extends AbstractRetriever {
     private final TensorFlowModel model;
     private final Integer N;
-    private final List<EntityExpander> expanders;
 
     public TensorFlowBasedRetriever(TensorFlowModel model, Integer N,
-                                    List<EntityExpander> expanders, Configuration config) {
-        super(config);
+                                    Configuration config, RequestContext requestContext,
+                                    Injector injector) {
+        super(config, requestContext, injector);
         this.N = N;
         this.model = model;
-        this.expanders = expanders;
     }
 
     public RetrievedResult retrieve(RequestContext requestContext) {
@@ -61,6 +60,7 @@ public class TensorFlowBasedRetriever extends AbstractRetriever {
         } else {
             results = model.recommend(entities, N);
         }
+        results = ExpanderUtilities.expand(results, postExpanders, requestContext);
         return new RetrievedResult(results, results.size());
     }
 }

@@ -26,8 +26,6 @@ import org.grouplens.samantha.modeler.knn.FeatureKnnModel;
 import org.grouplens.samantha.modeler.knn.KnnModelTrigger;
 import org.grouplens.samantha.server.common.*;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
-import org.grouplens.samantha.server.expander.EntityExpander;
-import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
 import play.inject.Injector;
@@ -98,7 +96,6 @@ public class ItemKnnRetrieverConfig extends AbstractComponentConfig implements R
     public Retriever getRetriever(RequestContext requestContext) {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
         Retriever retriever = configService.getRetriever(retrieverName, requestContext);
-        List<EntityExpander> expanders = ExpanderUtilities.getEntityExpanders(requestContext, expandersConfig, injector);
         ModelManager knnModelManager = new FeatureKnnModelManager(knnModelName, knnModelFile, injector,
                 svdfeaPredictorName, svdfeaModelName, itemAttrs, numMatch, numNeighbors, false, minSupport);
         FeatureKnnModel knnModel = (FeatureKnnModel) knnModelManager.manage(requestContext);
@@ -107,6 +104,6 @@ public class ItemKnnRetrieverConfig extends AbstractComponentConfig implements R
         FeatureKnnModel kdnModel = (FeatureKnnModel) kdnModelManager.manage(requestContext);
         KnnModelTrigger trigger = new KnnModelTrigger(knnModel, kdnModel,
                 itemAttrs, weightAttr, scoreAttr);
-        return new ItemKnnRetriever(retriever, trigger, expanders, config);
+        return new ItemKnnRetriever(retriever, trigger, config, requestContext, injector);
     }
 }
