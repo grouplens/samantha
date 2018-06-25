@@ -22,13 +22,25 @@
 
 package org.grouplens.samantha.server.ranker;
 
+import org.grouplens.samantha.server.expander.EntityExpander;
+import org.grouplens.samantha.server.expander.ExpanderUtilities;
+import org.grouplens.samantha.server.io.RequestContext;
 import play.Configuration;
+import play.inject.Injector;
+
+import java.util.List;
 
 public abstract class AbstractRanker implements Ranker {
     protected final Configuration config;
+    protected final List<EntityExpander> expanders;
+    protected final List<EntityExpander> postExpanders;
 
-    public AbstractRanker(Configuration config) {
+    public AbstractRanker(Configuration config, RequestContext requestContext, Injector injector) {
         this.config = config;
+        this.expanders = ExpanderUtilities.getEntityExpanders(requestContext,
+                ExpanderUtilities.getEntityExpandersConfig(config), injector);
+        this.postExpanders = ExpanderUtilities.getEntityExpanders(requestContext,
+                ExpanderUtilities.getPostEntityExpandersConfig(config), injector);
     }
 
     public Configuration getConfig() {

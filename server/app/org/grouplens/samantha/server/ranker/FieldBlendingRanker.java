@@ -27,37 +27,34 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
-import org.grouplens.samantha.server.expander.EntityExpander;
+import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
 import play.Configuration;
+import play.inject.Injector;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class FieldBlendingRanker extends AbstractRanker {
-    private final List<EntityExpander> entityExpanders;
     private final Object2DoubleMap<String> defaults;
     private final int offset;
     private final int pageSize;
     private final int limit;
 
     public FieldBlendingRanker(Object2DoubleMap<String> defaults, int offset, int limit, int pageSize,
-                               List<EntityExpander> entityExpanders, Configuration config) {
-        super(config);
+                               RequestContext requestContext, Injector injector, Configuration config) {
+        super(config, requestContext, injector);
         this.defaults = defaults;
         this.offset = offset;
         this.limit = limit;
         this.pageSize = pageSize;
-        this.entityExpanders = entityExpanders;
     }
 
     public RankedResult rank(RetrievedResult retrievedResult, RequestContext requestContext) {
         List<ObjectNode> entityList = retrievedResult.getEntityList();
-        for (EntityExpander expander : entityExpanders) {
-            entityList = expander.expand(entityList, requestContext);
-        }
+        entityList = ExpanderUtilities.expand(entityList, expanders, requestContext);
         int curLimit = limit;
         if (pageSize == 0 || limit > entityList.size()) {
             curLimit = entityList.size();

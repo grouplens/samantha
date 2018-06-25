@@ -24,40 +24,37 @@ package org.grouplens.samantha.server.ranker;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Ordering;
-import org.grouplens.samantha.server.expander.EntityExpander;
+import org.grouplens.samantha.server.expander.ExpanderUtilities;
 import org.grouplens.samantha.server.predictor.Prediction;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.predictor.Predictor;
 import org.grouplens.samantha.server.retriever.RetrievedResult;
 import play.Configuration;
+import play.inject.Injector;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class PredictorBasedRanker extends AbstractRanker {
-    private final List<EntityExpander> entityExpanders;
     private final Predictor predictor;
     private final int pageSize;
     private final int offset;
     private final int limit;
 
     public PredictorBasedRanker(Predictor predictor, int pageSize, int offset, int limit,
-                                List<EntityExpander> entityExpanders, Configuration config) {
-        super(config);
+                                Configuration config, RequestContext requestContext, Injector injector) {
+        super(config, requestContext, injector);
         this.predictor = predictor;
         this.pageSize = pageSize;
         this.offset = offset;
         this.limit = limit;
-        this.entityExpanders = entityExpanders;
     }
 
     public RankedResult rank(RetrievedResult retrievedResult,
                              RequestContext requestContext) {
         List<ObjectNode> entityList = retrievedResult.getEntityList();
-        for (EntityExpander expander : entityExpanders) {
-            entityList = expander.expand(entityList, requestContext);
-        }
+        entityList = ExpanderUtilities.expand(entityList, expanders, requestContext);
         List<Prediction> predictions = predictor.predict(entityList, requestContext);
         int curLimit = limit;
         if (pageSize == 0 || limit > predictions.size()) {
