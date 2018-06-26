@@ -76,7 +76,7 @@ public class ESBasedJoinExpander implements EntityExpander {
             String type = config.getString("type");
             List<String> keys = config.getStringList("keys");
             List<String> entityFields = config.getStringList("fields");
-            Map<Map<String, String>, SearchHit> keyVals = elasticSearchService
+            Map<Map<String, String>, List<SearchHit>> keyVals = elasticSearchService
                     .searchFieldsByKeys(elasticSearchIndex, type, keys,
                             entityFields, arr);
             for (ObjectNode entity : initialResult) {
@@ -84,7 +84,7 @@ public class ESBasedJoinExpander implements EntityExpander {
                         keys);
                 if (keyVals.containsKey(keyVal) && keyVal.size() > 0 && keyVals.get(keyVal) != null) {
                     ExpanderUtilities.parseEntityFromSearchHit(entityFields,
-                            null, keyVals.get(keyVal), entity);
+                            null, keyVals.get(keyVal).get(0), entity);
                 } else {
                     logger.warn("Can not find the key {} while joining: {}", keyVal.toString(),
                             entity.toString());

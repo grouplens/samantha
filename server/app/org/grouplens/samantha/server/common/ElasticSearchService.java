@@ -215,11 +215,11 @@ public class ElasticSearchService {
         return hits;
     }
 
-    public Map<Map<String, String>, SearchHit> searchFieldsByKeys(String index, String type,
+    public Map<Map<String, String>, List<SearchHit>> searchFieldsByKeys(String index, String type,
                                                                   List<String> keys,
                                                                   List<String> fields,
                                                                   JsonNode data) {
-        Map<Map<String, String>, SearchHit> keyVals = new HashMap<>();
+        Map<Map<String, String>, List<SearchHit>> keyVals = new HashMap<>();
         SearchHits hits = searchHitsByKeys(index, type, keys, fields, data);
         for (SearchHit hit : hits) {
             Map<String, SearchHitField> hitFields = hit.getFields();
@@ -230,7 +230,13 @@ public class ElasticSearchService {
                     keyVal.put(key, (String) hitFields.get(key).getValue());
                 }
             }
-            keyVals.put(keyVal, hit);
+            if (keyVals.containsKey(keyVal)) {
+                keyVals.get(keyVal).add(hit);
+            } else {
+                List<SearchHit> vals = new ArrayList<>();
+                vals.add(hit);
+                keyVals.put(keyVal, vals);
+            }
         }
         return keyVals;
     }
