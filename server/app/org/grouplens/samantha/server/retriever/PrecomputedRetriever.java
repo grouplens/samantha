@@ -46,7 +46,7 @@ public class PrecomputedRetriever extends AbstractRetriever {
         for (ObjectNode result : results) {
             entities.add(result.deepCopy());
         }
-        entities = ExpanderUtilities.expand(entities, postExpanders, requestContext);
+        entities = ExpanderUtilities.expand(entities, expanders, requestContext);
         return new RetrievedResult(entities, entities.size());
     }
 }

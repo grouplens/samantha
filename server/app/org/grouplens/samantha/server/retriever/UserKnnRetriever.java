@@ -106,7 +106,7 @@ public class UserKnnRetriever extends AbstractRetriever {
             String key = FeatureExtractorUtilities.composeConcatenatedKey(result, itemAttrs);
             result.put(scoreAttr, items.getDouble(key));
         }
-        results = ExpanderUtilities.expand(results, postExpanders, requestContext);
+        results = ExpanderUtilities.expand(results, expanders, requestContext);
         results.sort(SortingUtilities.jsonFieldReverseComparator(scoreAttr));
         return new RetrievedResult(results, results.size());
     }

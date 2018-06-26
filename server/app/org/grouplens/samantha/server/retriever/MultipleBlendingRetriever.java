@@ -56,7 +56,7 @@ public class MultipleBlendingRetriever extends AbstractRetriever {
             RetrievedResult results = retriever.retrieve(requestContext);
             Logger.debug("{} time: {}", retriever, System.currentTimeMillis() - start);
             List<ObjectNode> initial = results.getEntityList();
-            initial = ExpanderUtilities.expand(initial, postExpanders, requestContext);
+            initial = ExpanderUtilities.expand(initial, expanders, requestContext);
             for (ObjectNode entity : initial) {
                 String item = FeatureExtractorUtilities.composeConcatenatedKey(entity, itemAttrs);
                 if (!items.contains(item)) {

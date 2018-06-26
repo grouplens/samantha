@@ -58,7 +58,7 @@ public class RequestBasedRetriever extends AbstractRetriever {
             while (entityDAO.hasNextEntity()) {
                 hits.add(entityDAO.getNextEntity());
             }
-            hits = ExpanderUtilities.expand(hits, postExpanders, requestContext);
+            hits = ExpanderUtilities.expand(hits, expanders, requestContext);
         }
         return new RetrievedResult(hits, hits.size());
     }

@@ -101,7 +101,7 @@ public class ESQueryBasedRetriever extends AbstractRetriever {
                         setScroll,
                         scrollId, size, from);
         RetrievedResult initialResult = ESRetrieverUtilities.parse(elasticSearchScoreName, requestContext,
-                searchResponse, postExpanders, retrieveFields);
+                searchResponse, expanders, retrieveFields);
         if (setScroll) {
             scrollId = searchResponse.getScrollId();
             if (initialResult.getEntityList().size() == 0) {

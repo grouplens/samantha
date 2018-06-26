@@ -124,7 +124,7 @@ public class SQLBasedRetriever extends AbstractRetriever {
             } else if (cursor != null) {
                 Result<Record> result = cursor.fetch(limit);
                 List<ObjectNode> resultList = parseResult(result);
-                resultList = ExpanderUtilities.expand(resultList, postExpanders, requestContext);
+                resultList = ExpanderUtilities.expand(resultList, expanders, requestContext);
                 if (resultList.size() == 0) {
                     cursor.close();
                     cursorComplete = true;
@@ -206,7 +206,7 @@ public class SQLBasedRetriever extends AbstractRetriever {
             result = create.fetch(sql);
         }
         List<ObjectNode> resultList = parseResult(result);
-        resultList = ExpanderUtilities.expand(resultList, postExpanders, requestContext);
+        resultList = ExpanderUtilities.expand(resultList, expanders, requestContext);
         if (setCursor && resultList.size() == 0) {
             cursor.close();
             cursorComplete = true;

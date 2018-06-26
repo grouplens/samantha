@@ -54,7 +54,7 @@ public class ItemKnnRetriever extends AbstractRetriever {
         List<ObjectNode> results = trigger.getTriggeredFeatures(interactions.getEntityList());
         Logger.debug("Feature trigger time: {}", System.currentTimeMillis() - start);
         start = System.currentTimeMillis();
-        results = ExpanderUtilities.expand(results, postExpanders, requestContext);
+        results = ExpanderUtilities.expand(results, expanders, requestContext);
         Logger.debug("Expanding time: {}", System.currentTimeMillis() - start);
         interactions.setEntityList(results);
         return interactions;

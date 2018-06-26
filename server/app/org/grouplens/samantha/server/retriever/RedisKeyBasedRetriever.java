@@ -66,7 +66,7 @@ public class RedisKeyBasedRetriever extends AbstractRetriever {
     public RetrievedResult retrieve(RequestContext requestContext) {
         JsonNode reqBody = requestContext.getRequestBody();
         List<ObjectNode> hits = retrieve(reqBody);
-        hits = ExpanderUtilities.expand(hits, postExpanders, requestContext);
+        hits = ExpanderUtilities.expand(hits, expanders, requestContext);
         return new RetrievedResult(hits, hits.size());
     }
 }
