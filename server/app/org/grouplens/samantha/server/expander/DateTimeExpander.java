@@ -74,7 +74,7 @@ public class DateTimeExpander implements EntityExpander {
                     }
                     if (newFieldNames != null && newFieldNames.size() == fieldNames.size()) {
                         entity.put(newFieldNames.get(i), value);
-                    } else if (appendix) {
+                    } else if (appendix != null) {
                         entity.put(fieldName + appendix, value);
                     } else {
                         entity.put(fieldName, value);
