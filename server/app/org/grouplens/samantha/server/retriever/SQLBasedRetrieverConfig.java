@@ -26,6 +26,8 @@ import org.grouplens.samantha.server.common.AbstractComponentConfig;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
+import org.jooq.conf.Settings;
+import org.jooq.conf.StatementType;
 import org.jooq.impl.DSL;
 import play.Configuration;
 import play.db.DB;
@@ -116,7 +118,9 @@ public class SQLBasedRetrieverConfig extends AbstractComponentConfig implements 
     }
 
     public Retriever getRetriever(RequestContext requestContext) {
-        DSLContext create = DSL.using(DB.getDataSource(db), SQLDialect.DEFAULT);
+        Settings settings = new Settings()
+                .withStatementType(StatementType.STATIC_STATEMENT);
+        DSLContext create = DSL.using(DB.getDataSource(db), SQLDialect.DEFAULT, settings);
         return new SQLBasedRetriever(config, setCursorKey,
                 limit, offset, selectSqlKey, matchFields,
                 greaterFields, lessFields, matchFieldTypes, greaterFieldTypes, lessFieldTypes,

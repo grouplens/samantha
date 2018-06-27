@@ -28,6 +28,8 @@ import org.grouplens.samantha.server.common.Utilities;
 import org.grouplens.samantha.server.indexer.SQLBasedIndexer;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.jooq.*;
+import org.jooq.conf.Settings;
+import org.jooq.conf.StatementType;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +53,9 @@ public class SQLBasedJoinExpander implements EntityExpander {
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector,
                                              RequestContext requestContext) {
-        DSLContext create = DSL.using(DB.getDataSource(expanderConfig.getString("db")), SQLDialect.DEFAULT);
+        Settings settings = new Settings()
+                .withStatementType(StatementType.STATIC_STATEMENT);
+        DSLContext create = DSL.using(DB.getDataSource(expanderConfig.getString("db")), SQLDialect.DEFAULT, settings);
         return new SQLBasedJoinExpander(expanderConfig.getConfigList("expandFields"), create);
     }
 

@@ -27,6 +27,8 @@ import org.grouplens.samantha.server.config.SamanthaConfigService;
 import org.grouplens.samantha.server.io.RequestContext;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
+import org.jooq.conf.Settings;
+import org.jooq.conf.StatementType;
 import org.jooq.impl.DSL;
 import play.Configuration;
 import play.db.DB;
@@ -104,7 +106,9 @@ public class SQLBasedIndexerConfig implements IndexerConfig {
 
     public Indexer getIndexer(RequestContext requestContext) {
         SamanthaConfigService configService = injector.instanceOf(SamanthaConfigService.class);
-        DSLContext create = DSL.using(DB.getDataSource(db), SQLDialect.DEFAULT);
+        Settings settings = new Settings()
+                .withStatementType(StatementType.STATIC_STATEMENT);
+        DSLContext create = DSL.using(DB.getDataSource(db), SQLDialect.DEFAULT, settings);
         return new SQLBasedIndexer(configService, daoConfigs,
                 create, tableKey, table, injector, daoConfigKey,
                 fields, fieldTypes, matchFields, matchFieldTypes,
