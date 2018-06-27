@@ -32,19 +32,27 @@ import org.grouplens.samantha.server.retriever.RetrieverConfig;
 import play.Configuration;
 import play.inject.Injector;
 
+import java.util.List;
+
 public class TensorFlowBasedRetrieverConfig extends AbstractComponentConfig implements RetrieverConfig {
     private final Injector injector;
     private final String predictorName;
     private final String modelName;
     private final Integer N;
+    private final List<String> passOnFields;
+    private final List<String> passOnNewFields;
 
     private TensorFlowBasedRetrieverConfig(String predictorName, String modelName, Integer N,
+                                           List<String> passOnFields,
+                                           List<String> passOnNewFields,
                                            Injector injector, Configuration config) {
         super(config);
         this.injector = injector;
         this.modelName = modelName;
         this.predictorName = predictorName;
         this.N = N;
+        this.passOnFields = passOnFields;
+        this.passOnNewFields = passOnNewFields;
     }
 
     public static RetrieverConfig getRetrieverConfig(Configuration retrieverConfig,
@@ -53,6 +61,8 @@ public class TensorFlowBasedRetrieverConfig extends AbstractComponentConfig impl
                 retrieverConfig.getString("predictorName"),
                 retrieverConfig.getString("modelName"),
                 retrieverConfig.getInt("N"),
+                retrieverConfig.getStringList("passOnFields"),
+                retrieverConfig.getStringList("passOnNewFields"),
                 injector, retrieverConfig);
     }
 
@@ -61,6 +71,7 @@ public class TensorFlowBasedRetrieverConfig extends AbstractComponentConfig impl
         ModelService modelService = injector.instanceOf(ModelService.class);
         configService.getPredictor(predictorName, requestContext);
         TensorFlowModel model = (TensorFlowModel) modelService.getModel(requestContext.getEngineName(), modelName);
-        return new TensorFlowBasedRetriever(model, N, config, requestContext, injector);
+        return new TensorFlowBasedRetriever(model, N, config, requestContext, injector,
+                passOnFields, passOnNewFields);
     }
 }

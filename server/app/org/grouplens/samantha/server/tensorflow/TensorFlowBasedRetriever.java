@@ -38,14 +38,19 @@ import java.util.List;
 
 public class TensorFlowBasedRetriever extends AbstractRetriever {
     private final TensorFlowModel model;
+    private final List<String> passOnFields;
+    private final List<String> passOnNewFields;
     private final Integer N;
 
     public TensorFlowBasedRetriever(TensorFlowModel model, Integer N,
                                     Configuration config, RequestContext requestContext,
-                                    Injector injector) {
+                                    Injector injector, List<String> passOnFields,
+                                    List<String> passOnNewFields) {
         super(config, requestContext, injector);
         this.N = N;
         this.model = model;
+        this.passOnFields = passOnFields;
+        this.passOnNewFields = passOnNewFields;
     }
 
     public RetrievedResult retrieve(RequestContext requestContext) {
@@ -59,6 +64,17 @@ public class TensorFlowBasedRetriever extends AbstractRetriever {
             results = model.recommend(entities);
         } else {
             results = model.recommend(entities, N);
+        }
+        if (passOnFields != null && passOnFields.size() > 0) {
+            List<String> newNames = passOnFields;
+            if (passOnNewFields != null && passOnNewFields.size() == passOnFields.size()) {
+                newNames = passOnNewFields;
+            }
+            for (int i=0; i<passOnFields.size(); i++) {
+                for (ObjectNode result : results) {
+                    result.set(newNames.get(i), entity.get(passOnFields.get(i)));
+                }
+            }
         }
         results = ExpanderUtilities.expand(results, postExpanders, requestContext);
         return new RetrievedResult(results, results.size());
