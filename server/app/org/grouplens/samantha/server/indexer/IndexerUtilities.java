@@ -50,7 +50,7 @@ public class IndexerUtilities {
 
     /**
      * TODO: deal with timezone problem.
-     * @param timeStr yyyy-MM-dd HH:mm:SS or now/today - <n> <TIMEUNIT string value in Java>
+     * @param timeStr yyyy-MM-dd HH:mm:ss or now/today - <n> <TIMEUNIT string value in Java>
      */
     public static int parseTime(String timeStr) {
         try {
@@ -67,7 +67,7 @@ public class IndexerUtilities {
                 long minus = TimeUnit.valueOf(unit).toMillis(mul);
                 date = new Date(current - minus);
             } else if (timeStr.split("-", -1).length > 1) {
-                DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:SS");
+                DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 date = format.parse(timeStr);
             } else {
                 return Integer.parseInt(timeStr);
