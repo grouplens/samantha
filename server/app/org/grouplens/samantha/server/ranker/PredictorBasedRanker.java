@@ -69,7 +69,8 @@ public class PredictorBasedRanker extends AbstractRanker {
         } else {
             recs = candidates.subList(offset, candidates.size());
         }
-        return new RankedResult(recs, offset, curLimit, predictions.size());
+        return new RankedResult(recs, offset, curLimit, predictions.size(),
+                postExpanders, requestContext);
     }
 
     public Configuration getConfig() {

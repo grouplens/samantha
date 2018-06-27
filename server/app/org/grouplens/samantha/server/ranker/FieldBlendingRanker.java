@@ -100,6 +100,7 @@ public class FieldBlendingRanker extends AbstractRanker {
         } else {
             recs = candidates.subList(offset, candidates.size());
         }
-        return new RankedResult(recs, offset, curLimit, scoredList.size());
+        return new RankedResult(recs, offset, curLimit, scoredList.size(),
+                postExpanders, requestContext);
     }
 }

@@ -84,6 +84,7 @@ public class EntityFieldRanker extends AbstractRanker {
         } else {
             recs = candidates.subList(offset, curLimit);
         }
-        return new RankedResult(recs, offset, curLimit, retrievedResult.getMaxHits());
+        return new RankedResult(recs, offset, curLimit, retrievedResult.getMaxHits(),
+                postExpanders, requestContext);
     }
 }

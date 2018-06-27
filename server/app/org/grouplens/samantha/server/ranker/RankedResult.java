@@ -25,9 +25,13 @@ package org.grouplens.samantha.server.ranker;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.grouplens.samantha.server.expander.EntityExpander;
+import org.grouplens.samantha.server.expander.ExpanderUtilities;
+import org.grouplens.samantha.server.io.RequestContext;
 import org.grouplens.samantha.server.predictor.Prediction;
 import play.libs.Json;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class RankedResult {
@@ -43,6 +47,22 @@ public class RankedResult {
         this.limit = limit;
         this.maxHits = maxHits;
         this.params = null;
+    }
+
+    public RankedResult(List<Prediction> ranking, int offset, int limit, long maxHits,
+                        List<EntityExpander> expanders, RequestContext requestContext) {
+        this.ranking = ranking;
+        this.offset = offset;
+        this.limit = limit;
+        this.maxHits = maxHits;
+        this.params = null;
+        if (expanders != null && expanders.size() > 0) {
+            List<ObjectNode> initial = new ArrayList<>(ranking.size());
+            for (Prediction prediction : ranking) {
+                initial.add(prediction.getEntity());
+            }
+            ExpanderUtilities.expand(initial, expanders, requestContext);
+        }
     }
 
     public RankedResult(List<Prediction> ranking, int offset, int limit, long maxHits, JsonNode params) {
