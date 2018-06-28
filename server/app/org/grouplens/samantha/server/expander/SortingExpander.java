@@ -33,20 +33,30 @@ import java.util.List;
 public class SortingExpander implements EntityExpander {
     final private List<String> sortByFields;
     final private List<String> sortByTypes;
+    final private boolean reverse;
 
-    public SortingExpander(List<String> sortByFields, List<String> sortByTypes) {
+    public SortingExpander(List<String> sortByFields, List<String> sortByTypes, boolean reverse) {
         this.sortByFields = sortByFields;
         this.sortByTypes = sortByTypes;
+        this.reverse = reverse;
     }
 
     public static EntityExpander getExpander(Configuration expanderConfig,
                                              Injector injector, RequestContext requestContext) {
+        Boolean reverse = expanderConfig.getBoolean("reverse");
+        if (reverse == null) {
+            reverse = false;
+        }
         return new SortingExpander(expanderConfig.getStringList("sortByFields"),
-                expanderConfig.getStringList("sortByTypes"));
+                expanderConfig.getStringList("sortByTypes"), reverse);
     }
 
     public List<ObjectNode> expand(List<ObjectNode> initialResult, RequestContext requestContext) {
-        initialResult.sort(RetrieverUtilities.jsonTypedFieldsComparator(sortByFields, sortByTypes));
+        if (!reverse) {
+            initialResult.sort(RetrieverUtilities.jsonTypedFieldsComparator(sortByFields, sortByTypes));
+        } else {
+            initialResult.sort(RetrieverUtilities.jsonTypedFieldsComparator(sortByFields, sortByTypes).reversed());
+        }
         return initialResult;
     }
 }
