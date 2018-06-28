@@ -59,6 +59,9 @@ public class RetrieverBasedExpander implements EntityExpander {
             IOUtilities.parseEntityFromJsonNode(entity, reqBody);
             RequestContext pseudoReq = new RequestContext(reqBody, requestContext.getEngineName());
             RetrievedResult retrievedResult = retriever.retrieve(pseudoReq);
+            for (ObjectNode one : retrievedResult.getEntityList()) {
+                IOUtilities.parseEntityFromJsonNode(entity, one);
+            }
             expanded.addAll(retrievedResult.getEntityList());
         }
         return expanded;
