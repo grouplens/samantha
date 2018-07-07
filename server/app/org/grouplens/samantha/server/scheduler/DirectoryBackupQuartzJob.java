@@ -32,6 +32,7 @@ import play.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -52,7 +53,7 @@ public class DirectoryBackupQuartzJob implements Job {
             Logger.info("Directory backup job is working: {}",
                     taskConfig.underlying().root().render(ConfigRenderOptions.concise()));
             try {
-                File target = new File(destDir + "/" + dateStr);
+                File target = new File(Paths.get(destDir, dateStr).toString());
                 FileUtils.copyDirectory(new File(sourceDir), target);
             } catch (IOException e) {
                 Logger.error(e.getMessage());

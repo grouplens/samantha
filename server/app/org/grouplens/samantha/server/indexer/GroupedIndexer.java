@@ -39,6 +39,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -92,21 +93,20 @@ public class GroupedIndexer extends AbstractIndexer {
     }
 
     public ObjectNode getIndexedDataDAOConfig(RequestContext requestContext) {
-        String prefix = dataDir + "/";
         List<String> files = new ArrayList<>(usedBuckets);
         if (skip) {
             for (int i=0; i<usedBuckets; i++) {
-                String resultFile = prefix + Integer.valueOf(i).toString() + ".csv";
+                String resultFile = Paths.get(dataDir, Integer.valueOf(i).toString() + ".csv").toString();
                 files.add(resultFile);
             }
         } else {
             EntityDAO entityDAO = indexer.getEntityDAO(requestContext);
             List<BufferedWriter> writers = new ArrayList<>();
             try {
-                new File(prefix).mkdirs();
+                new File(dataDir).mkdirs();
                 for (int i = 0; i < usedBuckets; i++) {
-                    BufferedWriter writer = new BufferedWriter(new FileWriter(prefix +
-                            Integer.valueOf(i).toString() + ".tmp"));
+                    BufferedWriter writer = new BufferedWriter(new FileWriter(
+                            Paths.get(dataDir, Integer.valueOf(i).toString() + ".tmp").toString()));
                     IndexerUtilities.writeCSVHeader(dataFields, writer, separator);
                     writers.add(writer);
                 }
@@ -128,7 +128,7 @@ public class GroupedIndexer extends AbstractIndexer {
                 entityDAO.close();
             }
             for (int i=0; i<usedBuckets; i++) {
-                String tmpFilePath = prefix + Integer.valueOf(i).toString() + ".tmp";
+                String tmpFilePath = Paths.get(dataDir, Integer.valueOf(i).toString() + ".tmp").toString();
                 File tmpFile = new File(tmpFilePath);
                 if (tmpFile.isFile()) {
                     List<ObjectNode> buffer = new ArrayList<>();
@@ -154,7 +154,7 @@ public class GroupedIndexer extends AbstractIndexer {
                         }
                     }
                     buffer.sort(comparator);
-                    String resultFile = prefix + Integer.valueOf(i).toString() + ".csv";
+                    String resultFile = Paths.get(dataDir, Integer.valueOf(i).toString() + ".csv").toString();
                     try {
                         BufferedWriter writer = new BufferedWriter(new FileWriter(resultFile));
                         IndexerUtilities.writeCSVHeader(dataFields, writer, separator);

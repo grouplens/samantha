@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -81,8 +82,8 @@ public class InstanceCachedAsyncParallelSGD extends AbstractOptimizationMethod i
     }
 
     private String getCachePath(String prefix, Integer thrIdx) {
-        return cachePath + "/" + prefix + "-" + thrIdx.toString() + "-" +
-                tstampStr + ".tmp";
+        return Paths.get(cachePath, prefix + "-" + thrIdx.toString() + "-" +
+                tstampStr + ".tmp").toString();
     }
 
     public double minimize(LearningModel model, LearningData learningData, LearningData validData) {

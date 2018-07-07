@@ -33,6 +33,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
@@ -73,7 +74,7 @@ public class FileWriterService {
     private String pickDirectory(int idx, String type, int tstamp) {
         SimpleDateFormat dateFormat = new SimpleDateFormat(dirPattern);
         long ms = tstamp * 1000L;
-        return dataDirs.get(idx) + "/" + type + dateFormat.format(new Date(ms));
+        return Paths.get(dataDirs.get(idx), type, dateFormat.format(new Date(ms))).toString();
     }
 
     private void freeResources(String type, int remain) {
