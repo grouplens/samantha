@@ -55,20 +55,20 @@ public class FileWriterService {
 
     @Inject
     private FileWriterService(Configuration configuration) {
-        String sep = configuration.getString(ConfigKey.CSV_FILE_SERVICE_SEPARATOR.get());
+        String sep = configuration.getString(ConfigKey.FILE_SERVICE_SEPARATOR.get());
         if (sep != null) {
             separator = sep;
         } else {
             separator = "\t";
         }
-        dataDirs = configuration.getStringList(ConfigKey.CSV_FILE_SERVICE_DATA_DIRS.get());
-        String pattern = configuration.getString(ConfigKey.CSV_FILE_SERVICE_DIR_PATTERN.get());
+        dataDirs = configuration.getStringList(ConfigKey.FILE_SERVICE_DATA_DIRS.get());
+        String pattern = configuration.getString(ConfigKey.FILE_SERVICE_DIR_PATTERN.get());
         if (pattern == null) {
             dirPattern = "/yyyy/MM/dd/";
         } else {
             dirPattern = pattern;
         }
-        maxWriter = configuration.getInt(ConfigKey.CSV_FILE_SERVICE_MAX_WRITER.get());
+        maxWriter = configuration.getInt(ConfigKey.FILE_SERVICE_MAX_WRITER.get());
     }
 
     private String pickDirectory(int idx, String type, int tstamp) {
