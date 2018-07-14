@@ -31,7 +31,7 @@
 * Web interface based creation and deployment of recommender/predictor engines
 * Scale up to clusters including data storage and model learning
 
-[Detailed Documentation](docs/SamanthaDoc.pdf)
+[Get Started](docs/Demo.ipynb)
 
 ### Citation
 
