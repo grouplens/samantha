@@ -1,37 +1,41 @@
 ### Introduction
 
-#### what is Samantha
+#### What is Samantha
 
 * A generic recommender and predictor server for both offline machine learning and recommendation modeling and fast online production serving.
 * MIT licence, oriented to production use (online field experiments in research and typical industrial use)
 
-#### what Samantha can do in simple words: full-fledged, self-contained server that can be used in production right away with one configuration file, including the following components
+#### What Samantha can do in simple words: full-fledged, self-contained server that can be used in production right away with one configuration file, including the following components
 
-* data management, including offline and online, in (indexing) and out (post-processing), through configurable backends of most relational databases (e.g. MySQL, PostresSQL, SQLServer etc.), ElasticSearch or Redis.
-* model management, including online updating, building, loading, dumping and serving.
-* data processing pipeline based on a data expanding and feature extraction framework
-* state-of-the-art models: collaborative filtering, matrix factorization, knn, trees, boosting and bandits/reinforcement learning
-* experimental framework for randomized A/B and bucket testing
-* feedback (for online learning/optimization) and evaluation (for experimenting) loops among application front-end, application back-end server and Samantha
-* abstracted model parameter server (through extensible variable and index spaces)
-* generic oracle-based optimization framework/solver with classic solvers
-* flexible model dependency, e.g. model ensemble, stacking, boosting
-* schedulers for regular model rebuilding or backup
-* integration with other state-of-the-art systems including XGBoost and TensorFlow.
-* control and customize all these components through one centralized configuration file
+* Data management, including offline and online, in (indexing) and out (post-processing), through configurable backends of most relational databases (e.g. MySQL, PostresSQL, SQLServer etc.), ElasticSearch or Redis.
+* Model management, including online updating, building, loading, dumping and serving.
+* Data processing pipeline based on a data expanding and feature extraction framework
+* State-of-the-art models: collaborative filtering, matrix factorization, knn, trees, boosting and bandits/reinforcement learning
+* Experimental framework for randomized A/B and bucket testing
+* Feedback (for online learning/optimization) and evaluation (for experimenting) loops among application front-end, application back-end server and Samantha
+* Abstracted model parameter server (through extensible variable and index spaces)
+* Generic oracle-based optimization framework/solver with classic solvers
+* Flexible model dependency, e.g. model ensemble, stacking, boosting
+* Schedulers for regular model rebuilding or backup
+* Integration with other state-of-the-art systems including XGBoost and TensorFlow.
+* Control and customize all these components through one centralized configuration file
 
-#### the targeted audience/users of Samantha (users in this doc refer to those who use Samantha; instead, end users is used to refer to the ultimate users of applications built using Samantha)
+#### The targeted users of Samantha (users here refer to those who use Samantha; instead, end users is used to refer to the ultimate users of applications built using Samantha)
 
-* individuals/organizations who want to deploy a data-driven predictive system with minimum effort. They might need it to support answering relevant research questions involving an intelligent predictive part in their system or just to have an initial try to see the effects of such a predictive component. 
-* individuals/organizations who are working on comparing and developing new machine learning or recommendation models/algorithms, especially those who care about deploying their models/algorithms into production and evaluate them in front of end users
+* Individuals or organizations who want to deploy a data-driven predictive system with minimum effort. They might need it to support answering relevant research questions involving an intelligent predictive part in their system or just to have an initial try to see the effects of such a predictive component. 
+* Individuals or organizations who are working on comparing and developing new machine learning or recommendation models/algorithms, especially those who care about deploying their models/algorithms into production and evaluate them in front of end users
 
-#### what to support in the near future
+#### What to support in the near future
 
-* text modeling
-* web interface based creation and deployment of recommender/predictor engines
-* scale up to clusters including data storage and model learning
+* Text modeling
+* Web interface based creation and deployment of recommender/predictor engines
+* Scale up to clusters including data storage and model learning
 
 [Detailed Documentation](docs/SamanthaDoc.pdf)
+
+### Citation
+
+* Qian Zhao. 2018. User-Centric Design and Evaluation of Online Interactive Recommender Systems. Ph.D. Thesis. University of Minnesota.
 
 ### Note
 
