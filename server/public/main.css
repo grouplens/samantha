@@ -1,0 +1,9 @@
+.h1024 {
+    height: 1024px;
+}
+.h500 {
+    height: 500px;
+}
+.code-editor {
+    overflow: auto;
+}

@@ -1,7 +1,33 @@
 @main() {
-  <div class="h1">Welcome to Samantha Server!</div>
+  <div class="h1">Welcome to Samantha!</div>
   <div class="row">
-    <div id="json-editor" class="col-sm-6"></div>
-    <div id="code-editor" class="col-sm-6"></div>
+    <div class="col-sm-6">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Server Configuration - Object Editor</h4>
+        </div>
+        <div class="modal-body">
+          <div id="json-editor" class="h500"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary">Sync To Code Editor</button>
+          <button type="button" class="btn btn-primary">Submit To Server</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Server Configuration - Code Editor</h4>
+        </div>
+        <div class="modal-body">
+          <div id="code-editor" class="h500"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary">Sync To Object Editor</button>
+          <button type="button" class="btn btn-primary">Submit To Server</button>
+        </div>
+      </div>
+    </div>
   </div>
 }
