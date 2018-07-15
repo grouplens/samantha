@@ -33,7 +33,8 @@ libraryDependencies ++= Seq(
   "ml.dmlc" % "xgboost4j" % "0.72",
   "org.webjars" % "jquery" % "3.3.1",
   "org.webjars" % "bootstrap" % "4.1.1",
-  "org.webjars.npm" % "jsoneditor" % "5.17.1"
+  "org.webjars.npm" % "jsoneditor" % "5.17.1",
+  "org.webjars" % "ace" % "1.2.8"
 )
 
 // Play provides two styles of routers, one expects its actions to be injected, the
