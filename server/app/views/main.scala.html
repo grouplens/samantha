@@ -5,8 +5,13 @@
 <html>
   <head>
     <title>@title</title>
-    <script data-main="@routes.Assets.at("../../public/javascripts/main.js")" type="text/javascript"
-      src="@routes.Assets.at("lib/jsoneditor/dist/jsoneditor.min.js")"></script>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <link href="@routes.Assets.at("lib/bootstrap/css/bootstrap.min.css")" rel="stylesheet" type="text/css">
+    <link href="@routes.Assets.at("lib/jsoneditor/dist/jsoneditor.min.css")" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="@routes.Assets.at("lib/jquery/jquery.min.js")"></script>
+    <script type="text/javascript" src="@routes.Assets.at("lib/bootstrap/js/bootstrap.min.js")"></script>
+    <script type="text/javascript" src="@routes.Assets.at("lib/jsoneditor/dist/jsoneditor.min.js")"></script>
+    <script type="text/javascript" src="@routes.Assets.at("javascripts/main.js")"></script>
   </head>
   <body>
     @content
