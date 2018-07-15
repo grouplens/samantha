@@ -82,4 +82,8 @@ public class AdminHandlers extends Controller {
         resp.set("config", conf);
         return ok(resp);
     }
+
+    public Result index() {
+        return ok(views.html.Application.index.render());
+    }
 }

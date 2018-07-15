@@ -2,6 +2,12 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
+# home
+GET    /                                   controllers.AdminHandlers.index()
+
+# assets
+GET    /assets/*file                       controllers.Assets.at(path="/public", file)
+
 # global
 GET    /config                             controllers.AdminHandlers.getConfig()
 POST   /config/reload                      controllers.AdminHandlers.reloadConfig()

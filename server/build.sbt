@@ -30,7 +30,10 @@ libraryDependencies ++= Seq(
   "commons-dbutils" % "commons-dbutils" % "1.6",
   "org.bouncycastle" % "bcprov-jdk15" % "1.44",
   "org.bouncycastle" % "bcmail-jdk15" % "1.44",
-  "ml.dmlc" % "xgboost4j" % "0.72"
+  "ml.dmlc" % "xgboost4j" % "0.72",
+  "org.webjars" % "jquery" % "3.3.1",
+  "org.webjars" % "bootstrap" % "4.1.1",
+  "org.webjars.npm" % "jsoneditor" % "5.17.1"
 )
 
 // Play provides two styles of routers, one expects its actions to be injected, the

@@ -1,0 +1,14 @@
+@(title: String = "Welcome to Samantha Server!")(content: Html)
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>@title</title>
+    <script data-main="@routes.Assets.at("../../public/javascripts/main.js")" type="text/javascript"
+      src="@routes.Assets.at("lib/jsoneditor/dist/jsoneditor.min.js")"></script>
+  </head>
+  <body>
+    @content
+  </body>
+</html>
