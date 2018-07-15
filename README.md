@@ -25,21 +25,21 @@
 * Individuals or organizations who want to deploy a data-driven predictive system with minimum effort. They might need it to support answering relevant research questions involving an intelligent predictive part in their system or just to have an initial try to see the effects of such a predictive component. 
 * Individuals or organizations who are working on comparing and developing new machine learning or recommendation models/algorithms, especially those who care about deploying their models/algorithms into production and evaluate them in front of end users
 
-#### What to support in the near future
-
-* Text modeling
-* Web interface based creation and deployment of recommender/predictor engines
-* Scale up to clusters including data storage and model learning
-
 [Detailed Documentation](docs/SamanthaDoc.pdf)
 
 ### Citation
 
 * Qian Zhao. 2018. User-Centric Design and Evaluation of Online Interactive Recommender Systems. Ph.D. Thesis. University of Minnesota.
 
+#### What to support in the near future
+
+* Text modeling
+* Web interface based creation and deployment of recommender/predictor engines
+* Scale up to clusters including data storage and model learning
+
 ### Note
 
-* Samantha is a project developed by <a href="http://www-users.cs.umn.edu/~qian/">Qian Zhao</a>, Ph.D. at GroupLens Research lab (graduated May 2018) and originated from his research projects during his Ph.D. Samantha might be integrated with <a href="http://lenskit.org/" target="_blank">Lenskit</a>. Feel free to give a try if you're intersted though. 
+* Samantha is a project developed by <a href="http://qianzhao.me">Qian Zhao</a>, Ph.D. at GroupLens Research lab (graduated on May 2018) and originated from his research projects there. Samantha might be integrated with <a href="http://lenskit.org/" target="_blank">Lenskit</a>. Feel free to give a try if you're intersted though. 
 
 ### For the paper GB-CENT
 
