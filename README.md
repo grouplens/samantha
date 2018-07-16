@@ -30,9 +30,9 @@
 
 [Setup](docs/Chapter-2-Setup.md)
 
-<a target="_blank" href="http://qianzhao.me/samantha/doc/api">Java API of the Server</a>
+<a target="_blank" href="http://qianzhao.me/doc/api/index.html">Java API of the Server</a>
 
-### <a target="_blank" href="http://qianzhao.me/samantha">Samantha In Action</a>
+### <a target="_blank" href="http://qianzhao.me/samantha/">Samantha In Action</a>
 
 ### Citation
 
