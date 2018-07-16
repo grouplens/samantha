@@ -10,6 +10,7 @@ GET    /assets/*file                       controllers.Assets.at(path="/public",
 
 # global
 GET    /config                             controllers.AdminHandlers.getConfig()
+POST   /config/set                         controllers.AdminHandlers.setConfig()
 POST   /config/reload                      controllers.AdminHandlers.reloadConfig()
 
 # engine

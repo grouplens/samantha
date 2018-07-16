@@ -49,6 +49,7 @@ import java.util.Map;
 
 @Singleton
 public class SamanthaConfigService {
+    private Configuration configuration;
     final private Injector injector;
     final private Map<String, EngineConfig> namedEngineConfig = new HashMap<>();
 
@@ -56,6 +57,7 @@ public class SamanthaConfigService {
     private SamanthaConfigService(Configuration configuration,
                                   Injector injector)
             throws ConfigurationException {
+        this.configuration = configuration;
         this.injector = injector;
         loadConfig(configuration);
     }
@@ -78,12 +80,16 @@ public class SamanthaConfigService {
     public void reloadConfig() {
         ConfigFactory.invalidateCaches();
         Config config = ConfigFactory.load();
-        loadConfig(new Configuration(config));
+        Configuration configuration = new Configuration(config);
+        loadConfig(configuration);
+    }
+
+    public void setConfig(Configuration config) {
+        configuration = config;
+        loadConfig(config);
     }
 
     public Configuration getConfig() {
-        Config config = ConfigFactory.load();
-        Configuration configuration = new Configuration(config);
         return configuration.getConfig(ConfigKey.SAMANTHA_BASE.get());
     }
 

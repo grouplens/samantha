@@ -4,6 +4,7 @@
 .h500 {
     height: 500px;
 }
-.code-editor {
-    overflow: auto;
+.dn {
+    display: none;
 }
+

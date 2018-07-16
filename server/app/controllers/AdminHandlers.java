@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.typesafe.config.ConfigRenderOptions;
 import org.grouplens.samantha.server.common.JsonHelpers;
+import org.grouplens.samantha.server.config.ConfigKey;
 import org.grouplens.samantha.server.config.SamanthaConfigService;
 import play.Configuration;
 import play.libs.Json;
@@ -80,6 +81,15 @@ public class AdminHandlers extends Controller {
         JsonNode conf = Json.parse(config.underlying().root().render(ConfigRenderOptions.concise()));
         ObjectNode resp = JsonHelpers.successJson();
         resp.set("config", conf);
+        return ok(resp);
+    }
+
+    public Result setConfig() {
+        JsonNode samantha = request().body().asJson();
+        ObjectNode newConfig = Json.newObject();
+        newConfig.set(ConfigKey.SAMANTHA_BASE.get(), samantha);
+        samanthaConfigService.setConfig(new Configuration(newConfig.toString()));
+        ObjectNode resp = JsonHelpers.successJson();
         return ok(resp);
     }
 

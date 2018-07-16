@@ -1,5 +1,13 @@
 @main() {
   <div class="h1">Welcome to Samantha!</div>
+  <div id="success-msg" class="alert alert-success alert-dismissible dn">
+    <button id="close-success" type="button" class="close"><span>&times;</span></button>
+    Success!
+  </div>
+  <div id="error-msg" class="alert alert-danger alert-dismissible dn">
+    <button id="close-error" type="button" class="close"><span aria-hidden="true">&times;</span></button>
+    Error!
+  </div>
   <div class="row">
     <div class="col-sm-6">
       <div class="modal-content">
@@ -10,8 +18,8 @@
           <div id="json-editor" class="h500"></div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-primary">Sync To Code Editor</button>
-          <button type="button" class="btn btn-primary">Submit To Server</button>
+          <button id="sync-to-code" type="button" class="btn btn-primary">Sync To Code Editor</button>
+          <button id="submit-json" type="button" class="btn btn-primary">Submit To Server</button>
         </div>
       </div>
     </div>
@@ -24,8 +32,8 @@
           <div id="code-editor" class="h500"></div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-primary">Sync To Object Editor</button>
-          <button type="button" class="btn btn-primary">Submit To Server</button>
+          <button id="sync-to-json" type="button" class="btn btn-primary">Sync To Object Editor</button>
+          <button id="submit-code" type="button" class="btn btn-primary">Submit To Server</button>
         </div>
       </div>
     </div>
