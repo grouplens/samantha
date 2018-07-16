@@ -1,12 +1,12 @@
 @main() {
-  <div class="h1">Welcome to Samantha!</div>
+  <div class="h1">Welcome to Samantha! <small>Edit below to customize the server for you.</small></div>
   <div id="success-msg" class="alert alert-success alert-dismissible dn">
     <button id="close-success" type="button" class="close"><span>&times;</span></button>
-    Success!
+    <span id="success-msg-content">Success!</span>
   </div>
   <div id="error-msg" class="alert alert-danger alert-dismissible dn">
     <button id="close-error" type="button" class="close"><span aria-hidden="true">&times;</span></button>
-    Error!
+    <span id="error-msg-content">Error!</span>
   </div>
   <div class="row">
     <div class="col-sm-6">
@@ -18,6 +18,7 @@
           <div id="json-editor" class="h500"></div>
         </div>
         <div class="modal-footer">
+          <button id="reset-json" type="button" class="btn btn-danger">Reset To Default</button>
           <button id="sync-to-code" type="button" class="btn btn-primary">Sync To Code Editor</button>
           <button id="submit-json" type="button" class="btn btn-primary">Submit To Server</button>
         </div>
@@ -32,6 +33,7 @@
           <div id="code-editor" class="h500"></div>
         </div>
         <div class="modal-footer">
+          <button id="reset-code" type="button" class="btn btn-danger">Reset To Default</button>
           <button id="sync-to-json" type="button" class="btn btn-primary">Sync To Object Editor</button>
           <button id="submit-code" type="button" class="btn btn-primary">Submit To Server</button>
         </div>

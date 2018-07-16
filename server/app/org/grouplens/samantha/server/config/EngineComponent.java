@@ -32,7 +32,7 @@ public enum EngineComponent implements ComponentGetter {
     ROUTER("router") {
         public void getComponent(SamanthaConfigService configService, String componentName,
                                  RequestContext requestContext) {
-            configService.getRouter(componentName, requestContext);
+            configService.getRouter(requestContext);
         }
     },
     SCHEDULER("schedulers") {

@@ -88,7 +88,13 @@ public class AdminHandlers extends Controller {
         JsonNode samantha = request().body().asJson();
         ObjectNode newConfig = Json.newObject();
         newConfig.set(ConfigKey.SAMANTHA_BASE.get(), samantha);
-        samanthaConfigService.setConfig(new Configuration(newConfig.toString()));
+        try {
+            samanthaConfigService.setConfig(new Configuration(newConfig.toString()));
+        } catch (Exception e) {
+            ObjectNode resp = JsonHelpers.errorJson();
+            resp.put("message", e.toString());
+            return badRequest(resp);
+        }
         ObjectNode resp = JsonHelpers.successJson();
         return ok(resp);
     }

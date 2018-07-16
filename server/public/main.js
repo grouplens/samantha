@@ -25,7 +25,8 @@ $(document).ready(function() {
           contentType: "application/json"
         }).done(function() {
           $("#success-msg").show();
-        }).fail(function() {
+        }).fail(function(resp) {
+          $("#error-msg-content").text(resp.responseJSON.message);
           $("#error-msg").show();
         });
       });
@@ -41,6 +42,19 @@ $(document).ready(function() {
       var obj = jsonEditor.get();
       getAndPost(obj);
     });
+    $("#reset-json").click(function() {
+      $.ajax("config/reload", {
+        type: "POST",
+        data: "{}",
+        dataType: "json",
+        contentType: "application/json"
+      }).done(function() {
+        $.getJSON("config", {}, function(data) {
+          jsonEditor.set(data.config);
+          $("#success-msg").show();
+        });
+      });
+    });
     $("#sync-to-json").click(function() {
       var value = codeEditor.session.getValue();
       var obj = JSON.parse(value);
@@ -51,6 +65,20 @@ $(document).ready(function() {
       var value = codeEditor.session.getValue();
       var obj = JSON.parse(value);
       getAndPost(obj);
+    });
+    $("#reset-code").click(function() {
+      $.ajax("config/reload", {
+        type: "POST",
+        data: "{}",
+        dataType: "json",
+        contentType: "application/json"
+      }).done(function() {
+        $.getJSON("config", {}, function(data) {
+          var value = JSON.stringify(data.config, null, "  ");
+          codeEditor.session.setValue(value);
+          $("#success-msg").show();
+        });
+      });
     });
     $("#close-success").click(function() {
       $("#success-msg").hide();

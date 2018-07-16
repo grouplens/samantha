@@ -25,10 +25,15 @@ package org.grouplens.samantha.server.config;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.grouplens.samantha.server.evaluator.Evaluator;
+import org.grouplens.samantha.server.evaluator.EvaluatorConfig;
+import org.grouplens.samantha.server.exception.BadRequestException;
 import org.grouplens.samantha.server.exception.ConfigurationException;
 
 import org.grouplens.samantha.server.indexer.Indexer;
+import org.grouplens.samantha.server.indexer.IndexerConfig;
 import org.grouplens.samantha.server.io.RequestContext;
+import org.grouplens.samantha.server.ranker.RankerConfig;
+import org.grouplens.samantha.server.retriever.RetrieverConfig;
 import org.grouplens.samantha.server.scheduler.QuartzSchedulerService;
 import org.grouplens.samantha.server.predictor.Predictor;
 import org.grouplens.samantha.server.predictor.PredictorConfig;
@@ -69,8 +74,11 @@ public class SamanthaConfigService {
         List<String> enabledEngines = config.
                 getStringList(ConfigKey.ENGINES_ENABLED.get());
         for (String engine : enabledEngines) {
-            Configuration engineConfig = config.
-                    getConfig(ConfigKey.SAMANTHA_BASE.get() + "." + engine);
+            String enginePath = ConfigKey.SAMANTHA_BASE.get() + "." + engine;
+            Configuration engineConfig = config.getConfig(enginePath);
+            if (engineConfig == null) {
+                throw new ConfigurationException("The enabled engine " + enginePath + " does not exist!");
+            }
             String engineType = engineConfig.getString(ConfigKey.ENGINE_TYPE.get());
             namedEngineConfig.put(engine,
                     EngineType.valueOf(engineType).loadConfig(engine, engineConfig, injector));
@@ -80,7 +88,7 @@ public class SamanthaConfigService {
     public void reloadConfig() {
         ConfigFactory.invalidateCaches();
         Config config = ConfigFactory.load();
-        Configuration configuration = new Configuration(config);
+        configuration = new Configuration(config);
         loadConfig(configuration);
     }
 
@@ -93,55 +101,82 @@ public class SamanthaConfigService {
         return configuration.getConfig(ConfigKey.SAMANTHA_BASE.get());
     }
 
-    public Indexer getIndexer(String indexerName, RequestContext requestContext) {
+    private String checkEngine(RequestContext requestContext) {
         String engineName = requestContext.getEngineName();
-        return namedEngineConfig.get(engineName)
-                .getIndexerConfigs().get(indexerName).getIndexer(requestContext);
+        EngineConfig engineConfig = namedEngineConfig.get(engineName);
+        checkNullWithTypeName(engineConfig, "engine", engineName);
+        return engineName;
+    }
+
+    private void checkNullWithTypeName(Object config, String type, String name) {
+        if (config == null) {
+            throw new BadRequestException("The requested " + type + " " + name + " does not exist!");
+        }
+    }
+
+    public Indexer getIndexer(String indexerName, RequestContext requestContext) {
+        String engineName = checkEngine(requestContext);
+        IndexerConfig indexerConfig = namedEngineConfig.get(engineName)
+                .getIndexerConfigs().get(indexerName);
+        checkNullWithTypeName(indexerConfig, "indexer", indexerName);
+        return indexerConfig.getIndexer(requestContext);
     }
 
     public Retriever getRetriever(String retrieverName, RequestContext requestContext) {
-        String engineName = requestContext.getEngineName();
-        return namedEngineConfig.get(engineName)
-                .getRetrieverConfigs().get(retrieverName).getRetriever(requestContext);
+        String engineName = checkEngine(requestContext);
+        RetrieverConfig retrieverConfig = namedEngineConfig.get(engineName)
+                .getRetrieverConfigs().get(retrieverName);
+        checkNullWithTypeName(retrieverConfig, "retriever", retrieverName);
+        return retrieverConfig.getRetriever(requestContext);
     }
 
     public Predictor getPredictor(String predictorName, RequestContext requestContext) {
-        String engineName = requestContext.getEngineName();
-        return namedEngineConfig.get(engineName)
-                .getPredictorConfigs().get(predictorName).getPredictor(requestContext);
+        String engineName = checkEngine(requestContext);
+        PredictorConfig predictorConfig = namedEngineConfig.get(engineName)
+                .getPredictorConfigs().get(predictorName);
+        checkNullWithTypeName(predictorConfig, "predictor", predictorName);
+        return predictorConfig.getPredictor(requestContext);
     }
 
     public Ranker getRanker(String rankerName, RequestContext requestContext) {
-        String engineName = requestContext.getEngineName();
-        return namedEngineConfig.get(engineName)
-                .getRankerConfigs().get(rankerName).getRanker(requestContext);
+        String engineName = checkEngine(requestContext);
+        RankerConfig rankerConfig = namedEngineConfig.get(engineName)
+                .getRankerConfigs().get(rankerName);
+        checkNullWithTypeName(rankerConfig, "ranker", rankerName);
+        return rankerConfig.getRanker(requestContext);
     }
 
     public Evaluator getEvaluator(String evalName, RequestContext requestContext) {
-        String engineName = requestContext.getEngineName();
-        return namedEngineConfig.get(engineName)
-                .getEvaluatorConfigs().get(evalName).getEvaluator(requestContext);
+        String engineName = checkEngine(requestContext);
+        EvaluatorConfig evaluatorConfig = namedEngineConfig.get(engineName)
+                .getEvaluatorConfigs().get(evalName);
+        checkNullWithTypeName(evaluatorConfig, "evaluator", evalName);
+        return evaluatorConfig.getEvaluator(requestContext);
     }
 
     public Recommender getRecommender(String recommenderName, RequestContext requestContext) {
-        String engineName = requestContext.getEngineName();
-        return namedEngineConfig.get(engineName)
-                .getRecommenderConfigs().get(recommenderName)
-                .getRecommender(requestContext);
+        String engineName = checkEngine(requestContext);
+        RecommenderConfig recommenderConfig = namedEngineConfig.get(engineName)
+                .getRecommenderConfigs().get(recommenderName);
+        checkNullWithTypeName(recommenderConfig, "recommender", recommenderName);
+        return recommenderConfig.getRecommender(requestContext);
     }
 
     public SchedulerConfig getSchedulerConfig(String schedulerName, RequestContext requestContext) {
-        String engineName = requestContext.getEngineName();
-        return namedEngineConfig.get(engineName)
+        String engineName = checkEngine(requestContext);
+        SchedulerConfig schedulerConfig = namedEngineConfig.get(engineName)
                 .getSchedulerConfigs().get(schedulerName);
+        checkNullWithTypeName(schedulerConfig, "scheduler", schedulerName);
+        return schedulerConfig;
     }
 
-    public Router getRouter(String engineName, RequestContext requestContext) {
+    public Router getRouter(RequestContext requestContext) {
+        String engineName = checkEngine(requestContext);
         return namedEngineConfig.get(engineName).getRouterConfig().getRouter(requestContext);
     }
 
     public Predictor routePredictor(RequestContext requestContext) {
-        String engineName = requestContext.getEngineName();
+        String engineName = checkEngine(requestContext);
         Router router = namedEngineConfig.get(engineName)
                 .getRouterConfig().getRouter(requestContext);
         Map<String, PredictorConfig> predictorConfigs = namedEngineConfig.get(engineName)
@@ -157,7 +192,7 @@ public class SamanthaConfigService {
     }
 
     public Recommender routeRecommender(RequestContext requestContext) {
-        String engineName = requestContext.getEngineName();
+        String engineName = checkEngine(requestContext);
         Router router = namedEngineConfig.get(engineName)
                 .getRouterConfig().getRouter(requestContext);
         Map<String, RecommenderConfig> recommenderConfigs = namedEngineConfig.get(engineName)
