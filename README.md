@@ -26,9 +26,11 @@
 
 ### Documentation
 
-* [Introduction](docs/Chapter 1 - Introduction.pdf)
-* [Setup](docs/Chapter 2 - Setup.md)
-* <a target="_blank" href="http://qianzhao.me/samantha/doc/api">Java API of the Server</a>
+[Introduction](docs/Chapter-1-Introduction.pdf)
+
+[Setup](docs/Chapter-2-Setup.md)
+
+<a target="_blank" href="http://qianzhao.me/samantha/doc/api">Java API of the Server</a>
 
 ### <a target="_blank" href="">Samantha In Action</a>
 
