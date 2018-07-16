@@ -32,7 +32,7 @@
 
 <a target="_blank" href="http://qianzhao.me/samantha/doc/api">Java API of the Server</a>
 
-### <a target="_blank" href="">Samantha In Action</a>
+### <a target="_blank" href="http://qianzhao.me/samantha">Samantha In Action</a>
 
 ### Citation
 
