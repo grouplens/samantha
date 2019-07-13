@@ -30,19 +30,20 @@
 
 [Setup](docs/Chapter-2-Setup.md)
 
-<a target="_blank" href="http://qianzhao.me/doc/api/index.html">Java API of the Server</a>
-
-### <a target="_blank" href="http://qianzhao.me:9100">Samantha In Action</a>
-
-### Citation
+### Citation of the Tool
 
 * Qian Zhao. 2018. User-Centric Design and Evaluation of Online Interactive Recommender Systems. Ph.D. Thesis. University of Minnesota.
 
 ### Note
 
-* Samantha is a project developed by <a href="http://qianzhao.me">Qian Zhao</a>, Ph.D. at GroupLens Research lab (graduated on May 2018) and originated from his research projects there. Samantha might be integrated with <a href="http://lenskit.org/" target="_blank">Lenskit</a> in future.
+* Samantha is a project developed by <a href="https://qzhao2018.github.io/zhao/">Qian Zhao</a>, Ph.D. at GroupLens Research lab (graduated on May 2018) and originated from his research projects there. Samantha might be integrated with <a href="http://lenskit.org/" target="_blank">Lenskit</a> in future.
 
-### For the paper GB-CENT
+### Publications Based On Samantha
 
-* The experiments were run with Samantha in: Qian Zhao, Yue Shi, Liangjie Hong. GB-CENT: Gradient Boosted Categorical Embedding and Numerical Trees. In <i>Proceedings of the 26th International World Wide Web conference (WWW 2017)</i>, ACM, 2017.
-* Go to branch <a href="https://github.com/grouplens/samantha/blob/qian/gbcent/docs/README.md">qian/gbcent, docs/README.md</a> for details
+* Qian Zhao, Yue Shi, Liangjie Hong. GB-CENT: Gradient Boosted Categorical Embedding and Numerical Trees. In <i>Proceedings of the 26th International World Wide Web conference (WWW 2017)</i>, ACM, 2017. (see branch <a href="https://github.com/grouplens/samantha/blob/qian/gbcent/docs/README.md">qian/gbcent, docs/README.md</a> for details)
+
+* Qian Zhao, Jilin Chen, Minmin Chen, Sagar Jain, Alex Beutel, Francois Belletti, Ed Chi. 2018. Categorical-Attributes-Based Item Classification for Recommender Systems. In <i>Proceedings of The 12th ACM Conference on Recommender Systems (RecSys’18)</i>. ACM, New York, NY, USA. (see branch <a href="https://github.com/grouplens/samantha/tree/qian/hsm/tools/tensorflow/src">qian/hsm</a> for details)
+
+* Qian Zhao, Martijn Willemsen, Gediminas Adomavicius, F. Maxwell Harper, Joseph A. Konsta. 2018. From Preference Into Decision Making: Modeling User Interactions in Recommender Systems. In <i>Proceedings of The 12th ACM Conference on Recommender Systems (RecSys’19)</i>. ACM, New York, NY, USA. (see branch <a href="https://github.com/grouplens/samantha/tree/qian/interaction/tools/tensorflow/src">qian/interaction</a> for details)
+
+* Qian Zhao, F. Maxwell Harper, Gediminas Adomavicius, Joseph Konstan. Explicit or Implicit Feedback? Engagement or Satisfaction? A Field Experiment on Machine-Learning-Based Recommender Systems. In <i>Proceedings of the 33rd ACM/SIGAPP Symposium On Applied Computing, Track of Recommender Systems: Theory, User Interactions and Applications (SAC 2018)</i>, ACM, 2018. (see <a href="https://github.com/grouplens/samantha/tree/master/server/app/org/grouplens/samantha/server/reinforce">Reinforce-State</a>, <a href="https://github.com/grouplens/samantha/blob/master/server/app/org/grouplens/samantha/server/predictor/LinearUCBPredictorConfig.java">Bandit-\*</a>, <a href="https://github.com/grouplens/samantha/blob/master/server/app/org/grouplens/samantha/server/predictor/SVDFeaturePredictorConfig.java">MF-\*</a>)
